@@ -13,7 +13,7 @@ public:
         fname{ std::forward<String>(fname_) }
     {}
 
-    const std::string uri;
+    std::string uri;
     const std::string fname;
 };
 

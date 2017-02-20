@@ -87,14 +87,9 @@ void OnTickSimple<T>::redirect(typename T::iterator& job_it)
     auto factory = weak_factory.lock();
     if (factory)
     {
-        const auto current_downloader = job_it->downloader;
-        const auto status = current_downloader->status();
-        const auto old_task = job_it->task;
-        const Task new_task{
-            status.redirect_uri,
-            old_task->fname
-        };
-        job_it->downloader = factory->create(new_task);
+        const auto status = job_it->downloader->status();
+        job_it->task->uri = status.redirect_uri;
+        job_it->downloader = factory->create( *(job_it->task) );
     } else
     {
         job_container.erase(job_it);

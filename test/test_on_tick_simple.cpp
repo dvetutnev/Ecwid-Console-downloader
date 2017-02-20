@@ -81,11 +81,12 @@ void Downloader_normal_completion(StatusDownloader::State state)
 
     // Insert next Job
     Job next_job{ next_task, next_downloader };
-    it = std::find(it_begin, it_end, next_job);
+    it = std::find( it_begin, it_end, next_job );
     ASSERT_NE(it, it_end);
 
     // Remove current Job
-    it = std::find(it_begin, it_end, used_job);
+    it = std::find_if( it_begin, it_end,
+                      [&used_job](const auto& job) { return job.task == used_job.task; } );
     ASSERT_EQ(it, it_end);
 
     // Don`t touch other Job
@@ -142,7 +143,8 @@ void Downloader_completion_Factory_is_null(StatusDownloader::State state)
     const JobList::const_iterator it_end = std::end(job_list);
 
     // Remove current Job
-    it = std::find(it_begin, it_end, used_job);
+    it = std::find_if( it_begin, it_end,
+                      [&used_job](const auto& job) { return job.task == used_job.task; } );
     ASSERT_EQ(it, it_end);
 
     // Don`t touch other Job
@@ -199,7 +201,8 @@ void Downloader_completion_no_Task(StatusDownloader::State state)
     const JobList::const_iterator it_end = std::end(job_list);
 
     // Remove current Job
-    it = std::find(it_begin, it_end, used_job);
+    it = std::find_if( it_begin, it_end,
+                      [&used_job](const auto& job) { return job.task == used_job.task; } );
     ASSERT_EQ(it, it_end);
 
     // Don`t touch other Job
@@ -245,22 +248,25 @@ TEST(OnTickSimple, Downloader_is_Redirect)
     EXPECT_CALL( task_list, get() )
             .Times(0);
 
-    auto redirect_task = std::make_shared<Task>( std::string{status.redirect_uri}, std::string{used_job.task->fname} );
+    Task redirect_task{ std::string{status.redirect_uri}, std::string{used_job.task->fname} };
     auto redirect_downloader = std::make_shared<DownloaderMock>();
     auto factory = std::make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(*redirect_task) )
+    EXPECT_CALL( *factory, create(redirect_task) )
             .WillOnce( Return(redirect_downloader) );
+
+    OnTickSimple<JobList> on_tick{job_list, factory, task_list};
+    on_tick(used_downloader);
 
     JobList::const_iterator it;
     const JobList::const_iterator it_begin = std::begin(job_list);
     const JobList::const_iterator it_end = std::end(job_list);
 
-    OnTickSimple<JobList> on_tick{job_list, factory, task_list};
-    on_tick(used_downloader);
-
-    // Update Downloader in current Job
-    Job updated_job{ used_job.task, redirect_downloader, used_job.redirect_count + 1 };
-    it = std::find(it_begin, it_end, updated_job);
+    // Update Downloader & Task.uri in current Job
+    it = std::find_if( it_begin, it_end,
+                       [&used_job, &redirect_task, &redirect_downloader](const auto& job)
+    {
+        return job.task == used_job.task && *(job.task) == redirect_task && job.downloader == redirect_downloader;
+    } );
     ASSERT_NE(it, it_end);
 
     // Don`t touch other Job
@@ -302,7 +308,8 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_is_null)
     const JobList::const_iterator it_end = std::end(job_list);
 
     // Remove current Job
-    it = std::find(it_begin, it_end, used_job);
+    it = std::find_if( it_begin, it_end,
+                      [&used_job](const auto& job) { return job.task == used_job.task; } );
     ASSERT_EQ(it, it_end);
 
     // Don`t touch other Job
@@ -354,7 +361,8 @@ TEST(OnTickSimple, Downloader_is_Redirect_max_redirect)
     ASSERT_NE(it, it_end);
 
     // Remove current Job
-    it = std::find(it_begin, it_end, used_job);
+    it = std::find_if( it_begin, it_end,
+                      [&used_job](const auto& job) { return job.task == used_job.task; } );
     ASSERT_EQ(it, it_end);
 
     // Don`t touch other Job
