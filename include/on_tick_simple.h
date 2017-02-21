@@ -63,15 +63,19 @@ void OnTickSimple<T>::next_task(const typename T::iterator& job_it)
 {
     job_container.erase(job_it);
     auto factory = weak_factory.lock();
-    if (!factory)
+    if ( !factory )
         return;
 
     Job next_job;
-    next_job.task = task_list.get();
-    if ( !next_job.task )
-        return;
+    do
+    {
+        next_job.task = task_list.get();
+        if ( !next_job.task )
+            return;
 
-    next_job.downloader = factory->create(*next_job.task);
+        next_job.downloader = factory->create(*next_job.task);
+    } while( !next_job.downloader );
+
     job_container.insert( std::end(job_container), next_job );
 }
 
@@ -87,9 +91,18 @@ void OnTickSimple<T>::redirect(typename T::iterator& job_it)
     auto factory = weak_factory.lock();
     if (factory)
     {
-        const auto status = job_it->downloader->status();
-        job_it->task->uri = status.redirect_uri;
-        job_it->downloader = factory->create( *(job_it->task) );
+        auto uri = job_it->downloader->status().redirect_uri;
+        auto fname = job_it->task->fname;
+        Task task{ std::move(uri), std::move(fname) };
+        auto downloader = factory->create(task);
+        if (downloader)
+        {
+            job_it->task->uri = task.uri;
+            job_it->downloader = downloader;
+        } else
+        {
+            next_task(job_it);
+        }
     } else
     {
         job_container.erase(job_it);

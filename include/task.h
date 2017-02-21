@@ -7,14 +7,29 @@
 class Task
 {
 public:
-    template<typename String = std::string>
-    Task(String&& uri_, String&& fname_) :
-        uri{ std::forward<String>(uri_) },
-        fname{ std::forward<String>(fname_) }
+    Task()
     {}
 
+    template<typename String = std::string>
+    Task(String&& uri_, String&& fname_)
+        : uri{ std::forward<String>(uri_) },
+          fname{ std::forward<String>(fname_) }
+    {}
+
+    Task(const Task& other)
+        : uri{other.uri},
+          fname{other.fname}
+    {}
+
+    Task& operator= (const Task& other)
+    {
+        uri = other.uri;
+        fname = other.fname;
+        return *this;
+    }
+
     std::string uri;
-    const std::string fname;
+    std::string fname;
 };
 
 class TaskList
