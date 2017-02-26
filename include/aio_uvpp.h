@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "uvpp/loop.hpp"
-#include "uvpp/timer.hpp"
+#include <uvpp/loop.hpp>
+#include <uvpp/timer.hpp>
 
 namespace uvpp {
 class LoopWithCreate : public loop
