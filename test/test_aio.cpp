@@ -161,3 +161,19 @@ TEST(aio_mock, aio_timer)
     for ( std::size_t i = 1; i <= count_call; i++ )
         handler();
 }
+
+TEST(aio, resolver)
+{
+    aio_uvpp::Loop loop;
+    aio_uvpp::Ressolver resolver{loop};
+    const std::string ip{"127.0.0.1"};
+    const bool r = resolver.resolve(ip,
+                     [&ip](const auto& e, bool ipv4, const auto& addr)
+    {
+        ASSERT_FALSE(e);
+        ASSERT_EQ(addr, ip);
+        ASSERT_TRUE(ipv4);
+    } );
+    ASSERT_TRUE(r);
+    ASSERT_TRUE( loop.run() );
+}
