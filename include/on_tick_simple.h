@@ -29,7 +29,7 @@ public:
 private:
     void next_task(const typename JobContainer::iterator&);
     void redirect(typename JobContainer::iterator&);
-    typename JobContainer::iterator find_job(std::shared_ptr<Downloader>);
+    typename JobContainer::iterator find_job(Downloader*);
 
     JobContainer& job_container;
     std::weak_ptr<Factory> weak_factory;
@@ -43,7 +43,7 @@ private:
 template<typename T>
 void OnTickSimple<T>::operator()(std::shared_ptr<Downloader> downloader)
 {
-    auto job_it = find_job(downloader);
+    auto job_it = find_job( downloader.get() );
     switch ( downloader->status().state )
     {
     case StatusDownloader::State::Done:
@@ -110,10 +110,10 @@ void OnTickSimple<T>::redirect(typename T::iterator& job_it)
 }
 
 template<typename T>
-typename T::iterator OnTickSimple<T>::find_job(std::shared_ptr<Downloader> downloader)
+typename T::iterator OnTickSimple<T>::find_job(Downloader* downloader)
 {
     typename T::iterator it = std::find_if( std::begin(job_container), std::end(job_container),
-                            [&downloader](const Job& job) { return job.downloader == downloader; } );
+                            [&downloader](const Job& job) { return job.downloader.get() == downloader; } );
     if ( it == std::end(job_container) )
         throw std::runtime_error{"OnTickSimple => invalid Downloader"};
     return it;
