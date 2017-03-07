@@ -2,7 +2,7 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "Prevented in-tree built. Please create a build directory outside of the source code and call cmake from there. Thank you.")
 endif()
 
-project(Ecwid-Console-downloader CXX)
+project(Ecwid-Console-downloader CXX C)
 cmake_minimum_required(VERSION 3.4)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -32,6 +32,7 @@ set(
 
 find_package(UV REQUIRED)
 find_package(UVPP REQUIRED)
+find_package(http-parser REQUIRED)
 find_package(GoogleTest)
 
 include_directories(${UVPP_INCLUDE_DIR})
