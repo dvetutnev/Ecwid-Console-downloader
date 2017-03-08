@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <random>
 
+using namespace std;
+
 using ::testing::ReturnRef;
 using ::testing::Return;
 using ::testing::AtLeast;
@@ -21,25 +23,25 @@ TEST(OnTickSimple, Downloader_is_OnTheGo)
 {
     StatusDownloader status;
     status.state = StatusDownloader::State::OnTheGo;
-    auto used_downloader = std::make_shared<DownloaderMock>();
+    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = std::make_shared<DownloaderMock>();
+    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    Task used_task{ std::string{"http://internet.org/"}, std::string{"fname.zip"} };
-    Task other_task{ std::string{"http://internet.org/2"}, std::string{"fname2.zip"} };
-    Job used_job{ std::make_shared<Task>(used_task), used_downloader };
-    Job other_job{ std::make_shared<Task>(other_task), other_downloader };
+    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
+    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    Job used_job{ make_shared<Task>(used_task), used_downloader };
+    Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
             .Times(0);
 
-    auto factory = std::make_shared<FactoryMock>();
+    auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(_) )
             .Times(0);
 
@@ -65,28 +67,28 @@ void Downloader_normal_completion(StatusDownloader::State state)
 {
     StatusDownloader status;
     status.state = state;
-    auto used_downloader = std::make_shared<DownloaderMock>();
+    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = std::make_shared<DownloaderMock>();
+    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    Task used_task{ std::string{"http://internet.org/"}, std::string{"fname.zip"} };
-    Task other_task{ std::string{"http://internet.org/2"}, std::string{"fname2.zip"} };
-    Job used_job{ std::make_shared<Task>(used_task), used_downloader };
-    Job other_job{ std::make_shared<Task>(other_task), other_downloader };
+    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
+    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    Job used_job{ make_shared<Task>(used_task), used_downloader };
+    Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
-    Task next_task{ std::string{"http://internet.org/next"}, std::string{"fname_next.zip"} };
+    const Task next_task{ string{"http://internet.org/next"}, string{"fname_next.zip"} };
     auto next_task_ptr = std::make_shared<Task>(next_task);
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
             .WillOnce( Return(next_task_ptr) );
 
-    auto next_downloader = std::make_shared<DownloaderMock>();
-    auto factory = std::make_shared<FactoryMock>();
+    auto next_downloader = make_shared<DownloaderMock>();
+    auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(next_task) )
             .WillOnce( Return(next_downloader) );
 
@@ -136,18 +138,18 @@ void Downloader_completion_Factory_is_null(StatusDownloader::State state)
 {
     StatusDownloader status;
     status.state = state;
-    auto used_downloader = std::make_shared<DownloaderMock>();
+    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = std::make_shared<DownloaderMock>();
+    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    Task used_task{ std::string{"http://internet.org/"}, std::string{"fname.zip"} };
-    Task other_task{ std::string{"http://internet.org/2"}, std::string{"fname2.zip"} };
-    Job used_job{ std::make_shared<Task>(used_task), used_downloader };
-    Job other_job{ std::make_shared<Task>(other_task), other_downloader };
+    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
+    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    Job used_job{ make_shared<Task>(used_task), used_downloader };
+    Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
     TaskListMock task_list;
@@ -198,25 +200,25 @@ void Downloader_completion_no_Task(StatusDownloader::State state)
 {
     StatusDownloader status;
     status.state = state;
-    auto used_downloader = std::make_shared<DownloaderMock>();
+    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = std::make_shared<DownloaderMock>();
+    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    Task used_task{ std::string{"http://internet.org/"}, std::string{"fname.zip"} };
-    Task other_task{ std::string{"http://internet.org/2"}, std::string{"fname2.zip"} };
-    Job used_job{ std::make_shared<Task>(used_task), used_downloader };
-    Job other_job{ std::make_shared<Task>(other_task), other_downloader };
+    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
+    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    Job used_job{ make_shared<Task>(used_task), used_downloader };
+    Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
-            .WillOnce( Return( std::shared_ptr<Task>{} ) );
+            .WillOnce( Return( shared_ptr<Task>{} ) );
 
-    auto factory = std::make_shared<FactoryMock>();
+    auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(_) )
             .Times(0);
 
@@ -260,35 +262,35 @@ void Downloader_completion_Factory_returning_null_no_Task(StatusDownloader::Stat
 {
     StatusDownloader status;
     status.state = state;
-    auto used_downloader = std::make_shared<DownloaderMock>();
+    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = std::make_shared<DownloaderMock>();
+    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    Task used_task{ std::string{"http://internet.org/"}, std::string{"fname.zip"} };
-    Task other_task{ std::string{"http://internet.org/2"}, std::string{"fname2.zip"} };
-    Job used_job{ std::make_shared<Task>(used_task), used_downloader };
-    Job other_job{ std::make_shared<Task>(other_task), other_downloader };
+    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
+    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    Job used_job{ make_shared<Task>(used_task), used_downloader };
+    Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
-    Task first_bad_task{ std::string{"first_bad_uri"}, std::string{"first_bad_fname"} };
-    Task second_bad_task{ std::string{"second_bad_uri"}, std::string{"second_bad_fname"} };
-    auto first_bad_task_ptr = std::make_shared<Task>(first_bad_task);
-    auto second_bad_task_ptr = std::make_shared<Task>(second_bad_task);
+    const Task first_bad_task{ string{"first_bad_uri"}, string{"first_bad_fname"} };
+    const Task second_bad_task{ string{"second_bad_uri"}, string{"second_bad_fname"} };
+    auto first_bad_task_ptr = make_shared<Task>(first_bad_task);
+    auto second_bad_task_ptr = make_shared<Task>(second_bad_task);
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
             .WillOnce( Return(first_bad_task_ptr) )
             .WillOnce( Return(second_bad_task_ptr) )
-            .WillOnce( Return(std::shared_ptr<Task>{}) );
+            .WillOnce( Return(shared_ptr<Task>{}) );
 
     Task first_call_factory_task, second_call_factory_task;
-    auto factory = std::make_shared<FactoryMock>();
+    auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(_) )
-            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(std::shared_ptr<Downloader>{}) ) )
-            .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(std::shared_ptr<Downloader>{}) ) );
+            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(shared_ptr<Downloader>{}) ) )
+            .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(shared_ptr<Downloader>{}) ) );
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
     on_tick(used_downloader);
@@ -334,27 +336,27 @@ TEST(OnTickSimple, Downloader_is_Redirect)
     StatusDownloader status;
     status.state = StatusDownloader::State::Redirect;
     status.redirect_uri = "http://internet.org/redirect";
-    auto used_downloader = std::make_shared<DownloaderMock>();
+    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = std::make_shared<DownloaderMock>();
+    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    Task used_task{ std::string{"http://internet.org/"}, std::string{"fname.zip"} };
-    Task other_task{ std::string{"http://internet.org/2"}, std::string{"fname2.zip"} };
-    Job used_job{ std::make_shared<Task>(used_task), used_downloader };
-    Job other_job{ std::make_shared<Task>(other_task), other_downloader };
+    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
+    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    Job used_job{ make_shared<Task>(used_task), used_downloader };
+    Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
             .Times(0);
 
-    Task redirect_task{ std::string{status.redirect_uri}, std::string{used_job.task->fname} };
-    auto redirect_downloader = std::make_shared<DownloaderMock>();
-    auto factory = std::make_shared<FactoryMock>();
+    const Task redirect_task{ string{status.redirect_uri}, string{used_job.task->fname} };
+    auto redirect_downloader = make_shared<DownloaderMock>();
+    auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(redirect_task) )
             .WillOnce( Return(redirect_downloader) );
 
@@ -386,25 +388,25 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_is_null)
     StatusDownloader status;
     status.state = StatusDownloader::State::Redirect;
     status.redirect_uri = "http://internet.org/redirect";
-    auto used_downloader = std::make_shared<DownloaderMock>();
+    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = std::make_shared<DownloaderMock>();
+    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    Task used_task{ std::string{"http://internet.org/"}, std::string{"fname.zip"} };
-    Task other_task{ std::string{"http://internet.org/2"}, std::string{"fname2.zip"} };
-    Job used_job{ std::make_shared<Task>(used_task), used_downloader };
-    Job other_job{ std::make_shared<Task>(other_task), other_downloader };
+    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
+    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    Job used_job{ make_shared<Task>(used_task), used_downloader };
+    Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
             .Times(0);
 
-    auto factory = std::make_shared<FactoryMock>();
+    auto factory = make_shared<FactoryMock>();
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
 
@@ -435,28 +437,28 @@ TEST(OnTickSimple, Downloader_is_Redirect_max_redirect)
     StatusDownloader status;
     status.state = StatusDownloader::State::Redirect;
     status.redirect_uri = "http://internet.org/redirect";
-    auto used_downloader = std::make_shared<DownloaderMock>();
+    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = std::make_shared<DownloaderMock>();
+    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    Task used_task{ std::string{"http://internet.org/"}, std::string{"fname.zip"} };
-    Task other_task{ std::string{"http://internet.org/2"}, std::string{"fname2.zip"} };
+    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
+    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
     Job used_job{ std::make_shared<Task>(used_task), used_downloader, max_redirect };
     Job other_job{ std::make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
-    Task next_task{ std::string{"http://internet.org/next"}, std::string{"fname_next.zip"} };
-    auto next_task_ptr = std::make_shared<Task>(next_task);
+    const Task next_task{ string{"http://internet.org/next"}, string{"fname_next.zip"} };
+    auto next_task_ptr = make_shared<Task>(next_task);
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
             .WillOnce( Return(next_task_ptr) );
 
-    auto next_downloader = std::make_shared<DownloaderMock>();
-    auto factory = std::make_shared<FactoryMock>();
+    auto next_downloader = make_shared<DownloaderMock>();
+    auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(next_task) )
             .WillOnce( Return(next_downloader) );
 
@@ -491,37 +493,37 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_returning_null)
     StatusDownloader status;
     status.state = StatusDownloader::State::Redirect;
     status.redirect_uri = "bad_uri";
-    auto used_downloader = std::make_shared<DownloaderMock>();
+    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = std::make_shared<DownloaderMock>();
+    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    Task used_task{ std::string{"http://internet.org/"}, std::string{"fname.zip"} };
-    Task other_task{ std::string{"http://internet.org/2"}, std::string{"fname2.zip"} };
-    Job used_job{ std::make_shared<Task>(used_task), used_downloader };
-    Job other_job{ std::make_shared<Task>(other_task), other_downloader };
+    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
+    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    Job used_job{ make_shared<Task>(used_task), used_downloader };
+    Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
-    Task next_task{ std::string{"http://internet.org/next"}, std::string{"fname_next.zip"} };
-    auto next_task_ptr = std::make_shared<Task>(next_task);
+    const Task next_task{ string{"http://internet.org/next"}, string{"fname_next.zip"} };
+    auto next_task_ptr = make_shared<Task>(next_task);
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
             .WillOnce( Return(next_task_ptr) );
 
     Task first_call_factory_task, second_call_factory_task;
-    auto next_downloader = std::make_shared<DownloaderMock>();
-    auto factory = std::make_shared<FactoryMock>();
+    auto next_downloader = make_shared<DownloaderMock>();
+    auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(_) )
-            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(std::shared_ptr<Downloader>{}) ) )
+            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(shared_ptr<Downloader>{}) ) )
             .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(next_downloader) ) );
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
     on_tick(used_downloader);
 
-    Task redirect_task{ status.redirect_uri, used_task.fname };
+    const Task redirect_task{ string{status.redirect_uri}, string{used_task.fname} };
     ASSERT_EQ( first_call_factory_task, redirect_task );
     ASSERT_EQ( second_call_factory_task, next_task );
 
@@ -548,11 +550,11 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_returning_null)
     ASSERT_EQ( job_list.size(), 2u );
 }
 
-void invalid_Downloader(std::shared_ptr<Downloader> downloader)
+void invalid_Downloader(shared_ptr<Downloader> downloader)
 {
     JobList job_list;
 
-    auto factory = std::make_shared<FactoryMock>();
+    auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(_) )
             .Times(0);
 
@@ -576,6 +578,6 @@ TEST(OnTickSimple, unknow_Downloader)
 {
     {
         SCOPED_TRACE("unknow_Downloader");
-        invalid_Downloader( std::make_shared<DownloaderMock>() );
+        invalid_Downloader( make_shared<DownloaderMock>() );
     }
 }

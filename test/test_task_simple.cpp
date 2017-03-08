@@ -4,20 +4,22 @@
 #include "task_simple.h"
 #include <sstream>
 
+using namespace std;
+
 TEST(TaskListSimple, normal)
 {
-    std::string path{"/home/"};
+    const string path{"/home/"};
 
-    Task t1{
-        std::string{"http://internet.org/archive.bin"},
-        std::string{"downloaded_file_1.zip"}
+    const Task t1{
+        string{"http://internet.org/archive.bin"},
+        string{"downloaded_file_1.zip"}
     };
-    Task t2{
-        std::string{"http://internet.org/download/"},
-        std::string{"New_file.zip"}
+    const Task t2{
+        string{"http://internet.org/download/"},
+        string{"New_file.zip"}
     };
 
-    std::stringstream stream;
+    stringstream stream;
     stream << t1.uri << " " << t1.fname << std::endl;
     stream << t2.uri << " " << t2.fname << std::endl;
 
@@ -36,12 +38,12 @@ TEST(TaskListSimple, normal)
 
 TEST(TaskListSimple, null_if_eof)
 {
-    Task t1{
-        std::string{"http://internet.org/archive.bin"},
-        std::string{"downloaded_file_1.zip"}
+    const Task t1{
+        string{"http://internet.org/archive.bin"},
+        string{"downloaded_file_1.zip"}
     };
 
-    std::stringstream stream;
+    stringstream stream;
     stream << t1.uri << " " << t1.fname << std::endl;
 
     TaskListSimple task_list{stream, std::string{} };
@@ -55,16 +57,16 @@ TEST(TaskListSimple, null_if_eof)
 
 TEST(TaskListSimple, skip_line_empty)
 {
-    Task t1{
-        std::string{"http://internet.org/archive.bin"},
-        std::string{"downloaded_file_1.zip"}
+    const Task t1{
+        string{"http://internet.org/archive.bin"},
+        string{"downloaded_file_1.zip"}
     };
-    Task t2{
-        std::string{"http://internet.org/download/"},
-        std::string{"New_file.zip"}
+    const Task t2{
+        string{"http://internet.org/download/"},
+        string{"New_file.zip"}
     };
 
-    std::stringstream stream;
+    stringstream stream;
     stream << t1.uri << " " << t1.fname << std::endl;
     stream << std::endl;
     stream << t2.uri << " " << t2.fname << std::endl;
@@ -84,16 +86,16 @@ TEST(TaskListSimple, skip_line_empty)
 
 TEST(TaskListSimple, skip_line_not_complete)
 {
-    Task t1{
-        std::string{"http://internet.org/archive.bin"},
-        std::string{"downloaded_file_1.zip"}
+    const Task t1{
+        string{"http://internet.org/archive.bin"},
+        string{"downloaded_file_1.zip"}
     };
-    Task t2{
-        std::string{"http://internet.org/download/"},
-        std::string{"New_file.zip"}
+    const Task t2{
+        string{"http://internet.org/download/"},
+        string{"New_file.zip"}
     };
 
-    std::stringstream stream;
+    stringstream stream;
     stream << t1.uri << " " << t1.fname << std::endl;
     stream << "xyz" << std::endl;
     stream << t2.uri << " " << t2.fname << std::endl;
@@ -113,15 +115,15 @@ TEST(TaskListSimple, skip_line_not_complete)
 
 TEST(TaskListSimple, ignore_whitespace_charters)
 {
-    Task t1{
-        std::string{"http://internet.org/archive.bin"},
-        std::string{"downloaded_file_1.zip"}
+    const Task t1{
+        string{"http://internet.org/archive.bin"},
+        string{"downloaded_file_1.zip"}
     };
 
-    std::stringstream stream;
+    stringstream stream;
     stream << "  " << t1.uri << "  " << t1.fname << "  " << std::endl;
 
-    TaskListSimple task_list{stream, std::string{} };
+    TaskListSimple task_list{stream, string{} };
 
     auto t1_ptr = task_list.get();
     ASSERT_TRUE(t1_ptr);
@@ -131,15 +133,15 @@ TEST(TaskListSimple, ignore_whitespace_charters)
 
 TEST(TaskListSimple, ignore_additional_word)
 {
-    Task t1{
-        std::string{"http://internet.org/archive.bin"},
-        std::string{"downloaded_file_1.zip"}
+    const Task t1{
+        string{"http://internet.org/archive.bin"},
+        string{"downloaded_file_1.zip"}
     };
 
-    std::stringstream stream;
+    stringstream stream;
     stream << t1.uri << " " << t1.fname << " xyz" << std::endl;
 
-    TaskListSimple task_list{stream, std::string{} };
+    TaskListSimple task_list{stream, string{} };
 
     auto t1_ptr = task_list.get();
     ASSERT_TRUE(t1_ptr);
