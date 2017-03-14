@@ -1,6 +1,7 @@
 #include "http.h"
 
 #include <map>
+#include <cstring>
 
 extern "C" {
     #include <http_parser.h>
@@ -47,5 +48,20 @@ shared_ptr<HttpParser::UriParseResult> HttpParser::uri_parse(const string& uri)
                 ret->password = userinfo.substr(pos + 1);
         }
     }
+    return ret;
+}
+
+HttpParser::BodyDecoder::Result HttpParser::BodyDecoderContentLength::operator() (const char* buf, size_t len)
+{
+    Result ret;
+    size_t chunk_len = std::min(left_length, len);
+    if (chunk_len > 0)
+    {
+        ret.data.buffer.reset( new char[chunk_len], default_delete<char[]>{} );
+        ret.data.length = chunk_len;
+        memcpy( ret.data.buffer.get(), buf, chunk_len );
+        left_length -= chunk_len;
+    }
+    ret.is_done = left_length == 0u;
     return ret;
 }
