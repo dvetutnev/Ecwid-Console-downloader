@@ -3,6 +3,7 @@
 #include <memory>
 #include <functional>
 #include <string>
+#include <type_traits>
 
 extern "C" {
     #include <http_parser.h>
@@ -21,8 +22,14 @@ public:
     using OnComplete = std::function<void()>;
 
 public:
-    template<typename T1, typename T2, typename T3>
-    static std::unique_ptr<HttpParser> create(T1&& on_headers_complete, T2&& on_body, T3&& on_complete)
+    template< typename T1, typename T2, typename T3 >
+    static
+    typename std::enable_if_t<
+        std::is_convertible<T1, OnHeadersComplete>::value &&
+        std::is_convertible<T2, OnBody>::value &&
+        std::is_convertible<T3, OnComplete>::value,
+    std::unique_ptr<HttpParser> >
+    create(T1&& on_headers_complete, T2&& on_body, T3&& on_complete)
     {
         return std::unique_ptr<HttpParser>{ new HttpParser(
                         std::forward<T1>(on_headers_complete),
