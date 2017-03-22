@@ -1785,7 +1785,7 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
         <y:ProxyAutoBoundsNode>
           <y:Realizers active="0">
             <y:GroupNode>
-              <y:Geometry height="709.8611665801701" width="1276.4712190726368" x="1522.834093611571" y="915.2668431870637"/>
+              <y:Geometry height="709.8611665801702" width="1276.4712190726368" x="1522.834093611571" y="915.2668431870636"/>
               <y:Fill color="#F5F5F5" transparent="false"/>
               <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
               <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#FF9900" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="1276.4712190726368" x="0.0" y="0.0">http.h http.cpp</y:NodeLabel>
@@ -1793,7 +1793,7 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
               <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
               <y:NodeBounds considerNodeLabelSize="true"/>
               <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
-              <y:BorderInsets bottom="212" bottomF="211.65540499042731" left="0" leftF="0.0" right="26" rightF="26.029523232506108" top="3" topF="2.613528321360377"/>
+              <y:BorderInsets bottom="185" bottomF="184.7834406329996" left="0" leftF="0.0" right="7" rightF="6.957257607506108" top="3" topF="2.613528321360377"/>
             </y:GroupNode>
             <y:GroupNode>
               <y:Geometry height="50.0" width="50.0" x="0.0" y="60.0"/>
@@ -1813,7 +1813,7 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
           <data key="d4"/>
           <data key="d6">
             <y:UMLClassNode>
-              <y:Geometry height="125.70034249336862" width="225.15361864909664" x="1537.834093611571" y="1192.4857332991787"/>
+              <y:Geometry height="125.70034249336862" width="225.15361864909664" x="1537.834093611571" y="1299.6442266408656"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="203.86865234375" x="10.642483152673321" y="3.0">HttpParser::UriParseResult<y:LabelModel>
@@ -1839,7 +1839,7 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
           <data key="d4"/>
           <data key="d6">
             <y:UMLClassNode>
-              <y:Geometry height="147.47974517137067" width="618.7097516957338" x="1537.834093611571" y="954.3413090084241"/>
+              <y:Geometry height="256.3767585613811" width="618.7097516957338" x="1537.834093611571" y="954.341309008424"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="84.29150390625" x="267.2091238947419" y="3.0">HttpParser<y:LabelModel>
@@ -1851,12 +1851,20 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
               </y:NodeLabel>
               <y:UML clipContent="true" constraint="" omitDetails="false" stereotype="" use3DEffect="true">
                 <y:AttributeLabel>-parser : http_parser
--data : http_parser_data
--settings : http_parser_settings</y:AttributeLabel>
+-settings : http_parser_settings
+-cb_on_headers_complete : OnHeadersComplete
+-cb_on_body : OnBody
+-cb_on_complete : OnComplete
+-headers_complete_args : unique_ptr&lt;OnHeadersComplete_Args&gt;</y:AttributeLabel>
                 <y:MethodLabel>+static create(OnHeadersComplete, OnBody, OnComplete) : unique_ptr&lt;HttpParser&gt;
 +static uri_parse(uri : const string&amp;) : shared_ptr&lt;UriParseResult&gt;
 +response_parse(buf : const char*, len : size_t) : Error
--HttpParser(OnHeadersComplete, OnBody, OnComplete)</y:MethodLabel>
+
+-HttpParser(OnHeadersComplete, OnBody, OnComplete)
+-static on_status(parser : http_parser*, buf : const char*, len : size_t)
+-static on_headers_complete(parser : http_parser*)
+-static on_body(parser : http_parser*, buf : const char*, len : size_t)
+-static on_complete(parser : http_parser*)</y:MethodLabel>
               </y:UML>
             </y:UMLClassNode>
           </data>
@@ -1865,7 +1873,7 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
           <data key="d4"/>
           <data key="d6">
             <y:UMLClassNode>
-              <y:Geometry height="116.25190027834236" width="318.14416781281534" x="1779.8449127325823" y="1192.4857332991787"/>
+              <y:Geometry height="116.25190027834236" width="318.14416781281534" x="1779.8449127325823" y="1299.6442266408656"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="131.73388671875" x="93.20514054703267" y="3.0">HttpParser::Error<y:LabelModel>
@@ -1890,10 +1898,10 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
           <data key="d4"/>
           <data key="d6">
             <y:UMLNoteNode>
-              <y:Geometry height="56.57457631353873" width="567.001953125" x="2191.2738363267017" y="960.8751298118249"/>
+              <y:Geometry height="56.57457631353873" width="605.146484375" x="2172.2015707017017" y="960.8751298118249"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="557.001953125" x="5.0" y="5.334163156769364">type HttpParser::OnHeadersComplete = function&lt;bool(const OnHeadersComplete_Args&amp;)&gt;
+              <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="595.146484375" x="5.0" y="5.334163156769364">type HttpParser::OnHeadersComplete = function&lt;bool(unique_ptr&lt;OnHeadersComplete_Args&amp;)&gt;
 type HttpParser::OnBody = function&lt;void(const char*, size_t)&gt;
 type HttpParser::OnComplete = function&lt;void()&gt;<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
@@ -1909,31 +1917,7 @@ type HttpParser::OnComplete = function&lt;void()&gt;<y:LabelModel>
           <data key="d4"/>
           <data key="d6">
             <y:UMLClassNode>
-              <y:Geometry height="98.82837813594091" width="318.14416781281534" x="2244.385669958577" y="1128.4237829299611"/>
-              <y:Fill color="#FFCC00" transparent="false"/>
-              <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="219.1982421875" x="49.47296281265767" y="3.0">HttpParser::http_parser_data<y:LabelModel>
-                  <y:SmartNodeLabelModel distance="4.0"/>
-                </y:LabelModel>
-                <y:ModelParameter>
-                  <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="-0.03703090122767855" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
-                </y:ModelParameter>
-              </y:NodeLabel>
-              <y:UML clipContent="true" constraint="" omitDetails="false" stereotype="" use3DEffect="true">
-                <y:AttributeLabel>+continue_after_headers : bool = false
-+on_headers_complete : OnHeadersComplete
-+on_body : OnBody
-+on_complete : OnComplete</y:AttributeLabel>
-                <y:MethodLabel/>
-              </y:UML>
-            </y:UMLClassNode>
-          </data>
-        </node>
-        <node id="n23::n5">
-          <data key="d4"/>
-          <data key="d6">
-            <y:UMLClassNode>
-              <y:Geometry height="98.82837813594091" width="318.14416781281534" x="2403.3166349495427" y="1299.6442266408656"/>
+              <y:Geometry height="98.82837813594091" width="318.14416781281534" x="2283.4692130193507" y="1299.6442266408656"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="285.37890625" x="16.38263078140767" y="3.0">HttpParser::OnHeadersComplete_Args<y:LabelModel>
@@ -3390,7 +3374,7 @@ parser[error]<y:LabelModel>
     <edge id="n23::e0" source="n23::n1" target="n23::n0">
       <data key="d10">
         <y:BezierEdge>
-          <y:Path sx="-196.77806652331856" sy="69.41517403953253" tx="0.0" ty="0.0"/>
+          <y:Path sx="-196.77806652331856" sy="120.67038286884834" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
           <y:Arrows source="none" target="plain"/>
         </y:BezierEdge>
@@ -3452,21 +3436,10 @@ parser[error]<y:LabelModel>
         </y:QuadCurveEdge>
       </data>
     </edge>
-    <edge id="n23::e1" source="n23::n4" target="n23::n3">
-      <data key="d8"/>
-      <data key="d10">
-        <y:PolyLineEdge>
-          <y:Path sx="10.54729422938317" sy="0.0" tx="-59.77250747671179" ty="0.0"/>
-          <y:LineStyle color="#000000" type="dashed" width="1.0"/>
-          <y:Arrows source="none" target="plain"/>
-          <y:BendStyle smoothed="false"/>
-        </y:PolyLineEdge>
-      </data>
-    </edge>
-    <edge id="n23::e2" source="n23::n1" target="n23::n3">
+    <edge id="n23::e1" source="n23::n1" target="n23::n3">
       <data key="d10">
         <y:QuadCurveEdge straightness="0.1">
-          <y:Path sx="248.2146353909725" sy="40.07410092752389" tx="-129.62093873528536" ty="-6.344966632444994">
+          <y:Path sx="248.2146353909725" sy="69.66426532756614" tx="-138.34106733623995" ty="-6.344966632444994">
             <y:Point x="2343.6182402413824" y="1068.1552825216334"/>
           </y:Path>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
@@ -3474,18 +3447,7 @@ parser[error]<y:LabelModel>
         </y:QuadCurveEdge>
       </data>
     </edge>
-    <edge id="n23::e3" source="n23::n1" target="n23::n4">
-      <data key="d10">
-        <y:QuadCurveEdge straightness="0.1">
-          <y:Path sx="261.4556511695164" sy="0.0" tx="0.0" ty="2.6762530010730643">
-            <y:Point x="2108.6446206289543" y="1180.5142249990047"/>
-          </y:Path>
-          <y:LineStyle color="#000000" type="line" width="1.0"/>
-          <y:Arrows source="diamond" target="none"/>
-        </y:QuadCurveEdge>
-      </data>
-    </edge>
-    <edge id="n23::e4" source="n23::n1" target="n23::n2">
+    <edge id="n23::e2" source="n23::n1" target="n23::n2">
       <data key="d8"/>
       <data key="d10">
         <y:PolyLineEdge>
@@ -3496,14 +3458,11 @@ parser[error]<y:LabelModel>
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="n23::e5" source="n23::n3" target="n23::n5">
+    <edge id="n23::e3" source="n23::n3" target="n23::n4">
       <data key="d8"/>
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="0.0" tx="32.23351596344355" ty="0.0">
-            <y:Point x="2474.7748128892017" y="1053.7311864557246"/>
-            <y:Point x="2594.6222348193937" y="1053.7311864557246"/>
-          </y:Path>
+          <y:Path sx="0.0" sy="0.0" tx="32.2335159634431" ty="0.0"/>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
           <y:Arrows source="none" target="plain"/>
           <y:BendStyle smoothed="false"/>

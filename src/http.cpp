@@ -1,8 +1,71 @@
 #include "http.h"
-
-#include <map>
-
+#include <iostream>
 using namespace std;
+
+/* response parser */
+
+HttpParser::Error HttpParser::response_parse(const char* buf, std::size_t len)
+{
+    http_parser_execute( &parser, &settings, buf, len );
+
+    return Error{ static_cast<http_errno>(parser.http_errno) };
+}
+
+int HttpParser::on_status(http_parser* parser, const char* buf, size_t len)
+{
+    auto self = reinterpret_cast<HttpParser*>(parser->data);
+
+    self->headers_complete_args = make_unique<OnHeadersComplete_Args>();
+    self->headers_complete_args->http_code = parser->status_code;
+    self->headers_complete_args->http_reason = string{buf, len};
+
+    return 0;
+}
+
+int HttpParser::on_headers_complete(http_parser* parser)
+{
+    auto self = reinterpret_cast<HttpParser*>(parser->data);
+
+    self->headers_complete_args->content_length = parser->content_length;
+    self->cb_on_headers_complete( std::move(self->headers_complete_args) );
+
+    return 0;
+}
+
+int HttpParser::on_body(http_parser* parser, const char* buf, size_t len)
+{
+    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    self->cb_on_body(buf, len);
+    return 0;
+}
+
+int HttpParser::on_complete(http_parser* parser)
+{
+    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    self->cb_on_complete();
+    return 0;
+}
+
+/* result response parser */
+
+HttpParser::Error::Error(enum http_errno code) noexcept
+    : m_code{code}
+{}
+
+HttpParser::Error::operator bool () const noexcept
+{
+     return m_code != HPE_OK;
+}
+
+enum http_errno HttpParser::Error::code() const noexcept
+{
+    return m_code;
+}
+
+const char* HttpParser::Error::str() const noexcept
+{
+    return http_errno_description(m_code);
+}
 
 /* uri parser */
 

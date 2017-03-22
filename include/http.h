@@ -1,8 +1,9 @@
 #pragma once
 
+#include <string>
+#include <map>
 #include <memory>
 #include <functional>
-#include <string>
 #include <type_traits>
 
 extern "C" {
@@ -16,12 +17,17 @@ public:
     HttpParser(const HttpParser&) = delete;
     HttpParser& operator= (const HttpParser&) = delete;
 
-    struct OnHeadersComplete_Args;
-    using OnHeadersComplete = std::function<bool(const OnHeadersComplete_Args&)>;
-    using OnBody = std::function<void(const char*, std::size_t)>;
+    struct OnHeadersComplete_Args
+    {
+        std::size_t http_code = 0;
+        std::string http_reason;
+        std::size_t content_length = 0;
+        std::map< std::string, std::string > headers;
+    };
+    using OnHeadersComplete = std::function<bool( std::unique_ptr<OnHeadersComplete_Args> )>;
+    using OnBody = std::function<void( const char*, std::size_t )>;
     using OnComplete = std::function<void()>;
 
-public:
     template< typename T1, typename T2, typename T3 >
     static
     typename std::enable_if_t<
@@ -29,7 +35,7 @@ public:
         std::is_convertible<T2, OnBody>::value &&
         std::is_convertible<T3, OnComplete>::value,
     std::unique_ptr<HttpParser> >
-    create(T1&& on_headers_complete, T2&& on_body, T3&& on_complete)
+    create( T1&& on_headers_complete, T2&& on_body, T3&& on_complete )
     {
         return std::unique_ptr<HttpParser>{ new HttpParser(
                         std::forward<T1>(on_headers_complete),
@@ -41,48 +47,49 @@ public:
     class Error
     {
     public:
-        explicit Error(enum http_errno code) noexcept
-            : m_code{code}
-        {}
-
-        explicit operator bool () const noexcept
-        {
-             return m_code != HPE_OK;
-        }
-
-        enum http_errno code() const noexcept
-        {
-            return m_code;
-        }
-
-        const char* str() const noexcept
-        {
-            return http_errno_description(m_code);
-        }
-
+        explicit Error(enum http_errno) noexcept;
+        explicit operator bool () const noexcept;
+        enum http_errno code() const noexcept;
+        const char* str() const noexcept;
     private:
         enum http_errno m_code;
     };
+
+    Error response_parse(const char*, std::size_t);
 
     struct UriParseResult;
     static std::shared_ptr<UriParseResult> uri_parse(const std::string&);
 
 private:
-    template<typename T1, typename T2, typename T3>
-    HttpParser(T1&&, T2&&, T3&&)
+    template< typename T1, typename T2, typename T3 >
+    HttpParser(T1&& on_headers_complete, T2&& on_body, T3&& on_complete )
+        : cb_on_headers_complete{ std::forward<T1>(on_headers_complete) },
+          cb_on_body{ std::forward<T2>(on_body) },
+          cb_on_complete{ std::forward<T3>(on_complete) }
     {
+        http_parser_init(&parser, HTTP_RESPONSE);
+        parser.data = this;
 
+        http_parser_settings_init(&settings);
+        settings.on_status = &HttpParser::on_status;
+        settings.on_headers_complete = &HttpParser::on_headers_complete;
+        settings.on_body = &HttpParser::on_body;
+        settings.on_message_complete = &HttpParser::on_complete;
     }
 
     http_parser parser;
     http_parser_settings settings;
-    struct http_parser_data
-    {
-        //bool continue_after_headers = false;
-        //OnHeadersComplete on_headers_complete;
-        //OnBody
-    } data;
 
+    OnHeadersComplete cb_on_headers_complete;
+    OnBody cb_on_body;
+    OnComplete cb_on_complete;
+
+    std::unique_ptr<OnHeadersComplete_Args> headers_complete_args;
+
+    static int on_status(http_parser*, const char*, std::size_t);
+    static int on_headers_complete(http_parser*);
+    static int on_body(http_parser*, const char*, std::size_t);
+    static int on_complete(http_parser*);
 };
 
 struct HttpParser::UriParseResult

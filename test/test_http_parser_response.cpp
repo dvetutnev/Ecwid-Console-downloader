@@ -3,173 +3,77 @@
 
 #include "http.h"
 
-extern "C" {
-#include <http_parser.h> // remove ???
-}
-
 using ::testing::_;
+using ::testing::Return;
+using ::testing::Invoke;
 using ::testing::SaveArg;
+using ::testing::Expectation;
 
 using namespace std;
 
-/*
-TEST(http_parser, incomplete_body)
+struct OnHeadersCompleteMock
 {
-    const string buf ="\
-HTTP/1.0 200 OK\r\n\
-Server: nginx/1.6.2\r\n\
-Date: Fri, 10 Mar 2017 18:11:04 GMT\r\n\
-Content-Type: text/pain\r\n\
-Last-Modified: Fri, 10 Mar 2017 18:09:54 GMT\r\n\
-Connection: keep-alive\r\n\
-ETag: \"58c2fb69-c\"\r\n\
-Accept-Ranges: bytes\r\n\
-\r\n\
-Hello world\
-";
+    MOCK_METHOD1(invoke, bool(HttpParser::OnHeadersComplete_Args*));
+};
 
-//
-    http_parser parser;
-    http_parser_init(&parser, HTTP_RESPONSE);
-    struct http_parser_data
-    {
-        size_t content_length = 0;
-        size_t body_length = 0;
-        size_t http_code = 0;
-        string http_status;
-    };
-    http_parser_data data;
-    parser.data = &data;
-
-    http_parser_settings settings;
-    http_parser_settings_init(&settings);
-
-    auto on_status = [](http_parser* parser, const char* at, size_t len) -> int
-    {
-        auto data_ptr = reinterpret_cast<http_parser_data*>(parser->data);
-        data_ptr->http_code = parser->status_code;
-        data_ptr->http_status.append(at, len);
-        return 0;
-    };
-    settings.on_status = on_status;
-
-    auto on_headers_complete = [](http_parser* parser) -> int
-    {
-        auto data_ptr = reinterpret_cast<http_parser_data*>(parser->data);
-        data_ptr->content_length = parser->content_length;
-        return 0;
-    };
-    settings.on_headers_complete = on_headers_complete;
-
-    auto on_boby = [](http_parser* parser, const char* at, size_t len) -> int
-    {
-        auto data_ptr = reinterpret_cast<http_parser_data*>(parser->data);
-        data_ptr->body_length = len;
-        cout << "on_body! len => " << len << endl;
-        return 0;
-    };
-    settings.on_body = on_boby;
-
-    auto on_message_complete = [](http_parser*) -> int
-    {
-        cout << "on_message_complete!" << endl;
-        return 0;
-    };
-    settings.on_message_complete = on_message_complete;
-
-    const size_t nparsed = http_parser_execute(&parser, &settings, buf.data(), buf.size());
-    cout << "send next data in parser... " << endl;
-    http_parser_execute(&parser, &settings, "next_data", 5);
-    cout << "send EOF in parser... " << endl;
-    http_parser_execute(&parser, &settings, nullptr, 0);
-
-    const char* str = "11"
-            "22";
-    std::cout << str << std::endl;
-
-    cout << "http_status => " << data.http_status << endl;
-
-    ASSERT_EQ(nparsed, buf.size());
-    ASSERT_EQ(parser.status_code, 200u);
-
-    //ASSERT_EQ(data.content_length, 12u);
-    ASSERT_EQ(data.body_length, 11u);
-    ASSERT_EQ(data.http_code, 200u);
-}
-*/
-
-TEST(http_parser, on_headers_complete_return_1)
+struct OnBodyMock
 {
-    const string buf = ""
-            "HTTP/1.1 301 Moved Permanently\r\n"
-            "Server: nginx/1.6.2\r\n"
-            "Date: Fri, 10 Mar 2017 18:11:04 GMT\r\n"
-            "Content-Type: text/pain\r\n"
-            "Contenet-Length: 12\r\n"
-            "Last-Modified: Fri, 10 Mar 2017 18:09:54 GMT\r\n"
-            "Location: http://www.example.org/index.asp\r\n"
-            "Connection: keep-alive\r\n"
-            "ETag: \"58c2fb69-c\"\r\n"
-            "Accept-Ranges: bytes\r\n"
-            "\r\n"
-            "Hello world!";
-//
-    http_parser parser;
-    http_parser_init(&parser, HTTP_RESPONSE);
-    struct http_parser_data
-    {
-        bool on_headers_complete = false;
-        bool on_body = false;
-        bool on_message_complete = false;
-        size_t nread = 0;
-    };
-    http_parser_data data;
-    parser.data = &data;
+    MOCK_METHOD2(invoke, void(const char*, size_t));
+};
 
-    http_parser_settings settings;
-    http_parser_settings_init(&settings);
-    settings.on_headers_complete = [](http_parser* parser_ptr) -> int
-    {
-        auto data_ptr = reinterpret_cast<http_parser_data*>(parser_ptr->data);
-        data_ptr->on_headers_complete = true;
-        data_ptr->nread = parser_ptr->nread;
-        return 0;
-    };
-    settings.on_body = [](http_parser* parser_ptr, const char* at, size_t len) -> int
-    {
-        auto data_ptr = reinterpret_cast<http_parser_data*>(parser_ptr->data);
-        data_ptr->on_body = true;
-        return 0;
-    };
-    settings.on_message_complete = [](http_parser* parser_ptr) -> int
-    {
-        auto data_ptr = reinterpret_cast<http_parser_data*>(parser_ptr->data);
-        data_ptr->on_message_complete = true;
-        return 0;
-    };
-
-    const size_t nparsed = http_parser_execute(&parser, &settings, buf.data(), buf.size());
-    cout << "http_errno => " << http_errno_description( static_cast<http_errno>(parser.http_errno) ) << endl;
-    cout << "parser.nread (on_headers_complete) => " << "\r" << data.nread << " left buf => " << buf.substr(data.nread) << endl;
-
-    ASSERT_TRUE(data.on_headers_complete);
-    //ASSERT_FALSE(data.on_body);
-    //ASSERT_TRUE(data.on_message_complete);
-
-    ASSERT_EQ(parser.http_errno, HPE_OK);
-
-    ASSERT_EQ(parser.status_code, 301u);
-    //ASSERT_EQ(nparsed, buf.size());
-}
+struct OnCompleteMock
+{
+    MOCK_METHOD0(invoke, void());
+};
 
 TEST(HttpParser__Response, normal)
 {
-    HttpParser::OnHeadersComplete on_headers_complete;
-    HttpParser::OnBody on_body;
-    HttpParser::OnComplete on_complete;
+    const string buf_headers = ""
+            "HTTP/1.1 200 OK\r\n"
+            "Server: nginx/1.6.2\r\n"
+            "Content-Type: text/pain\r\n"
+            "Content-Length: 24\r\n"
+            "Connection: keep-alive\r\n"
+            "ETag: \"58c2fb69-c\"\r\n"
+            "Accept-Ranges: bytes\r\n"
+            "\r\n";
 
-    auto parser = HttpParser::create(on_headers_complete, on_body, on_complete);
+    const string buf_body = ""
+            "Hello world!"
+            "World hello!";
+
+    unique_ptr<HttpParser::OnHeadersComplete_Args> headers_complete_args;
+    OnHeadersCompleteMock on_headers_complete_mock;
+    Expectation invoke_on_headers_complete = EXPECT_CALL( on_headers_complete_mock, invoke(_) )
+            .WillOnce( Invoke( [&headers_complete_args](auto arg){ headers_complete_args.reset(arg); return true; } ) );
+    HttpParser::OnHeadersComplete on_headers_complete = [&on_headers_complete_mock](auto arg){ return on_headers_complete_mock.invoke( arg.release() ); };
+
+    string body;
+    OnBodyMock on_body_mock;
+    Expectation invoke_on_body = EXPECT_CALL( on_body_mock, invoke(_,_) )
+            .After(invoke_on_headers_complete)
+            .WillOnce( Invoke( [&body](const char* buf, size_t len){ body = string{buf, len}; } ) );
+    HttpParser::OnBody on_body = [&on_body_mock](const char* buf, size_t len){ on_body_mock.invoke(buf, len); };
+
+    OnCompleteMock on_complete_mock;
+    EXPECT_CALL( on_complete_mock, invoke() )
+            .Times(1)
+            .After(invoke_on_body);
+    HttpParser::OnComplete on_complete = [&on_complete_mock](){ on_complete_mock.invoke(); };
+
+    auto parser = HttpParser::create( on_headers_complete, on_body, on_complete );
     ASSERT_TRUE(parser);
+
+    const string buf = buf_headers + buf_body;
+    auto err = parser->response_parse( buf.data(), buf.size() );
+    ASSERT_FALSE(err);
+
+    ASSERT_NE(headers_complete_args, nullptr);
+    ASSERT_EQ(headers_complete_args->http_code, 200u);
+    ASSERT_EQ(headers_complete_args->http_reason, "OK");
+    ASSERT_EQ(headers_complete_args->content_length, 24u);
+
+    ASSERT_EQ(body, buf_body);
 }
 
 TEST(HttpParser__Response, rvalue_callbacks)
@@ -186,41 +90,102 @@ TEST(HttpParser__Response, rvalue_callbacks)
     ASSERT_TRUE(parser);
 }
 
+/* mocking HttpParser */
 
-class HttpParserMock
+template< typename HttpParser_t >
+struct ClientHttpParser
 {
-public:
-    static shared_ptr<HttpParserMock> instance;
-    static shared_ptr<HttpParserMock> create( function<void()> f)
+    ClientHttpParser(
+            HttpParser::OnHeadersComplete on_headers_complete,
+            HttpParser::OnBody on_body,
+            HttpParser::OnComplete on_complete
+            )
+        : m_on_headers_complete{on_headers_complete},
+          m_on_body{on_body},
+          m_on_complete{on_complete}
+    {}
+
+    void create_parser()
     {
-        instance->create_(f);
-        return instance;
+        parser = HttpParser_t::create(
+                    std::move(m_on_headers_complete),
+                    std::move(m_on_body),
+                    std::move(m_on_complete)
+                    );
     }
 
-    MOCK_METHOD1(create_, void(function<void()>));
+    HttpParser::Error run_parser()
+    {
+        return parser->response_parse( buf.data(), buf.size() );
+    }
+
+    unique_ptr<HttpParser_t> parser;
+
+    HttpParser::OnHeadersComplete m_on_headers_complete;
+    HttpParser::OnBody m_on_body;
+    HttpParser::OnComplete m_on_complete;
+
+    string buf = "vooooid";
 };
 
-shared_ptr<HttpParserMock> HttpParserMock::instance;
-
-TEST(HttpParserMock, create)
+struct HttpParserMock
 {
-    auto parser_ptr = make_shared<HttpParserMock>();
-    HttpParserMock::instance = parser_ptr;
-
-    function<void()> handler;
-    EXPECT_CALL(*parser_ptr, create_(_))
-            .WillOnce( SaveArg<0>(&handler) );
-
-    size_t i = 0;
-    auto cb = [&i]()
+    static unique_ptr<HttpParserMock> instance;
+    static unique_ptr<HttpParserMock> create(
+            HttpParser::OnHeadersComplete on_headers_complete,
+            HttpParser::OnBody on_body,
+            HttpParser::OnComplete on_complete
+            )
     {
-        i++;
-    };
+        instance->create_( on_headers_complete, on_body, on_complete );
+        return std::move(instance);
+    }
 
-    auto result_instance = HttpParserMock::create( std::move(cb) );
+    MOCK_METHOD3(create_, void( HttpParser::OnHeadersComplete, HttpParser::OnBody, HttpParser::OnComplete ));
+    MOCK_METHOD2(response_parse, HttpParser::Error(const char*, size_t));
+};
 
-    ASSERT_EQ(result_instance, parser_ptr);
+unique_ptr<HttpParserMock> HttpParserMock::instance;
 
-    handler();
-    ASSERT_EQ(i, 1u);
+TEST(HttpParserMock, normal)
+{
+    auto parser_ptr = new HttpParserMock();
+    HttpParserMock::instance = unique_ptr<HttpParserMock>{ parser_ptr };
+
+    HttpParser::OnHeadersComplete handler_on_headers_complete;
+    HttpParser::OnBody handler_on_body;
+    HttpParser::OnComplete handler_on_complete;
+    EXPECT_CALL( *parser_ptr, create_(_,_,_) )
+            .WillOnce( DoAll(
+                           SaveArg<0>(&handler_on_headers_complete),
+                           SaveArg<1>(&handler_on_body),
+                           SaveArg<2>(&handler_on_complete)
+                           ) );
+
+    EXPECT_CALL( *parser_ptr, response_parse(_,_) )
+            .WillOnce( Return( HttpParser::Error{HPE_OK} ) );
+
+    size_t a = 0;
+    auto on_headers_complete = [&a](unique_ptr<HttpParser::OnHeadersComplete_Args>) -> bool { a++; return true; };
+    size_t b = 10;
+    auto on_body = [&b](const char*, size_t) { b++; };
+    size_t c = 110;
+    auto on_complete = [&c]() { c++; };
+
+    ClientHttpParser<HttpParserMock> client{ std::move(on_headers_complete), std::move(on_body), std::move(on_complete) };
+    client.create_parser();
+
+    /* check take callbacks */
+    handler_on_headers_complete( unique_ptr<HttpParser::OnHeadersComplete_Args>{} );
+    ASSERT_EQ(a, 1u);
+    handler_on_body(nullptr, 0);
+    ASSERT_EQ(b, 11u);
+    handler_on_complete();
+    ASSERT_EQ(c, 111u);
+
+    /* check returnig result */
+    auto result_parse = client.run_parser();
+    ASSERT_FALSE(result_parse);
+
+    client.parser.reset();
 }
