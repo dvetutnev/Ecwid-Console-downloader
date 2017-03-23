@@ -219,7 +219,7 @@
               <y:Geometry height="82.93814323607427" width="175.49037665782544" x="1537.8770517260261" y="-415.8578300370324"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="64.71533203125" x="55.38752231328772" y="25.96875">TaskList<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="64.71533203125" x="55.38752231328772" y="28.831391177854982">TaskList<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -240,7 +240,7 @@
               <y:Geometry height="91.28857084979293" width="119.91503448275853" x="1537.8770517260261" y="-556.3830423068846"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="38.0234375" x="40.945798491379264" y="25.96875">Task<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="38.0234375" x="40.945798491379264" y="32.697381124541835">Task<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -474,7 +474,7 @@ Redirect</y:AttributeLabel>
           <y:Geometry height="100.2182111405836" width="305.7285169230772" x="1801.852738325691" y="-424.4978639892871"/>
           <y:Fill color="#FFCC00" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="114.65869140625" x="95.53491275841361" y="3.0">TaskListSimple<y:LabelModel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="114.65869140625" x="95.53491275841361" y="36.83152864233023">TaskListSimple<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -1839,7 +1839,7 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
           <data key="d4"/>
           <data key="d6">
             <y:UMLClassNode>
-              <y:Geometry height="332.1690798808283" width="618.7097516957338" x="1537.834093611571" y="954.341309008424"/>
+              <y:Geometry height="356.5620108801906" width="618.7097516957338" x="1537.834093611571" y="954.341309008424"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="84.29150390625" x="267.2091238947419" y="3.0">HttpParser<y:LabelModel>
@@ -1858,7 +1858,8 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
 -headers_complete_args : unique_ptr&lt;OnHeadersComplete_Args&gt;
 -field_header : string
 -value_header : string
--mode_header : ModeHeader = ModeHeader::Field</y:AttributeLabel>
+-mode_header : ModeHeader = ModeHeader::Field
+-continue_after_headers : bool = false</y:AttributeLabel>
                 <y:MethodLabel>+static create(OnHeadersComplete, OnBody, OnComplete) : unique_ptr&lt;HttpParser&gt;
 +static uri_parse(uri : const string&amp;) : shared_ptr&lt;UriParseResult&gt;
 +response_parse(buf : const char*, len : size_t) : Error
@@ -1945,7 +1946,6 @@ type HttpParser::OnComplete = function&lt;void()&gt;<y:LabelModel>
         </node>
         <node id="n23::n5">
           <data key="d4"/>
-          <data key="d5"/>
           <data key="d6">
             <y:UMLClassNode>
               <y:Geometry height="85.84609351277368" width="207.3288963971945" x="2424.7748128892017" y="1010.6173266091391"/>
@@ -3402,7 +3402,7 @@ parser[error]<y:LabelModel>
     <edge id="n23::e0" source="n23::n1" target="n23::n0">
       <data key="d10">
         <y:BezierEdge>
-          <y:Path sx="-196.77806652331856" sy="156.34400821405205" tx="0.0" ty="0.0"/>
+          <y:Path sx="-196.77806652331856" sy="167.82517499181876" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
           <y:Arrows source="none" target="plain"/>
         </y:BezierEdge>
@@ -3467,7 +3467,7 @@ parser[error]<y:LabelModel>
     <edge id="n23::e1" source="n23::n1" target="n23::n3">
       <data key="d10">
         <y:QuadCurveEdge straightness="0.1">
-          <y:Path sx="248.2146353909725" sy="90.25901974999553" tx="-138.34106733623995" ty="-6.344966632444994">
+          <y:Path sx="248.2146353909725" sy="96.88721657560498" tx="-138.34106733623995" ty="-6.344966632444994">
             <y:Point x="2343.6182402413824" y="1068.1552825216334"/>
           </y:Path>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
@@ -3539,11 +3539,10 @@ parser[error]<y:LabelModel>
       </data>
     </edge>
     <edge id="n23::e4" source="n23::n1" target="n23::n5">
-      <data key="d9"/>
       <data key="d10">
         <y:QuadCurveEdge straightness="0.1">
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="28.98931492358861">
-            <y:Point x="2187.8141152736184" y="1120.4258489488382"/>
+            <y:Point x="2187.8141152736184" y="1132.6223144485193"/>
             <y:Point x="2187.8141152736184" y="1082.5296882891146"/>
           </y:Path>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>

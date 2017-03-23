@@ -57,9 +57,13 @@ int HttpParser::on_headers_complete(http_parser* parser)
 {
     auto self = reinterpret_cast<HttpParser*>(parser->data);
 
-    self->headers_complete_args->headers[ self->field_header ] = self->value_header;
-    self->headers_complete_args->content_length = parser->content_length;
-    self->cb_on_headers_complete( std::move(self->headers_complete_args) );
+    if ( self->cb_on_headers_complete )
+    {
+        self->headers_complete_args->headers[ self->field_header ] = self->value_header;
+        self->headers_complete_args->content_length = parser->content_length;
+        self->cb_on_headers_complete( std::move(self->headers_complete_args) );
+        self->continue_after_headers = true;
+    }
 
     return 0;
 }
@@ -67,14 +71,16 @@ int HttpParser::on_headers_complete(http_parser* parser)
 int HttpParser::on_body(http_parser* parser, const char* buf, size_t len)
 {
     auto self = reinterpret_cast<HttpParser*>(parser->data);
-    self->cb_on_body(buf, len);
+    if ( self->continue_after_headers && self->cb_on_body )
+        self->cb_on_body(buf, len);
     return 0;
 }
 
 int HttpParser::on_complete(http_parser* parser)
 {
     auto self = reinterpret_cast<HttpParser*>(parser->data);
-    self->cb_on_complete();
+    if ( self->continue_after_headers && self->cb_on_complete )
+        self->cb_on_complete();
     return 0;
 }
 
@@ -83,6 +89,12 @@ int HttpParser::on_complete(http_parser* parser)
 HttpParser::Error::Error(enum http_errno code) noexcept
     : m_code{code}
 {}
+
+HttpParser::Error& HttpParser::Error::operator= (const Error& other) noexcept
+{
+    this->m_code = other.m_code;
+    return *this;
+}
 
 HttpParser::Error::operator bool () const noexcept
 {

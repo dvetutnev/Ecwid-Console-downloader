@@ -43,7 +43,8 @@ public:
     class Error
     {
     public:
-        explicit Error(enum http_errno) noexcept;
+        explicit Error(enum http_errno = HPE_OK) noexcept;
+        Error& operator= (const Error&) noexcept;
         explicit operator bool () const noexcept;
         enum http_errno code() const noexcept;
         const char* str() const noexcept;
@@ -75,17 +76,19 @@ private:
         settings.on_message_complete = &HttpParser::on_complete;
     }
 
-    http_parser parser;
-    http_parser_settings settings;
-
     OnHeadersComplete cb_on_headers_complete;
     OnBody cb_on_body;
     OnComplete cb_on_complete;
+
+    http_parser parser;
+    http_parser_settings settings;
 
     std::unique_ptr<OnHeadersComplete_Args> headers_complete_args;
     std::string field_header, value_header;
     enum class ModeHeader { Filed, Value };
     ModeHeader mode_header = ModeHeader::Filed;
+
+    bool continue_after_headers = false;
 
     static int on_status(http_parser*, const char*, std::size_t);
     static int on_header_field(http_parser*, const char*, std::size_t);
