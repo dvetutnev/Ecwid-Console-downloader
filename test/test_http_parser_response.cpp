@@ -90,6 +90,63 @@ TEST(HttpParser__Response, rvalue_callbacks)
     ASSERT_TRUE(parser);
 }
 
+TEST(HttpParser__Response, increment_parsing)
+{
+    const string buf1 = "HTTP/1.1 301 Mo";
+    const string buf2 = "ved permanently\r\n";
+    const string buf3 = ""
+            "Server: nginx/1.6.2\r\n"
+            "Content-Type: text/pain\r\n"
+            "Content-Leng";
+    const string buf4 = "th: 8\r\n"
+            "Connection: keep-alive\r\n"
+            "ETag: \"58c2fb69-c\"\r\n"
+            "Accept-Ran";
+    const string buf5 = "ges: bytes\r\n"
+            "\r\n"
+            "Go ";
+    const string buf6 = "next!";
+
+    const string buf_http_reason = "Moved permanently";
+    const map< string, string > headers = {
+        { "Server", "nginx/1.6.2" },
+        { "Content-Type", "text/pain" },
+        { "Content-Length", "8" },
+        { "Connection", "keep-alive" },
+        { "ETag", "\"58c2fb69-c\"" },
+        { "Accept-Ranges", "bytes" }
+    };
+    const string buf_body = "Go next!";
+
+    unique_ptr<HttpParser::OnHeadersComplete_Args> headers_complete_args;
+    HttpParser::OnHeadersComplete on_headers_complete = [&headers_complete_args](auto args) { headers_complete_args = std::move(args); return true; };
+
+    string body;
+    HttpParser::OnBody on_body = [&body](const char* buf, size_t len) { body.append(buf, len); };
+
+    size_t invoke_on_complete = 0;
+    HttpParser::OnComplete on_complete = [&invoke_on_complete]() { invoke_on_complete++; };
+
+    auto parser = HttpParser::create( on_headers_complete, on_body, on_complete );
+
+    ASSERT_FALSE( parser->response_parse( buf1.data(), buf1.size() ) );
+    ASSERT_FALSE( parser->response_parse( buf2.data(), buf2.size() ) );
+    ASSERT_FALSE( parser->response_parse( buf3.data(), buf3.size() ) );
+    ASSERT_FALSE( parser->response_parse( buf4.data(), buf4.size() ) );
+    ASSERT_FALSE( parser->response_parse( buf5.data(), buf5.size() ) );
+    ASSERT_FALSE( parser->response_parse( buf6.data(), buf6.size() ) );
+
+    ASSERT_NE(headers_complete_args, nullptr);
+
+    ASSERT_EQ(headers_complete_args->http_code, 301u);
+    ASSERT_EQ(headers_complete_args->http_reason, buf_http_reason);
+    ASSERT_EQ(headers_complete_args->content_length, 8u);
+    ASSERT_EQ(headers_complete_args->headers, headers);
+
+    ASSERT_EQ(buf_body, body);
+    ASSERT_EQ(invoke_on_complete, 1u);
+}
+
 /* mocking HttpParser */
 
 template< typename HttpParser_t >

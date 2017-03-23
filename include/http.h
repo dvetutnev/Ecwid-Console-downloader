@@ -13,10 +13,6 @@ extern "C" {
 class HttpParser
 {
 public:
-    HttpParser() = delete;
-    HttpParser(const HttpParser&) = delete;
-    HttpParser& operator= (const HttpParser&) = delete;
-
     struct OnHeadersComplete_Args
     {
         std::size_t http_code = 0;
@@ -72,6 +68,8 @@ private:
 
         http_parser_settings_init(&settings);
         settings.on_status = &HttpParser::on_status;
+        settings.on_header_field = &HttpParser::on_header_field;
+        settings.on_header_value = &HttpParser::on_header_value;
         settings.on_headers_complete = &HttpParser::on_headers_complete;
         settings.on_body = &HttpParser::on_body;
         settings.on_message_complete = &HttpParser::on_complete;
@@ -85,11 +83,21 @@ private:
     OnComplete cb_on_complete;
 
     std::unique_ptr<OnHeadersComplete_Args> headers_complete_args;
+    std::string field_header, value_header;
+    enum class ModeHeader { Filed, Value };
+    ModeHeader mode_header = ModeHeader::Filed;
 
     static int on_status(http_parser*, const char*, std::size_t);
+    static int on_header_field(http_parser*, const char*, std::size_t);
+    static int on_header_value(http_parser*, const char*, std::size_t);
     static int on_headers_complete(http_parser*);
     static int on_body(http_parser*, const char*, std::size_t);
     static int on_complete(http_parser*);
+
+public:
+    HttpParser() = delete;
+    HttpParser(const HttpParser&) = delete;
+    HttpParser& operator= (const HttpParser&) = delete;
 };
 
 struct HttpParser::UriParseResult

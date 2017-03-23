@@ -1,5 +1,5 @@
 #include "http.h"
-#include <iostream>
+
 using namespace std;
 
 /* response parser */
@@ -15,10 +15,41 @@ int HttpParser::on_status(http_parser* parser, const char* buf, size_t len)
 {
     auto self = reinterpret_cast<HttpParser*>(parser->data);
 
-    self->headers_complete_args = make_unique<OnHeadersComplete_Args>();
-    self->headers_complete_args->http_code = parser->status_code;
-    self->headers_complete_args->http_reason = string{buf, len};
+    if ( !self->headers_complete_args )
+        self->headers_complete_args = make_unique<OnHeadersComplete_Args>();
 
+    self->headers_complete_args->http_code = parser->status_code;
+    self->headers_complete_args->http_reason.append(buf, len);
+
+    return 0;
+}
+
+int HttpParser::on_header_field(http_parser* parser, const char* buf, size_t len)
+{
+    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    if ( self->mode_header == ModeHeader::Filed )
+    {
+        self->field_header.append(buf, len);
+    } else if ( self->mode_header == ModeHeader::Value )
+    {
+        self->headers_complete_args->headers[ std::move(self->field_header) ] = std::move(self->value_header);
+        self->field_header = string{buf, len};
+        self->mode_header = ModeHeader::Filed;
+    }
+    return 0;
+}
+
+int HttpParser::on_header_value(http_parser* parser, const char* buf, size_t len)
+{
+    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    if ( self->mode_header == ModeHeader::Value )
+    {
+        self->value_header.append(buf, len);
+    } else if ( self->mode_header == ModeHeader::Filed )
+    {
+        self->value_header = string{buf, len};
+        self->mode_header = ModeHeader::Value;
+    }
     return 0;
 }
 
@@ -26,6 +57,7 @@ int HttpParser::on_headers_complete(http_parser* parser)
 {
     auto self = reinterpret_cast<HttpParser*>(parser->data);
 
+    self->headers_complete_args->headers[ self->field_header ] = self->value_header;
     self->headers_complete_args->content_length = parser->content_length;
     self->cb_on_headers_complete( std::move(self->headers_complete_args) );
 
