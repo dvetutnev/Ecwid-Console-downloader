@@ -265,7 +265,6 @@ TEST(HttpParser__Response, parse_only_first_message)
             "Hello world!"
             "World hello!";
 
-
     size_t invoke_on_headers_complete = 0;
     HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return true; };
 
@@ -302,7 +301,6 @@ TEST(HttpParser__Response, wait_EOF_if_no_Content_Length)
             "Hello world!"
             "World hello!";
 
-
     size_t invoke_on_headers_complete = 0;
     HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return true; };
 
@@ -328,6 +326,44 @@ TEST(HttpParser__Response, wait_EOF_if_no_Content_Length)
     ASSERT_EQ(invoke_on_complete, 1u);
 }
 
+TEST(HttpParser__Response, Chunked_tranfer_encoding)
+{
+    const string buf = ""
+            "HTTP/1.1 200 OK\r\n"
+            "Server: nginx/1.6.2\r\n"
+            "Content-Type: text/pain\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "Connection: keep-alive\r\n"
+            "ETag: \"58c2fb69-c\"\r\n"
+            "Accept-Ranges: bytes\r\n"
+            "\r\n"
+            "C\r\n"
+            "Hello world!\r\n"
+            "D\r\n"
+            "World, hello!\r\n"
+            "0\r\n"
+            "\r\n";
+    const string buf_body = ""
+            "Hello world!"
+            "World, hello!";
+
+    size_t invoke_on_headers_complete = 0;
+    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return true; };
+
+    string body;
+    HttpParser::OnBody on_body = [&body](const char* buf, size_t len) { body.append(buf, len); };
+
+    size_t invoke_on_complete = 0;
+    HttpParser::OnComplete on_complete = [&invoke_on_complete]() { invoke_on_complete++; };
+
+    auto parser = HttpParser::create( on_headers_complete, on_body, on_complete );
+
+    ASSERT_FALSE( parser->response_parse( buf.data(), buf.size() ) );
+
+    ASSERT_EQ(invoke_on_headers_complete, 1u);
+    ASSERT_EQ(body, buf_body);
+    ASSERT_EQ(invoke_on_complete, 1u);
+}
 
 /* mocking HttpParser */
 
