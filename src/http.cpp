@@ -7,7 +7,6 @@ using namespace std;
 HttpParser::Error HttpParser::response_parse(const char* buf, std::size_t len)
 {
     http_parser_execute( &parser, &settings, buf, len );
-
     return Error{ static_cast<http_errno>(parser.http_errno) };
 }
 
@@ -61,8 +60,7 @@ int HttpParser::on_headers_complete(http_parser* parser)
     {
         self->headers_complete_args->headers[ self->field_header ] = self->value_header;
         self->headers_complete_args->content_length = parser->content_length;
-        self->cb_on_headers_complete( std::move(self->headers_complete_args) );
-        self->continue_after_headers = true;
+        self->continue_after_headers = self->cb_on_headers_complete( std::move(self->headers_complete_args) );
     }
 
     return 0;
