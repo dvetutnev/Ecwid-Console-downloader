@@ -88,8 +88,6 @@ private:
     enum class ModeHeader { Filed, Value };
     ModeHeader mode_header = ModeHeader::Filed;
 
-    bool continue_after_headers = false;
-
     static int on_status(http_parser*, const char*, std::size_t);
     static int on_header_field(http_parser*, const char*, std::size_t);
     static int on_header_value(http_parser*, const char*, std::size_t);
