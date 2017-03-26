@@ -81,6 +81,7 @@ int HttpParser::on_complete(http_parser* parser)
     auto self = reinterpret_cast<HttpParser*>(parser->data);
     if ( self->continue_after_headers && self->cb_on_complete )
         self->cb_on_complete();
+    http_parser_pause(parser, 1);
     return 0;
 }
 
@@ -98,7 +99,7 @@ HttpParser::Error& HttpParser::Error::operator= (const Error& other) noexcept
 
 HttpParser::Error::operator bool () const noexcept
 {
-     return m_code != HPE_OK;
+     return !(m_code == HPE_OK || m_code == HPE_PAUSED);
 }
 
 enum http_errno HttpParser::Error::code() const noexcept
