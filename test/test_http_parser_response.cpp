@@ -286,6 +286,49 @@ TEST(HttpParser__Response, parse_only_first_message)
     ASSERT_EQ(invoke_on_complete, 1u);
 }
 
+TEST(HttpParser__Response, wait_EOF_if_no_Content_Length)
+{
+    const string buf = ""
+            "HTTP/1.1 200 OK\r\n"
+            "Server: nginx/1.6.2\r\n"
+            "Content-Type: text/pain\r\n"
+            "Connection: keep-alive\r\n"
+            "ETag: \"58c2fb69-c\"\r\n"
+            "Accept-Ranges: bytes\r\n"
+            "\r\n"
+            "Hello world!"
+            "World hello!";
+    const string buf_body = ""
+            "Hello world!"
+            "World hello!";
+
+
+    size_t invoke_on_headers_complete = 0;
+    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return true; };
+
+    size_t invoke_on_body = 0;
+    string body;
+    HttpParser::OnBody on_body = [&invoke_on_body, &body](const char* buf, size_t len) { invoke_on_body++; body.append(buf, len); };
+
+    size_t invoke_on_complete = 0;
+    HttpParser::OnComplete on_complete = [&invoke_on_complete]() { invoke_on_complete++; };
+
+    auto parser = HttpParser::create( on_headers_complete, on_body, on_complete );
+
+    ASSERT_FALSE( parser->response_parse( buf.data(), buf.size() ) );
+
+    ASSERT_EQ(invoke_on_headers_complete, 1u);
+    ASSERT_EQ(invoke_on_body, 1u);
+    ASSERT_EQ(body, buf_body);
+    ASSERT_EQ(invoke_on_complete, 0u);
+
+    ASSERT_FALSE( parser->response_parse( nullptr, 0 ) );
+
+    ASSERT_EQ(invoke_on_body, 1u);
+    ASSERT_EQ(invoke_on_complete, 1u);
+}
+
+
 /* mocking HttpParser */
 
 template< typename HttpParser_t >
