@@ -240,7 +240,7 @@
               <y:Geometry height="91.28857084979293" width="119.91503448275853" x="1537.8770517260261" y="-556.3830423068846"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="38.0234375" x="40.945798491379264" y="32.697381124541835">Task<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="38.0234375" x="40.945798491379264" y="25.96875">Task<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -1860,7 +1860,7 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
 -value_header : string
 -mode_header : ModeHeader = ModeHeader::Field</y:AttributeLabel>
                 <y:MethodLabel>+static create(OnHeadersComplete, OnBody, OnComplete) : unique_ptr&lt;HttpParser&gt;
-+static uri_parse(uri : const string&amp;) : shared_ptr&lt;UriParseResult&gt;
++static uri_parse(uri : const string&amp;) : unique_ptr&lt;UriParseResult&gt;
 +response_parse(buf : const char*, len : size_t) : Error
 
 -HttpParser(OnHeadersComplete, OnBody, OnComplete)

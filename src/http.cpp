@@ -114,9 +114,9 @@ static const map<string, size_t> proto_default_port{
     { "https", 443u }
 };
 
-shared_ptr<HttpParser::UriParseResult> HttpParser::uri_parse(const string& uri)
+std::unique_ptr<HttpParser::UriParseResult> HttpParser::uri_parse(const string& uri)
 {
-    shared_ptr<UriParseResult> ret{};
+    unique_ptr<UriParseResult> ret{};
     struct http_parser_url result;
     http_parser_url_init(&result);
 
@@ -126,7 +126,7 @@ shared_ptr<HttpParser::UriParseResult> HttpParser::uri_parse(const string& uri)
         if ( proto_default_port.find(proto) == proto_default_port.end() )
             return ret;
 
-        ret = make_shared<UriParseResult>();
+        ret = make_unique<UriParseResult>();
 
         ret->proto = proto;
         ret->host = uri.substr( result.field_data[UF_HOST].off, result.field_data[UF_HOST].len );

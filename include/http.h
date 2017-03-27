@@ -59,7 +59,7 @@ public:
     Error response_parse(const char*, std::size_t);
 
     struct UriParseResult;
-    static std::shared_ptr<UriParseResult> uri_parse(const std::string&);
+    static std::unique_ptr<UriParseResult> uri_parse(const std::string&);
 
 private:
     template< typename T1, typename T2, typename T3 >
