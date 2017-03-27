@@ -57,7 +57,7 @@ int HttpParser::on_headers_complete(http_parser* parser)
     self->headers_complete_args->headers[ std::move(self->field_header) ] = std::move(self->value_header);
     self->headers_complete_args->content_length = parser->content_length;
 
-    bool is_continue = self->cb_on_headers_complete( std::move(self->headers_complete_args) );
+    const bool is_continue = self->cb_on_headers_complete( std::move(self->headers_complete_args) );
     if ( !is_continue )
         http_parser_pause(parser, 1);
     return 0;
