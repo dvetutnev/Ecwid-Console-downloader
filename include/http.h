@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include <type_traits>
+#include <stdexcept>
 
 extern "C" {
     #include <http_parser.h>
@@ -33,6 +34,9 @@ public:
     std::unique_ptr<HttpParser> >
     create( T1&& on_headers_complete, T2&& on_body, T3&& on_complete )
     {
+        if ( !on_headers_complete )
+            throw std::invalid_argument{"on_headers_complete should not be empty!"};
+
         return std::unique_ptr<HttpParser>{ new HttpParser(
                         std::forward<T1>(on_headers_complete),
                         std::forward<T2>(on_body),

@@ -219,7 +219,7 @@
               <y:Geometry height="82.93814323607427" width="175.49037665782544" x="1537.8770517260261" y="-415.8578300370324"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="64.71533203125" x="55.38752231328772" y="28.831391177854982">TaskList<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="64.71533203125" x="55.38752231328772" y="25.96875">TaskList<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -474,7 +474,7 @@ Redirect</y:AttributeLabel>
           <y:Geometry height="100.2182111405836" width="305.7285169230772" x="1801.852738325691" y="-424.4978639892871"/>
           <y:Fill color="#FFCC00" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="114.65869140625" x="95.53491275841361" y="36.83152864233023">TaskListSimple<y:LabelModel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="114.65869140625" x="95.53491275841361" y="3.0">TaskListSimple<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -1858,8 +1858,7 @@ job_it-&gt;downloader = new downloader<y:LabelModel>
 -headers_complete_args : unique_ptr&lt;OnHeadersComplete_Args&gt;
 -field_header : string
 -value_header : string
--mode_header : ModeHeader = ModeHeader::Field
--continue_after_headers : bool = false</y:AttributeLabel>
+-mode_header : ModeHeader = ModeHeader::Field</y:AttributeLabel>
                 <y:MethodLabel>+static create(OnHeadersComplete, OnBody, OnComplete) : unique_ptr&lt;HttpParser&gt;
 +static uri_parse(uri : const string&amp;) : shared_ptr&lt;UriParseResult&gt;
 +response_parse(buf : const char*, len : size_t) : Error

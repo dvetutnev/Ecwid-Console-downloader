@@ -78,9 +78,9 @@ TEST(HttpParser__Response, normal)
 
 TEST(HttpParser__Response, rvalue_callbacks)
 {
-    HttpParser::OnHeadersComplete on_headers_complete;
-    HttpParser::OnBody on_body;
-    HttpParser::OnComplete on_complete;
+    HttpParser::OnHeadersComplete on_headers_complete = [](unique_ptr<HttpParser::OnHeadersComplete_Args>) -> bool { return true; };
+    HttpParser::OnBody on_body = [](const char*, size_t) {};
+    HttpParser::OnComplete on_complete = []() {};
 
     auto parser = HttpParser::create(
                 std::move(on_headers_complete),
@@ -149,33 +149,10 @@ TEST(HttpParser__Response, increment_parsing)
 
 TEST(HttpParser__Response, on_headers_complete_is_null)
 {
-    const string buf = ""
-            "HTTP/1.1 200 OK\r\n"
-            "Server: nginx/1.6.2\r\n"
-            "Content-Type: text/pain\r\n"
-            "Content-Length: 24\r\n"
-            "Connection: keep-alive\r\n"
-            "ETag: \"58c2fb69-c\"\r\n"
-            "Accept-Ranges: bytes\r\n"
-            "\r\n"
-            "Hello world!"
-            "World hello!";
+    HttpParser::OnBody on_body = [](const char*, size_t) {};
+    HttpParser::OnComplete on_complete = []() {};
 
-
-    size_t invoke_on_body = 0;
-    HttpParser::OnBody on_body = [&invoke_on_body](const char*, size_t) { invoke_on_body++; };
-
-    size_t invoke_on_complete = 0;
-    HttpParser::OnComplete on_complete = [&invoke_on_complete]() { invoke_on_complete++; };
-
-    auto parser = HttpParser::create( nullptr, on_body, on_complete );
-
-    HttpParser::Error err;
-    ASSERT_NO_THROW( err = parser->response_parse( buf.data(), buf.size() ) );
-    ASSERT_FALSE(err);
-
-    ASSERT_EQ(invoke_on_body, 0u);
-    ASSERT_EQ(invoke_on_complete, 0u);
+    ASSERT_THROW( HttpParser::create( nullptr, on_body, on_complete ), std::invalid_argument );
 }
 
 TEST(HttpParser__Response, on_body_is_null)
