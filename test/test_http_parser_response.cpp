@@ -45,21 +45,21 @@ TEST(HttpParser__Response, normal)
     unique_ptr<HttpParser::OnHeadersComplete_Args> headers_complete_args;
     OnHeadersCompleteMock on_headers_complete_mock;
     Expectation invoke_on_headers_complete = EXPECT_CALL( on_headers_complete_mock, invoke(_) )
-            .WillOnce( Invoke( [&headers_complete_args](auto arg){ headers_complete_args.reset(arg); return true; } ) );
-    HttpParser::OnHeadersComplete on_headers_complete = [&on_headers_complete_mock](auto arg){ return on_headers_complete_mock.invoke( arg.release() ); };
+            .WillOnce( Invoke( [&headers_complete_args](auto arg) -> bool { headers_complete_args.reset(arg); return true; } ) );
+    HttpParser::OnHeadersComplete on_headers_complete = [&on_headers_complete_mock](auto arg) ->bool { return on_headers_complete_mock.invoke( arg.release() ); };
 
     string body;
     OnBodyMock on_body_mock;
     Expectation invoke_on_body = EXPECT_CALL( on_body_mock, invoke(_,_) )
             .After(invoke_on_headers_complete)
-            .WillOnce( Invoke( [&body](const char* buf, size_t len){ body = string{buf, len}; } ) );
-    HttpParser::OnBody on_body = [&on_body_mock](const char* buf, size_t len){ on_body_mock.invoke(buf, len); };
+            .WillOnce( Invoke( [&body](const char* buf, size_t len) { body = string{buf, len}; } ) );
+    HttpParser::OnBody on_body = [&on_body_mock](const char* buf, size_t len) { on_body_mock.invoke(buf, len); };
 
     OnCompleteMock on_complete_mock;
     EXPECT_CALL( on_complete_mock, invoke() )
             .Times(1)
             .After(invoke_on_body);
-    HttpParser::OnComplete on_complete = [&on_complete_mock](){ on_complete_mock.invoke(); };
+    HttpParser::OnComplete on_complete = [&on_complete_mock]() { on_complete_mock.invoke(); };
 
     auto parser = HttpParser::create( on_headers_complete, on_body, on_complete );
     ASSERT_TRUE(parser);
@@ -119,7 +119,7 @@ TEST(HttpParser__Response, increment_parsing)
     const string buf_body = "Go next!";
 
     unique_ptr<HttpParser::OnHeadersComplete_Args> headers_complete_args;
-    HttpParser::OnHeadersComplete on_headers_complete = [&headers_complete_args](auto args) { headers_complete_args = std::move(args); return true; };
+    HttpParser::OnHeadersComplete on_headers_complete = [&headers_complete_args](auto args) -> bool { headers_complete_args = std::move(args); return true; };
 
     string body;
     HttpParser::OnBody on_body = [&body](const char* buf, size_t len) { body.append(buf, len); };
@@ -170,7 +170,7 @@ TEST(HttpParser__Response, on_body_is_null)
             "World hello!";
 
     size_t invoke_on_headers_complete = 0;
-    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return true; };
+    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) -> bool { invoke_on_headers_complete++; return true; };
 
     size_t invoke_on_complete = 0;
     HttpParser::OnComplete on_complete = [&invoke_on_complete]() { invoke_on_complete++; };
@@ -200,7 +200,7 @@ TEST(HttpParser__Response, on_complete_is_null)
             "World hello!";
 
     size_t invoke_on_headers_complete = 0;
-    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return true; };
+    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) -> bool { invoke_on_headers_complete++; return true; };
 
     size_t invoke_on_body = 0;
     HttpParser::OnBody on_body = [&invoke_on_body](const char*, size_t) { invoke_on_body++; };
@@ -230,7 +230,7 @@ TEST(HttpParser__Response, do_not_invoke_next_CB_if_on_headers_complete_return_f
             "World hello!";
 
     size_t invoke_on_headers_complete = 0;
-    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return false; };
+    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) -> bool { invoke_on_headers_complete++; return false; };
 
     size_t invoke_on_body = 0;
     HttpParser::OnBody on_body = [&invoke_on_body](const char*, size_t) { invoke_on_body++; };
@@ -275,7 +275,7 @@ TEST(HttpParser__Response, parse_only_first_message)
             "World hello!";
 
     size_t invoke_on_headers_complete = 0;
-    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return true; };
+    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) -> bool { invoke_on_headers_complete++; return true; };
 
     size_t invoke_on_body = 0;
     string body;
@@ -311,7 +311,7 @@ TEST(HttpParser__Response, wait_EOF_if_no_Content_Length)
             "World hello!";
 
     size_t invoke_on_headers_complete = 0;
-    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return true; };
+    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) -> bool { invoke_on_headers_complete++; return true; };
 
     size_t invoke_on_body = 0;
     string body;
@@ -357,7 +357,7 @@ TEST(HttpParser__Response, Chunked_tranfer_encoding)
             "World, hello!";
 
     size_t invoke_on_headers_complete = 0;
-    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) { invoke_on_headers_complete++; return true; };
+    HttpParser::OnHeadersComplete on_headers_complete = [&invoke_on_headers_complete](unique_ptr<HttpParser::OnHeadersComplete_Args>) -> bool { invoke_on_headers_complete++; return true; };
 
     string body;
     HttpParser::OnBody on_body = [&body](const char* buf, size_t len) { body.append(buf, len); };
