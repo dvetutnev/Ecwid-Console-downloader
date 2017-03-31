@@ -18,10 +18,10 @@ public:
     LoopWithCreate(const LoopWithCreate&) = delete;
     LoopWithCreate& operator= (const LoopWithCreate&) = delete;
 
-    template<typename T>
-    std::shared_ptr<T> create()
+    template< typename T, typename ...Args >
+    std::unique_ptr<T> create(Args... args)
     {
-        return std::make_shared<T>(*this);
+        return std::make_unique<T>(*this, args...);
     }
 };
 }

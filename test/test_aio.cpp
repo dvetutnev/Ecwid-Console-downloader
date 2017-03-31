@@ -13,6 +13,7 @@ using ::testing::_;
 using ::testing::Return;
 using ::testing::SaveArg;
 using ::testing::Expectation;
+using ::testing::ByMove;
 
 template<typename aio = aio_uvpp>
 class TimerClient : public std::enable_shared_from_this<TimerClient<aio>>
@@ -23,7 +24,7 @@ class TimerClient : public std::enable_shared_from_this<TimerClient<aio>>
 public:
     TimerClient(Loop& loop_, size_t max_count_ = 3)
         : loop{loop_},
-          timer{loop.template create<Timer>()},
+          timer{ loop.template create<Timer>() },
           max_count{max_count_},
           count{0}
     {}
@@ -44,7 +45,7 @@ public:
 
 private:
     Loop& loop;
-    shared_ptr<Timer> timer;
+    unique_ptr<Timer> timer;
     const size_t max_count;
     size_t count;
     function<void()> callback;
@@ -83,10 +84,10 @@ class LoopMock;
 namespace LoopMock_detail {
 
 template<typename T>
-shared_ptr<T> create(LoopMock* self);
+unique_ptr<T> create(LoopMock&);
 
 template<>
-shared_ptr<TimerMock> create<TimerMock>(LoopMock* self);
+unique_ptr<TimerMock> create<TimerMock>(LoopMock&);
 
 }
 
@@ -94,26 +95,26 @@ class LoopMock
 {
 public:
     template<typename T>
-    shared_ptr<T> create()
+    unique_ptr<T> create()
     {
-        return LoopMock_detail::create<T>(this);
+        return LoopMock_detail::create<T>(*this);
     }
 
-    MOCK_METHOD0( createTimerMock, std::shared_ptr<TimerMock>() );
+    MOCK_METHOD0( createTimerMock, std::unique_ptr<TimerMock>() );
 };
 
 namespace LoopMock_detail {
 
 template<typename T>
-shared_ptr<T> create(LoopMock* self)
+unique_ptr<T> create(LoopMock&)
 {
-    return shared_ptr<T>{};
+    return unique_ptr<T>{};
 }
 
 template<>
-shared_ptr<TimerMock> create<TimerMock>(LoopMock* self)
+unique_ptr<TimerMock> create<TimerMock>(LoopMock& self)
 {
-    return self->createTimerMock();
+    return self.createTimerMock();
 }
 
 }
@@ -135,10 +136,10 @@ public:
 
 TEST(aio_mock, aio_timer)
 {
-    auto timer_ptr = make_shared<TimerMock>();
+    auto timer_ptr = new TimerMock;
     LoopMock loop;
     Expectation timer_create = EXPECT_CALL( loop, createTimerMock() )
-            .WillOnce( Return(timer_ptr) );
+            .WillOnce( Return( ByMove( unique_ptr<TimerMock>{timer_ptr} ) ) );
 
     function<void()> handler;
     Expectation timer_start = EXPECT_CALL( *timer_ptr, start(_, _, _) )
@@ -152,7 +153,7 @@ TEST(aio_mock, aio_timer)
             .After(timer_stop);
 
     const size_t count_call = 4;
-    auto timer_client = make_shared<TimerClient<aio_mock>>(loop, count_call);
+    auto timer_client = make_shared< TimerClient<aio_mock> >(loop, count_call);
 
     CallBackMock callback;
     EXPECT_CALL( callback, invoke() )
