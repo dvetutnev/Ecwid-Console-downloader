@@ -19,9 +19,9 @@ public:
     LoopWithCreate& operator= (const LoopWithCreate&) = delete;
 
     template< typename T, typename ...Args >
-    std::unique_ptr<T> create(Args... args)
+    std::unique_ptr<T> create(Args&&... args)
     {
-        return std::make_unique<T>(*this, args...);
+        return std::make_unique<T>( *this, std::forward<Args>(args)... );
     }
 };
 }
