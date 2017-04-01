@@ -9,7 +9,7 @@ TEST(uri_parse, normal)
 {
     const string proto = "http";
     const string host = "www.internet.org";
-    const size_t port = 8080;
+    const unsigned short port = 8080;
     const string query = "/path?id=iidd&mode=full#42";
     const string username = "username";
     const string password = "password";

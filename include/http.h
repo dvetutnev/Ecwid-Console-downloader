@@ -109,7 +109,7 @@ struct HttpParser::UriParseResult
 {
     std::string proto;
     std::string host;
-    std::size_t port;
+    unsigned short port;
     std::string query;
     std::string username;
     std::string password;

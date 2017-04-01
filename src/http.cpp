@@ -109,7 +109,7 @@ const char* HttpParser::Error::str() const noexcept
 
 /* uri parser */
 
-static const map<string, size_t> proto_default_port{
+static const map<string, unsigned short> proto_default_port{
     { "http", 80u },
     { "https", 443u }
 };
