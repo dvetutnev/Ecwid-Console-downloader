@@ -6,11 +6,11 @@ std::shared_ptr<Task> TaskListSimple::get()
     using namespace std;
     shared_ptr<Task> ret;
 
-    while(!stream.eof())
+    while( !stream.eof() )
     {
         string buf;
         getline(stream, buf);
-        if (buf.empty())
+        if ( buf.empty() )
             continue;
 
         istringstream sbuf{ move(buf) };

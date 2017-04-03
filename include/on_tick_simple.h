@@ -11,10 +11,6 @@ template<typename JobContainer>
 class OnTickSimple : public OnTick
 {
 public:
-    OnTickSimple() = delete;
-    OnTickSimple(const OnTickSimple&) = delete;
-    OnTickSimple& operator= (const OnTickSimple) = delete;
-
     OnTickSimple(JobContainer& job_container_, std::weak_ptr<Factory> factory, TaskList& task_list_, std::size_t max_redirect_ = 10)
         : job_container{job_container_},
           weak_factory{factory},
@@ -24,6 +20,9 @@ public:
 
     virtual void operator() (std::shared_ptr<Downloader>) override;
 
+    OnTickSimple() = delete;
+    OnTickSimple(const OnTickSimple&) = delete;
+    OnTickSimple& operator= (const OnTickSimple) = delete;
     virtual ~OnTickSimple() = default;
 
 private:

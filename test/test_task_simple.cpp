@@ -9,15 +9,8 @@ using namespace std;
 TEST(TaskListSimple, normal)
 {
     const string path{"/home/"};
-
-    const Task t1{
-        string{"http://internet.org/archive.bin"},
-        string{"downloaded_file_1.zip"}
-    };
-    const Task t2{
-        string{"http://internet.org/download/"},
-        string{"New_file.zip"}
-    };
+    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
+    const Task t2{"http://internet.org/download/", "New_file.zip"};
 
     stringstream stream;
     stream << t1.uri << " " << t1.fname << std::endl;
@@ -38,10 +31,7 @@ TEST(TaskListSimple, normal)
 
 TEST(TaskListSimple, null_if_eof)
 {
-    const Task t1{
-        string{"http://internet.org/archive.bin"},
-        string{"downloaded_file_1.zip"}
-    };
+    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
 
     stringstream stream;
     stream << t1.uri << " " << t1.fname << std::endl;
@@ -57,14 +47,8 @@ TEST(TaskListSimple, null_if_eof)
 
 TEST(TaskListSimple, skip_line_empty)
 {
-    const Task t1{
-        string{"http://internet.org/archive.bin"},
-        string{"downloaded_file_1.zip"}
-    };
-    const Task t2{
-        string{"http://internet.org/download/"},
-        string{"New_file.zip"}
-    };
+    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
+    const Task t2{"http://internet.org/download/", "New_file.zip"};
 
     stringstream stream;
     stream << t1.uri << " " << t1.fname << std::endl;
@@ -86,14 +70,8 @@ TEST(TaskListSimple, skip_line_empty)
 
 TEST(TaskListSimple, skip_line_not_complete)
 {
-    const Task t1{
-        string{"http://internet.org/archive.bin"},
-        string{"downloaded_file_1.zip"}
-    };
-    const Task t2{
-        string{"http://internet.org/download/"},
-        string{"New_file.zip"}
-    };
+    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
+    const Task t2{"http://internet.org/download/", "New_file.zip"};
 
     stringstream stream;
     stream << t1.uri << " " << t1.fname << std::endl;
@@ -115,10 +93,7 @@ TEST(TaskListSimple, skip_line_not_complete)
 
 TEST(TaskListSimple, ignore_whitespace_charters)
 {
-    const Task t1{
-        string{"http://internet.org/archive.bin"},
-        string{"downloaded_file_1.zip"}
-    };
+    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
 
     stringstream stream;
     stream << "  " << t1.uri << "  " << t1.fname << "  " << std::endl;
@@ -133,10 +108,7 @@ TEST(TaskListSimple, ignore_whitespace_charters)
 
 TEST(TaskListSimple, ignore_additional_word)
 {
-    const Task t1{
-        string{"http://internet.org/archive.bin"},
-        string{"downloaded_file_1.zip"}
-    };
+    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
 
     stringstream stream;
     stream << t1.uri << " " << t1.fname << " xyz" << std::endl;
@@ -147,4 +119,29 @@ TEST(TaskListSimple, ignore_additional_word)
     ASSERT_TRUE(t1_ptr);
     ASSERT_EQ(t1_ptr->uri, t1.uri);
     ASSERT_EQ(t1_ptr->fname, t1.fname);
+}
+
+TEST(TaskListSimple, constructor)
+{
+    stringstream stream;
+    string path;
+
+    TaskListSimple path_lvalue{stream, path};
+    TaskListSimple path_rvalue{stream, move(path) };
+    TaskListSimple path_const_char{stream, "/path/" };
+    //TaskListSimple invalid_path_type{stream, 42};
+}
+
+TEST(Task, constructor)
+{
+    const string uri, fname;
+
+    Task lvalue__lvalue{uri, fname};
+    Task lvalue__rvalue{uri, string{} };
+    Task rvalue__lvalue{string{}, fname};
+    Task rvalue__rvalue{ string{}, string{} };
+    Task lvalue__const_char{uri, "fname"};
+    Task rvalue__const_char{string{}, "fname"};
+    //Task invalid_lvalue{42, fname};
+    //Task lvalue_invalid{uri, 42};
 }

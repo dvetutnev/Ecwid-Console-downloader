@@ -10,10 +10,12 @@ public:
     Task()
     {}
 
-    template<typename String = std::string>
-    Task(String&& uri_, String&& fname_)
-        : uri{ std::forward<String>(uri_) },
-          fname{ std::forward<String>(fname_) }
+    template< typename StringUri,  typename StringFname,
+              typename = std::enable_if_t< std::is_convertible<StringUri, std::string>::value, StringUri>,
+              typename = std::enable_if_t< std::is_convertible<StringFname, std::string>::value, StringFname> >
+    Task(StringUri&& uri_, StringFname&& fname_)
+        : uri{ std::forward<StringUri>(uri_) },
+          fname{ std::forward<StringFname>(fname_) }
     {}
 
     Task(const Task& other)

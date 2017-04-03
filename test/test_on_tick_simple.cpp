@@ -31,8 +31,8 @@ TEST(OnTickSimple, Downloader_is_OnTheGo)
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
-    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    const Task used_task{"http://internet.org/", "fname.zip"};
+    const Task other_task{"http://internet.org/2", "fname2.zip"};
     Job used_job{ make_shared<Task>(used_task), used_downloader };
     Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
@@ -75,13 +75,13 @@ void Downloader_normal_completion(StatusDownloader::State state)
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
-    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    const Task used_task{"http://internet.org/", "fname.zip"};
+    const Task other_task{"http://internet.org/2", "fname2.zip"};
     Job used_job{ make_shared<Task>(used_task), used_downloader };
     Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
-    const Task next_task{ string{"http://internet.org/next"}, string{"fname_next.zip"} };
+    const Task next_task{"http://internet.org/next", "fname_next.zip"};
     auto next_task_ptr = std::make_shared<Task>(next_task);
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
@@ -146,8 +146,8 @@ void Downloader_completion_Factory_is_null(StatusDownloader::State state)
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
-    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    const Task used_task{"http://internet.org/", "fname.zip"};
+    const Task other_task{"http://internet.org/2", "fname2.zip"};
     Job used_job{ make_shared<Task>(used_task), used_downloader };
     Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
@@ -208,8 +208,8 @@ void Downloader_completion_no_Task(StatusDownloader::State state)
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
-    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    const Task used_task{"http://internet.org/", "fname.zip"};
+    const Task other_task{"http://internet.org/2", "fname2.zip"};
     Job used_job{ make_shared<Task>(used_task), used_downloader };
     Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
@@ -270,14 +270,14 @@ void Downloader_completion_Factory_returning_null_no_Task(StatusDownloader::Stat
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
-    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    const Task used_task{"http://internet.org/", "fname.zip"};
+    const Task other_task{"http://internet.org/2", "fname2.zip"};
     Job used_job{ make_shared<Task>(used_task), used_downloader };
     Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
-    const Task first_bad_task{ string{"first_bad_uri"}, string{"first_bad_fname"} };
-    const Task second_bad_task{ string{"second_bad_uri"}, string{"second_bad_fname"} };
+    const Task first_bad_task{"first_bad_uri", "first_bad_fname"};
+    const Task second_bad_task{"second_bad_uri", "second_bad_fname"};
     auto first_bad_task_ptr = make_shared<Task>(first_bad_task);
     auto second_bad_task_ptr = make_shared<Task>(second_bad_task);
     TaskListMock task_list;
@@ -344,8 +344,8 @@ TEST(OnTickSimple, Downloader_is_Redirect)
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
-    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    const Task used_task{"http://internet.org/", "fname.zip"};
+    const Task other_task{"http://internet.org/2", "fname2.zip"};
     Job used_job{ make_shared<Task>(used_task), used_downloader };
     Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
@@ -354,7 +354,7 @@ TEST(OnTickSimple, Downloader_is_Redirect)
     EXPECT_CALL( task_list, get() )
             .Times(0);
 
-    const Task redirect_task{ string{status.redirect_uri}, string{used_job.task->fname} };
+    const Task redirect_task{status.redirect_uri, used_job.task->fname};
     auto redirect_downloader = make_shared<DownloaderMock>();
     auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(redirect_task) )
@@ -396,8 +396,8 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_is_null)
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
-    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    const Task used_task{"http://internet.org/", "fname.zip"};
+    const Task other_task{"http://internet.org/2", "fname2.zip"};
     Job used_job{ make_shared<Task>(used_task), used_downloader };
     Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
@@ -445,13 +445,13 @@ TEST(OnTickSimple, Downloader_is_Redirect_max_redirect)
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
-    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    const Task used_task{"http://internet.org/", "fname.zip"};
+    const Task other_task{"http://internet.org/2", "fname2.zip"};
     Job used_job{ std::make_shared<Task>(used_task), used_downloader, max_redirect };
     Job other_job{ std::make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
-    const Task next_task{ string{"http://internet.org/next"}, string{"fname_next.zip"} };
+    const Task next_task{"http://internet.org/next", "fname_next.zip"};
     auto next_task_ptr = make_shared<Task>(next_task);
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
@@ -501,13 +501,13 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_returning_null)
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{ string{"http://internet.org/"}, string{"fname.zip"} };
-    const Task other_task{ string{"http://internet.org/2"}, string{"fname2.zip"} };
+    const Task used_task{"http://internet.org/", "fname.zip"};
+    const Task other_task{"http://internet.org/2", "fname2.zip"};
     Job used_job{ make_shared<Task>(used_task), used_downloader };
     Job other_job{ make_shared<Task>(other_task), other_downloader };
     JobList job_list{used_job, other_job};
 
-    const Task next_task{ string{"http://internet.org/next"}, string{"fname_next.zip"} };
+    const Task next_task{"http://internet.org/next", "fname_next.zip"};
     auto next_task_ptr = make_shared<Task>(next_task);
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
