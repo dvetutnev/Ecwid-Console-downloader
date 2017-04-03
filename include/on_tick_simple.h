@@ -26,8 +26,8 @@ public:
     virtual ~OnTickSimple() = default;
 
 private:
-    void next_task(const typename JobContainer::iterator&);
-    void redirect(typename JobContainer::iterator&);
+    void next_task(const typename JobContainer::iterator);
+    void redirect(typename JobContainer::iterator);
     typename JobContainer::iterator find_job(Downloader*);
 
     JobContainer& job_container;
@@ -58,7 +58,7 @@ void OnTickSimple<T>::operator()(std::shared_ptr<Downloader> downloader)
 }
 
 template<typename T>
-void OnTickSimple<T>::next_task(const typename T::iterator& job_it)
+void OnTickSimple<T>::next_task(const typename T::iterator job_it)
 {
     job_container.erase(job_it);
     auto factory = weak_factory.lock();
@@ -79,7 +79,7 @@ void OnTickSimple<T>::next_task(const typename T::iterator& job_it)
 }
 
 template<typename T>
-void OnTickSimple<T>::redirect(typename T::iterator& job_it)
+void OnTickSimple<T>::redirect(typename T::iterator job_it)
 {
     if ( ++(job_it->redirect_count) > max_redirect)
     {
