@@ -149,10 +149,11 @@ TEST(HttpParser__Response, increment_parsing)
 
 TEST(HttpParser__Response, on_headers_complete_is_null)
 {
+    HttpParser::OnHeadersComplete on_headers_complete = nullptr;
     HttpParser::OnBody on_body = [](const char*, size_t) {};
     HttpParser::OnComplete on_complete = []() {};
 
-    ASSERT_THROW( HttpParser::create( nullptr, on_body, on_complete ), std::invalid_argument );
+    ASSERT_THROW( HttpParser::create( on_headers_complete, on_body, on_complete ), std::invalid_argument );
 }
 
 TEST(HttpParser__Response, on_body_is_null)
