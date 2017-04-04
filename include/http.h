@@ -56,7 +56,7 @@ public:
         enum http_errno m_code;
     };
 
-    Error response_parse(const char*, std::size_t);
+    const Error response_parse(const char*, std::size_t);
 
     struct UriParseResult;
     static std::unique_ptr<UriParseResult> uri_parse(const std::string&);

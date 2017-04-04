@@ -4,7 +4,7 @@ using namespace std;
 
 /* response parser */
 
-HttpParser::Error HttpParser::response_parse(const char* buf, std::size_t len)
+const HttpParser::Error HttpParser::response_parse(const char* buf, std::size_t len)
 {
     http_parser_execute( &parser, &settings, buf, len );
     return Error{ static_cast<http_errno>(parser.http_errno) };
