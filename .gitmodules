@@ -10,3 +10,6 @@
 [submodule "vendor/http-parser"]
 	path = vendor/http-parser
 	url = https://github.com/nodejs/http-parser.git
+[submodule "vendor/uvw"]
+	path = vendor/uvw
+	url = https://github.com/skypjack/uvw.git

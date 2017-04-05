@@ -32,10 +32,12 @@ set(
 
 find_package(UV REQUIRED)
 find_package(UVPP REQUIRED)
+find_package(UVW REQUIRED)
 find_package(http-parser REQUIRED)
 find_package(GoogleTest)
 
 include_directories(${UVPP_INCLUDE_DIR})
+include_directories(${UVW_INCLUDE_DIR})
 
 set(SRC_LIST
     main.cpp
@@ -46,6 +48,7 @@ target_link_libraries(${PROJECT_NAME} uv)
 message(STATUS "CMAKE_CURRENT_BINARY_DIR => ${CMAKE_CURRENT_BINARY_DIR}")
 message(STATUS "CMAKE_INSTALL_PREFIX => ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "CMAKE_C_COMPILER => ${CMAKE_C_COMPILER}")
+message(STATUS "CMAKE_CXX_COMPILER => ${CMAKE_CXX_COMPILER}")
 
 if(${GoogleTest_FOUND})
     message(STATUS "Enable test")
