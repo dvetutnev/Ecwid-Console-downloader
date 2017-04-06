@@ -5,7 +5,7 @@
 
 TEST(aio_uvw__addrinfo2IPAddress, nullptr_args)
 {
-    ASSERT_THROW( aio_uvw::addrinfo2IPAddres(nullptr), std::invalid_argument );
+    ASSERT_THROW( AIO_UVW::addrinfo2IPAddres(nullptr), std::invalid_argument );
 }
 
 TEST(aio_uvw__addrinfo2IPAddress, normal_ipv4)
@@ -17,7 +17,7 @@ TEST(aio_uvw__addrinfo2IPAddress, normal_ipv4)
     addrinfo_.ai_addr = reinterpret_cast<sockaddr*>(&addr_);
     addrinfo_.ai_addrlen = sizeof (addr_);
 
-    auto result = aio_uvw::addrinfo2IPAddres(&addrinfo_);
+    auto result = AIO_UVW::addrinfo2IPAddres(&addrinfo_);
     ASSERT_EQ(result.ip, "127.0.0.1");
     ASSERT_FALSE(result.v6);
 }
@@ -31,7 +31,7 @@ TEST(aio_uvw__addrinfo2IPAddress, normal_ipv6)
     addrinfo_.ai_addr = reinterpret_cast<sockaddr*>(&addr_);
     addrinfo_.ai_addrlen = sizeof (addr_);
 
-    auto result = aio_uvw::addrinfo2IPAddres(&addrinfo_);
+    auto result = AIO_UVW::addrinfo2IPAddres(&addrinfo_);
     ASSERT_EQ(result.ip, "::1");
     ASSERT_TRUE(result.v6);
 }

@@ -3,7 +3,7 @@
 #include <uvw/loop.hpp>
 #include <uvw/dns.hpp>
 
-struct aio_uvw
+struct AIO_UVW
 {
     using Loop = uvw::Loop;
 
@@ -30,7 +30,7 @@ struct aio_uvw
     using GetAddrInfoReq = uvw::GetAddrInfoReq;
 };
 
-const aio_uvw::IPAddress aio_uvw::addrinfo2IPAddres(const addrinfo* addr)
+const AIO_UVW::IPAddress AIO_UVW::addrinfo2IPAddres(const addrinfo* addr)
 {
     if (addr == nullptr)
         throw std::invalid_argument{"addrinfo must not be NULL!"};
