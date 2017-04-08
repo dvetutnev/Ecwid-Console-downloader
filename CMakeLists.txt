@@ -31,7 +31,6 @@ set(
 )
 
 find_package(UV REQUIRED)
-find_package(UVPP REQUIRED)
 find_package(UVW REQUIRED)
 find_package(http-parser REQUIRED)
 find_package(GoogleTest)
