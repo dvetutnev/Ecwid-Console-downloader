@@ -13,7 +13,7 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using UriParseResult = typename Parser::UriParseResult;
 
 public:
-    DownloaderSimple(typename AIO::Loop& loop_, std::shared_ptr<OnTick> on_tick_)
+    DownloaderSimple(Loop& loop_, std::shared_ptr<OnTick> on_tick_)
         : loop{loop_},
           on_tick{on_tick_}
     {}
@@ -25,6 +25,7 @@ public:
 private:
     Loop& loop;
     std::shared_ptr<OnTick> on_tick;
+
     StatusDownloader m_status;
     std::unique_ptr<UriParseResult> uri_parsed;
 
@@ -48,7 +49,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
     auto resolver = loop.template resource<GetAddrInfoReq>();
     resolver->template on<ErrorEvent>( [self = this->template shared_from_this()](const auto& err, auto&)
     {
-        self->on_error( std::string{"Can`t resolve "} + self->uri_parsed->host +" Code => " + std::to_string(err.code()) + std::string{" Reason => "} + err.what() );
+        self->on_error( std::string{"Can`t resolve "} + self->uri_parsed->host + " Code => " + std::to_string(err.code()) + std::string{" Reason => "} + err.what() );
     } );
     resolver->template on<AddrInfoEvent>( [self = this->template shared_from_this()](const auto& event, auto&) { self->on_resolve(event); } );
     resolver->getNodeAddrInfo(uri_parsed->host);
