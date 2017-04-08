@@ -6,6 +6,7 @@
 struct AIO_UVW
 {
     using Loop = uvw::Loop;
+    using ErrorEvent = uvw::ErrorEvent;
 
     struct IPAddress
     {

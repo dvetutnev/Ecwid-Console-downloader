@@ -46,7 +46,7 @@ TEST(OnTickSimple, Downloader_is_OnTheGo)
             .Times(0);
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
-    on_tick(used_job.downloader);
+    on_tick.invoke(used_job.downloader);
 
     JobList::const_iterator it;
     const JobList::const_iterator it_begin = std::begin(job_list);
@@ -93,7 +93,7 @@ void Downloader_normal_completion(StatusDownloader::State state)
             .WillOnce( Return(next_downloader) );
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
-    on_tick(used_downloader);
+    on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
     const JobList::const_iterator it_begin = std::begin(job_list);
@@ -161,7 +161,7 @@ void Downloader_completion_Factory_is_null(StatusDownloader::State state)
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
 
     factory.reset();
-    on_tick(used_downloader);
+    on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
     const JobList::const_iterator it_begin = std::begin(job_list);
@@ -223,7 +223,7 @@ void Downloader_completion_no_Task(StatusDownloader::State state)
             .Times(0);
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
-    on_tick(used_downloader);
+    on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
     const JobList::const_iterator it_begin = std::begin(job_list);
@@ -293,7 +293,7 @@ void Downloader_completion_Factory_returning_null_no_Task(StatusDownloader::Stat
             .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(shared_ptr<Downloader>{}) ) );
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
-    on_tick(used_downloader);
+    on_tick.invoke(used_downloader);
 
     ASSERT_EQ( first_call_factory_task, first_bad_task );
     ASSERT_EQ( second_call_factory_task, second_bad_task );
@@ -361,7 +361,7 @@ TEST(OnTickSimple, Downloader_is_Redirect)
             .WillOnce( Return(redirect_downloader) );
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
-    on_tick(used_downloader);
+    on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
     const JobList::const_iterator it_begin = std::begin(job_list);
@@ -411,7 +411,7 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_is_null)
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
 
     factory.reset();
-    on_tick(used_downloader);
+    on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
     const JobList::const_iterator it_begin = std::begin(job_list);
@@ -463,7 +463,7 @@ TEST(OnTickSimple, Downloader_is_Redirect_max_redirect)
             .WillOnce( Return(next_downloader) );
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list, max_redirect};
-    on_tick(used_downloader);
+    on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
     const JobList::const_iterator it_begin = std::begin(job_list);
@@ -521,7 +521,7 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_returning_null)
             .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(next_downloader) ) );
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
-    on_tick(used_downloader);
+    on_tick.invoke(used_downloader);
 
     const Task redirect_task{ string{status.redirect_uri}, string{used_task.fname} };
     ASSERT_EQ( first_call_factory_task, redirect_task );
@@ -563,7 +563,7 @@ void invalid_Downloader(shared_ptr<Downloader> downloader)
             .Times(0);
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
-    ASSERT_THROW( on_tick(downloader), std::runtime_error );
+    ASSERT_THROW( on_tick.invoke(downloader), std::runtime_error );
 }
 
 TEST(OnTickSimple, Downloader_null)

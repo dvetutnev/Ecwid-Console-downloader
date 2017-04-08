@@ -18,7 +18,7 @@ public:
           max_redirect{max_redirect_}
     {}
 
-    virtual void operator() (std::shared_ptr<Downloader>) override;
+    virtual void invoke(std::shared_ptr<Downloader>) override;
 
     OnTickSimple() = delete;
     OnTickSimple(const OnTickSimple&) = delete;
@@ -40,7 +40,7 @@ private:
 /* -- implementation, because template( -- */
 
 template<typename T>
-void OnTickSimple<T>::operator()(std::shared_ptr<Downloader> downloader)
+void OnTickSimple<T>::invoke(std::shared_ptr<Downloader> downloader)
 {
     auto job_it = find_job( downloader.get() );
     switch ( downloader->status().state )
