@@ -47,11 +47,11 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
         return false;
 
     auto resolver = loop.template resource<GetAddrInfoReq>();
-    resolver->template on<ErrorEvent>( [self = this->template shared_from_this()](const auto& err, auto&)
+    resolver->template once<ErrorEvent>( [self = this->template shared_from_this()](const auto& err, auto&)
     {
         self->on_error( std::string{"Can`t resolve "} + self->uri_parsed->host + " Code => " + std::to_string(err.code()) + std::string{" Reason => "} + err.what() );
     } );
-    resolver->template on<AddrInfoEvent>( [self = this->template shared_from_this()](const auto& event, auto&) { self->on_resolve(event); } );
+    resolver->template once<AddrInfoEvent>( [self = this->template shared_from_this()](const auto& event, auto&) { self->on_resolve(event); } );
     resolver->getNodeAddrInfo(uri_parsed->host);
 
     return true;

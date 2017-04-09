@@ -48,29 +48,29 @@ using AddrInfoEvent = AIO_UVW::AddrInfoEvent;
 namespace GetAddrInfoReqMock_interanl {
 
 template< typename T >
-void on(GetAddrInfoReqMock&, Callback<T, GetAddrInfoReqMock>) {}
+void once(GetAddrInfoReqMock&, Callback<T, GetAddrInfoReqMock>) {}
 
 template<>
-void on<ErrorEvent>(GetAddrInfoReqMock&, Callback<ErrorEvent, GetAddrInfoReqMock>);
+void once<ErrorEvent>(GetAddrInfoReqMock&, Callback<ErrorEvent, GetAddrInfoReqMock>);
 template<>
-void on<AddrInfoEvent>(GetAddrInfoReqMock&, Callback<AddrInfoEvent, GetAddrInfoReqMock>);
+void once<AddrInfoEvent>(GetAddrInfoReqMock&, Callback<AddrInfoEvent, GetAddrInfoReqMock>);
 
 }
 struct GetAddrInfoReqMock
 {
     template< typename T >
-    void on( Callback<T, GetAddrInfoReqMock> cb ) { GetAddrInfoReqMock_interanl::on<T>(*this, cb); }
+    void once( Callback<T, GetAddrInfoReqMock> cb ) { GetAddrInfoReqMock_interanl::once<T>(*this, cb); }
 
-    MOCK_METHOD1( on_ErrorEvent, void( Callback<ErrorEvent, GetAddrInfoReqMock> ) );
-    MOCK_METHOD1( on_AddrInfoEvent, void( Callback<AddrInfoEvent, GetAddrInfoReqMock> ) );
+    MOCK_METHOD1( once_ErrorEvent, void( Callback<ErrorEvent, GetAddrInfoReqMock> ) );
+    MOCK_METHOD1( once_AddrInfoEvent, void( Callback<AddrInfoEvent, GetAddrInfoReqMock> ) );
     MOCK_METHOD1( getNodeAddrInfo, void(string) );
 };
 namespace GetAddrInfoReqMock_interanl {
 
 template<>
-void on<ErrorEvent>(GetAddrInfoReqMock& self, Callback<ErrorEvent, GetAddrInfoReqMock> cb) { self.on_ErrorEvent(cb); }
+void once<ErrorEvent>(GetAddrInfoReqMock& self, Callback<ErrorEvent, GetAddrInfoReqMock> cb) { self.once_ErrorEvent(cb); }
 template<>
-void on<AddrInfoEvent>(GetAddrInfoReqMock& self, Callback<AddrInfoEvent, GetAddrInfoReqMock> cb) { self.on_AddrInfoEvent(cb); }
+void once<AddrInfoEvent>(GetAddrInfoReqMock& self, Callback<AddrInfoEvent, GetAddrInfoReqMock> cb) { self.once_AddrInfoEvent(cb); }
 
 }
 
@@ -137,9 +137,9 @@ TEST(DownloaderSimple, host_resolve_failed)
 
     auto resolver = make_shared<GetAddrInfoReqMock>();
     Callback<ErrorEvent, GetAddrInfoReqMock> handler_resolver_error;
-    EXPECT_CALL( *resolver, on_ErrorEvent(_) )
+    EXPECT_CALL( *resolver, once_ErrorEvent(_) )
             .WillOnce( SaveArg<0>(&handler_resolver_error) );
-    EXPECT_CALL( *resolver, on_AddrInfoEvent(_) )
+    EXPECT_CALL( *resolver, once_AddrInfoEvent(_) )
             .Times(1);
     EXPECT_CALL( *resolver, getNodeAddrInfo(host) )
             .Times(1);
