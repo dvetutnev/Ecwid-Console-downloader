@@ -21,7 +21,7 @@ struct GetAddrInfoReqMock;
 namespace LoopMock_internal {
 
 template< typename T >
-shared_ptr<T> resource(LoopMock&) { return shared_ptr<T>{}; }
+shared_ptr<T> resource(LoopMock&) { return nullptr; }
 
 template<>
 shared_ptr<GetAddrInfoReqMock> resource<GetAddrInfoReqMock>(LoopMock&);
