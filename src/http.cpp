@@ -12,7 +12,7 @@ const HttpParser::Error HttpParser::response_parse(const char* buf, std::size_t 
 
 int HttpParser::on_status(http_parser* parser, const char* buf, size_t len)
 {
-    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    auto self = static_cast<HttpParser*>(parser->data);
     if ( !self->headers_complete_args )
         self->headers_complete_args = make_unique<OnHeadersComplete_Args>();
 
@@ -23,7 +23,7 @@ int HttpParser::on_status(http_parser* parser, const char* buf, size_t len)
 
 int HttpParser::on_header_field(http_parser* parser, const char* buf, size_t len)
 {
-    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    auto self = static_cast<HttpParser*>(parser->data);
     if ( self->mode_header == ModeHeader::Filed )
     {
         self->field_header.append(buf, len);
@@ -38,7 +38,7 @@ int HttpParser::on_header_field(http_parser* parser, const char* buf, size_t len
 
 int HttpParser::on_header_value(http_parser* parser, const char* buf, size_t len)
 {
-    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    auto self = static_cast<HttpParser*>(parser->data);
     if ( self->mode_header == ModeHeader::Value )
     {
         self->value_header.append(buf, len);
@@ -52,7 +52,7 @@ int HttpParser::on_header_value(http_parser* parser, const char* buf, size_t len
 
 int HttpParser::on_headers_complete(http_parser* parser)
 {
-    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    auto self = static_cast<HttpParser*>(parser->data);
 
     self->headers_complete_args->headers[ std::move(self->field_header) ] = std::move(self->value_header);
     self->headers_complete_args->content_length = parser->content_length;
@@ -65,7 +65,7 @@ int HttpParser::on_headers_complete(http_parser* parser)
 
 int HttpParser::on_body(http_parser* parser, const char* buf, size_t len)
 {
-    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    auto self = static_cast<HttpParser*>(parser->data);
     if ( self->cb_on_body )
         self->cb_on_body(buf, len);
     return 0;
@@ -73,7 +73,7 @@ int HttpParser::on_body(http_parser* parser, const char* buf, size_t len)
 
 int HttpParser::on_complete(http_parser* parser)
 {
-    auto self = reinterpret_cast<HttpParser*>(parser->data);
+    auto self = static_cast<HttpParser*>(parser->data);
     if ( self->cb_on_complete )
         self->cb_on_complete();
     http_parser_pause(parser, 1);
