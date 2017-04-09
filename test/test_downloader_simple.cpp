@@ -3,6 +3,7 @@
 
 #include "downloader_simple.h"
 #include "aio_uvw.h"
+#include "aio_loop_mock.h"
 #include "on_tick_mock.h"
 #include "http.h"
 
@@ -14,33 +15,6 @@ using ::testing::Return;
 using ::testing::ByMove;
 using ::testing::Mock;
 using ::testing::SaveArg;
-
-/*------- LoopMock -------*/
-struct LoopMock;
-struct GetAddrInfoReqMock;
-namespace LoopMock_internal {
-
-template< typename T >
-shared_ptr<T> resource(LoopMock&) { return nullptr; }
-
-template<>
-shared_ptr<GetAddrInfoReqMock> resource<GetAddrInfoReqMock>(LoopMock&);
-}
-struct LoopMock
-{
-    template< typename T >
-    shared_ptr<T> resource() { return LoopMock_internal::resource<T>(*this); }
-
-    MOCK_METHOD0( resource_GetAddrInfoReqMock, shared_ptr<GetAddrInfoReqMock>() );
-};
-namespace LoopMock_internal {
-
-template<>
-shared_ptr<GetAddrInfoReqMock> resource<GetAddrInfoReqMock>(LoopMock& self) { return self.resource_GetAddrInfoReqMock(); }
-}
-
-template<typename Event, typename Resource>
-using Callback = std::function< void(const Event&, Resource&) >;
 
 /*------- GetAddrInfoReqMock -------*/
 using ErrorEvent = AIO_UVW::ErrorEvent;

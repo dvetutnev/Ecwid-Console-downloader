@@ -1,8 +1,6 @@
 #pragma once
 
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
-
 #include "on_tick.h"
 
 class OnTickMock : public OnTick
