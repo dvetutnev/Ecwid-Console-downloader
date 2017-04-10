@@ -91,6 +91,7 @@ TEST(DownloaderSimple, uri_parse_falied)
             .Times(0);
 
     ASSERT_FALSE( downloader->run(task) );
+    Mock::VerifyAndClearExpectations(on_tick.get());
 
     HttpParserMock::instance_uri_parse.reset();
 }

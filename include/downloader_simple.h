@@ -20,7 +20,7 @@ public:
 
     virtual bool run(const Task&) override final;
     virtual void stop() override final;
-    virtual const StatusDownloader& status() const override final;
+    virtual const StatusDownloader& status() const override final { return m_status; }
 
 private:
     Loop& loop;
@@ -56,8 +56,9 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
         return false;
 
     auto resolver = loop.template resource<GetAddrInfoReq>();
-    /*TODO: self from lambda */
-    resolver->template once<ErrorEvent>( [self = this->template shared_from_this()](const auto& err, auto&)
+    auto self = this->template shared_from_this();
+
+    resolver->template once<ErrorEvent>( [self](const auto& err, auto&)
     {
         std::string err_str = "Can`t resolve " + self->uri_parsed->host + " " + ErrorEvent2str(err);
         if ( self->m_status.state == StatusDownloader::State::OnTheGo )
@@ -65,7 +66,8 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
         else
             self->on_error_without_tick( std::move(err_str) );
     } );
-    resolver->template once<AddrInfoEvent>( [self = this->template shared_from_this()](const auto& event, auto&) { self->on_resolve(event); } );
+    resolver->template once<AddrInfoEvent>( [self](const auto& event, auto&) { self->on_resolve(event); } );
+
     resolver->getNodeAddrInfo(uri_parsed->host);
 
     if ( m_status.state == StatusDownloader::State::Init )
@@ -80,12 +82,6 @@ template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::stop()
 {
 
-}
-
-template< typename AIO, typename Parser >
-const StatusDownloader& DownloaderSimple<AIO, Parser>::status() const
-{
-    return m_status;
 }
 
 template< typename AIO, typename Parser >
