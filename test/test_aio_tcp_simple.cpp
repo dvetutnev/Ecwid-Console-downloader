@@ -1,0 +1,258 @@
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
+#include "aio_loop_mock.h"
+#include "aio_uvw.h"
+#include "aio_uvw_tcp.h"
+
+using namespace std;
+
+using ::testing::_;
+using ::testing::Return;
+using ::testing::SaveArg;
+using ::testing::DoDefault;
+using ::testing::Invoke;
+using ::testing::Mock;
+using ::testing::InSequence;
+using ::testing::Sequence;
+
+using ErrorEvent = AIO_UVW::ErrorEvent;
+using ConnectEvent = AIO_UVW::ConnectEvent;
+
+namespace TcpHandleMock_interanl {
+
+template< typename T >
+void on(TcpHandleMock&, Callback<T, TcpHandleMock>) {}
+template<>
+void on<ErrorEvent>(TcpHandleMock&, Callback<ErrorEvent, TcpHandleMock>);
+template<>
+void on<ConnectEvent>(TcpHandleMock&, Callback<ConnectEvent, TcpHandleMock>);
+
+template< typename T >
+void connect(TcpHandleMock&, const string&, unsigned short) {}
+template<>
+void connect<uvw::IPv4>(TcpHandleMock&, const string&, unsigned short);
+template<>
+void connect<uvw::IPv6>(TcpHandleMock&, const string&, unsigned short);
+
+}
+
+struct TcpHandleMock
+{
+    template< typename T >
+    void on( Callback<T, TcpHandleMock> cb ) { TcpHandleMock_interanl::on<T>(*this, cb); }
+
+    template< typename T >
+    std::enable_if_t< std::is_same<T, uvw::IPv4>::value || std::is_same<T, uvw::IPv6>::value, void>
+    connect(const string& ip, unsigned short port) { TcpHandleMock_interanl::connect<T>(*this, ip, port); }
+
+    MOCK_METHOD1( on_ErrorEvent, void( Callback<ErrorEvent, TcpHandleMock> ) );
+    MOCK_METHOD1( on_ConnectEvent, void( Callback<ConnectEvent, TcpHandleMock> ) );
+
+    MOCK_METHOD2( connect, void(const string&, unsigned short) );
+    MOCK_METHOD2( connect6, void(const string&, unsigned short) );
+    MOCK_METHOD0( close, void() );
+};
+
+namespace TcpHandleMock_interanl {
+
+template<>
+void on<ErrorEvent>(TcpHandleMock& self, Callback<ErrorEvent, TcpHandleMock> cb) { self.on_ErrorEvent(cb); }
+template<>
+void on<ConnectEvent>(TcpHandleMock& self, Callback<ConnectEvent, TcpHandleMock> cb) { self.on_ConnectEvent(cb); }
+
+template<>
+void connect<uvw::IPv4>(TcpHandleMock& self, const string& ip, unsigned short port) { self.connect(ip, port); }
+template<>
+void connect<uvw::IPv6>(TcpHandleMock& self, const string& ip, unsigned short port) { self.connect6(ip, port); }
+
+}
+
+struct AIO_Mock
+{
+    using Loop = LoopMock;
+    using ErrorEvent = ErrorEvent;
+    using TcpHandle = TcpHandleMock;
+};
+
+TEST(TCPSocketWrapperSimple, create_and_close)
+{
+    auto loop = make_shared<LoopMock>();
+    auto tcp_handle = make_shared<TcpHandleMock>();
+
+    Sequence s1, s2;
+    EXPECT_CALL( *loop, resource_TcpHandleMock() )
+            .InSequence(s1, s2)
+            .WillOnce( Return(tcp_handle) );
+    EXPECT_CALL( *tcp_handle, on_ErrorEvent(_))
+            .InSequence(s1)
+            .WillOnce( DoDefault() );
+    EXPECT_CALL( *tcp_handle, on_ConnectEvent(_) )
+            .InSequence(s2)
+            .WillOnce( DoDefault() );
+    EXPECT_CALL( *tcp_handle, close() )
+            .InSequence(s1, s2)
+            .WillOnce( DoDefault() );
+
+    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    ASSERT_TRUE(resource);
+    resource->close();
+
+    Mock::VerifyAndClearExpectations(loop.get());
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+}
+
+TEST(TCPSocketWrapperSimple, TcpHandle_is_null)
+{
+    auto loop = make_shared<LoopMock>();
+    EXPECT_CALL( *loop, resource_TcpHandleMock() )
+            .WillOnce( Return(nullptr) );
+    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    ASSERT_FALSE(resource);
+}
+
+struct CallbackMock
+{
+    MOCK_METHOD2(invoke_ErrorEvent, void(const ErrorEvent&, uvw::TCPSocketWrapper&));
+    MOCK_METHOD2(invoke_ConnectEvent, void(const ConnectEvent&, uvw::TCPSocketWrapper&));
+};
+
+TEST(TCPSocketWrapperSimple, connect_failed)
+{
+    auto loop = make_shared<LoopMock>();
+    auto tcp_handle = make_shared<TcpHandleMock>();
+
+    Sequence s1, s2;
+    EXPECT_CALL( *loop, resource_TcpHandleMock() )
+            .InSequence(s1, s2)
+            .WillOnce( Return(tcp_handle) );
+    Callback<ErrorEvent, TcpHandleMock> handler_ErrorEvent;
+    EXPECT_CALL( *tcp_handle, on_ErrorEvent(_))
+            .InSequence(s1)
+            .WillOnce( SaveArg<0>(&handler_ErrorEvent) );
+    EXPECT_CALL( *tcp_handle, on_ConnectEvent(_) )
+            .InSequence(s2)
+            .WillOnce( DoDefault() );
+
+    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    ASSERT_TRUE(resource);
+    Mock::VerifyAndClearExpectations(loop.get());
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    const string ip = "127.0.0.1";
+    const unsigned short port = 8080;
+    CallbackMock cb;
+    ErrorEvent error_event{ static_cast<int>(UV_ECONNREFUSED) };
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, connect(ip, port) )
+                .Times(1);
+        EXPECT_CALL( cb, invoke_ErrorEvent(_,_) )
+                .WillOnce( Invoke( [&error_event, &resource](const auto& err, auto& handle)
+        {
+            ASSERT_EQ( err.code(), error_event.code() );
+            auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+            ASSERT_NE(raw_ptr, nullptr);
+            auto ptr = raw_ptr->shared_from_this();
+            ASSERT_EQ(ptr, resource);
+        } ) );
+    }
+    resource->once<ErrorEvent>( [&cb](const auto& err, auto& handle) { cb.invoke_ErrorEvent(err, handle); } );
+    resource->once<ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );
+
+    resource->connect(ip, port);
+    handler_ErrorEvent(error_event, *tcp_handle);
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+}
+
+TEST(TCPSocketWrapperSimple, connect6_failed)
+{
+    auto loop = make_shared<LoopMock>();
+    auto tcp_handle = make_shared<TcpHandleMock>();
+
+    Sequence s1, s2;
+    EXPECT_CALL( *loop, resource_TcpHandleMock() )
+            .InSequence(s1, s2)
+            .WillOnce( Return(tcp_handle) );
+    Callback<ErrorEvent, TcpHandleMock> handler_ErrorEvent;
+    EXPECT_CALL( *tcp_handle, on_ErrorEvent(_))
+            .InSequence(s1)
+            .WillOnce( SaveArg<0>(&handler_ErrorEvent) );
+    EXPECT_CALL( *tcp_handle, on_ConnectEvent(_) )
+            .InSequence(s2)
+            .WillOnce( DoDefault() );
+
+    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    ASSERT_TRUE(resource);
+    Mock::VerifyAndClearExpectations(loop.get());
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    const string ip = "::1";
+    const unsigned short port = 8080;
+    CallbackMock cb;
+    ErrorEvent error_event{ static_cast<int>(UV_ECONNREFUSED) };
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, connect6(ip, port) )
+                .Times(1);
+        EXPECT_CALL( cb, invoke_ErrorEvent(_,_) )
+                .WillOnce( Invoke( [&error_event, &resource](const auto& err, auto& handle)
+        {
+            ASSERT_EQ( err.code(), error_event.code() );
+            auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+            ASSERT_NE(raw_ptr, nullptr);
+            auto ptr = raw_ptr->shared_from_this();
+            ASSERT_EQ(ptr, resource);
+        } ) );
+    }
+    resource->once<ErrorEvent>( [&cb](const auto& err, auto& handle) { cb.invoke_ErrorEvent(err, handle); } );
+    resource->once<ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
+
+    resource->connect6(ip, port);
+    handler_ErrorEvent(error_event, *tcp_handle);
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+}
+
+TEST(TCPSocketWrapperSimple, connect_normal)
+{
+    auto loop = make_shared<LoopMock>();
+    auto tcp_handle = make_shared<TcpHandleMock>();
+
+    Sequence s1, s2;
+    EXPECT_CALL( *loop, resource_TcpHandleMock() )
+            .InSequence(s1, s2)
+            .WillOnce( Return(tcp_handle) );
+    Callback<ConnectEvent, TcpHandleMock> handler_ConnectEvent;
+    EXPECT_CALL( *tcp_handle, on_ErrorEvent(_))
+            .InSequence(s1)
+            .WillOnce( DoDefault() );
+    EXPECT_CALL( *tcp_handle, on_ConnectEvent(_) )
+            .InSequence(s2)
+            .WillOnce( SaveArg<0>(&handler_ConnectEvent) );
+
+    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    ASSERT_TRUE(resource);
+    Mock::VerifyAndClearExpectations(loop.get());
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    CallbackMock cb;
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, connect(_,_) )
+                .Times(1);
+        EXPECT_CALL( cb, invoke_ConnectEvent(_,_) )
+                .WillOnce( Invoke( [&resource](const auto&, auto& handle)
+        {
+            auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+            ASSERT_NE(raw_ptr, nullptr);
+            auto ptr = raw_ptr->shared_from_this();
+            ASSERT_EQ(ptr, resource);
+        } ) );
+    }
+    resource->once<ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<ConnectEvent>( [&cb](const auto& event, auto& handle) { cb.invoke_ConnectEvent(event, handle); } );
+
+    resource->connect("127.0.0.1", 8080);
+    handler_ConnectEvent(ConnectEvent{}, *tcp_handle);
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+}

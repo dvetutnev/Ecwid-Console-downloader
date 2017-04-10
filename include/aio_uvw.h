@@ -3,6 +3,8 @@
 #include <uvw/loop.hpp>
 #include <uvw/dns.hpp>
 
+#include "aio_uvw_tcp.h"
+
 struct AIO_UVW
 {
     using Loop = uvw::Loop;
@@ -29,6 +31,8 @@ struct AIO_UVW
 
     using AddrInfoEvent = uvw::AddrInfoEvent;
     using GetAddrInfoReq = uvw::GetAddrInfoReq;
+
+    using ConnectEvent = uvw::ConnectEvent;
 };
 
 const AIO_UVW::IPAddress AIO_UVW::addrinfo2IPAddres(const addrinfo* addr)
