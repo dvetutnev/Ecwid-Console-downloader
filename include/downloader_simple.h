@@ -56,6 +56,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
         return false;
 
     auto resolver = loop.template resource<GetAddrInfoReq>();
+    /*TODO: self from lambda */
     resolver->template once<ErrorEvent>( [self = this->template shared_from_this()](const auto& err, auto&)
     {
         std::string err_str = "Can`t resolve " + self->uri_parsed->host + " " + ErrorEvent2str(err);

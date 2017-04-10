@@ -15,10 +15,14 @@ using ::testing::Return;
 using ::testing::ByMove;
 using ::testing::Mock;
 using ::testing::SaveArg;
+using ::testing::Sequence;
+using ::testing::DoDefault;
+using ::testing::Invoke;
 
 /*------- GetAddrInfoReqMock -------*/
 using ErrorEvent = AIO_UVW::ErrorEvent;
 using AddrInfoEvent = AIO_UVW::AddrInfoEvent;
+
 namespace GetAddrInfoReqMock_interanl {
 
 template< typename T >
@@ -111,22 +115,30 @@ TEST(DownloaderSimple, host_resolve_failed)
 
     auto resolver = make_shared<GetAddrInfoReqMock>();
     Callback<ErrorEvent, GetAddrInfoReqMock> handler_resolver_error;
+
+    Sequence s1, s2;
+    EXPECT_CALL( loop, resource_GetAddrInfoReqMock())
+            .InSequence(s1, s2)
+            .WillOnce( Return(resolver) );
     EXPECT_CALL( *resolver, once_ErrorEvent(_) )
+            .InSequence(s1)
             .WillOnce( SaveArg<0>(&handler_resolver_error) );
     EXPECT_CALL( *resolver, once_AddrInfoEvent(_) )
-            .Times(1);
+            .InSequence(s2)
+            .WillOnce( DoDefault() );
     EXPECT_CALL( *resolver, getNodeAddrInfo(host) )
-            .Times(1);
-    EXPECT_CALL( loop, resource_GetAddrInfoReqMock())
-            .WillOnce( Return(resolver) );
+            .InSequence(s1, s2)
+            .WillOnce( DoDefault() );
 
     ASSERT_TRUE( downloader->run( Task{} ) );
+    ASSERT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
     Mock::VerifyAndClearExpectations(instance_uri_parse);
+    Mock::VerifyAndClearExpectations(resolver.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
     EXPECT_CALL( *on_tick, invoke( static_pointer_cast<Downloader>(downloader) ) )
             .Times(1);
-    handler_resolver_error( ErrorEvent{-3008}, *resolver );
+    handler_resolver_error( ErrorEvent{ static_cast<int>(UV_EAI_NONAME) }, *resolver );
 
     const auto status = downloader->status();
     ASSERT_EQ(status.state, StatusDownloader::State::Failed);
@@ -134,3 +146,47 @@ TEST(DownloaderSimple, host_resolve_failed)
 
     HttpParserMock::instance_uri_parse.reset();
 }
+
+TEST(DownloaderSimple, dont_invoke_tick_if_resolver_failed_run)
+{
+    LoopMock loop;
+    auto on_tick = make_shared<OnTickMock>();
+    auto instance_uri_parse = new HttpParserMock;
+    HttpParserMock::instance_uri_parse = shared_ptr<HttpParserMock>{instance_uri_parse};
+
+    auto downloader = make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick);
+
+    EXPECT_CALL( *instance_uri_parse, uri_parse_(_) )
+            .Times( AtLeast(1) )
+            .WillRepeatedly( Return( ByMove( make_unique<UriParseResult>() ) ) );
+    EXPECT_CALL( *on_tick, invoke(_) )
+            .Times(0);
+
+    auto resolver = make_shared<GetAddrInfoReqMock>();
+    Callback<ErrorEvent, GetAddrInfoReqMock> handler_resolver_error;
+
+    Sequence s1, s2;
+    EXPECT_CALL( loop, resource_GetAddrInfoReqMock())
+            .InSequence(s1, s2)
+            .WillOnce( Return(resolver) );
+    EXPECT_CALL( *resolver, once_ErrorEvent(_) )
+            .InSequence(s1)
+            .WillOnce( SaveArg<0>(&handler_resolver_error) );
+    EXPECT_CALL( *resolver, once_AddrInfoEvent(_) )
+            .InSequence(s2)
+            .WillOnce( DoDefault() );
+    EXPECT_CALL( *resolver, getNodeAddrInfo(_) )
+            .InSequence(s1, s2)
+            .WillOnce( Invoke( std::bind( std::ref(handler_resolver_error),
+                                          ErrorEvent{ static_cast<int>(UV_ENOSYS) },
+                                          std::ref(*resolver)
+                                          ) ) );
+
+    ASSERT_FALSE( downloader->run( Task{} ) );
+    Mock::VerifyAndClearExpectations(instance_uri_parse);
+    Mock::VerifyAndClearExpectations(resolver.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+
+    HttpParserMock::instance_uri_parse.reset();
+}
+
