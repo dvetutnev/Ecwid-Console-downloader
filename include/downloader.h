@@ -8,14 +8,14 @@ public:
     StatusDownloader() :
         downloaded{0},
         size{0},
-        state{State::OnTheGo},
+        state{State::Init},
         state_str{},
         redirect_uri{}
     {}
 
     std::size_t downloaded;
     std::size_t size;
-    enum class State { OnTheGo, Done, Failed, Redirect };
+    enum class State { Init, OnTheGo, Done, Failed, Redirect };
     State state;
     std::string state_str;
     std::string redirect_uri;

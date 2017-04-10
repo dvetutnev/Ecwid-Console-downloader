@@ -31,6 +31,9 @@ private:
 
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+    on_error_without_tick(String&&);
+    template< typename String >
+    std::enable_if_t< std::is_convertible<String, std::string>::value, void>
     on_error(String&&);
 
     void on_resolve(const AddrInfoEvent&);
@@ -38,10 +41,16 @@ private:
 
 
 /* -- implementation, because template( -- */
+template< typename ErrorEvent >
+inline std::string ErrorEvent2str(const ErrorEvent& err)
+{
+    return "Code => " + std::to_string(err.code()) + std::string{" Reason => "} + err.what();
+}
 
 template< typename AIO, typename Parser >
 bool DownloaderSimple<AIO, Parser>::run(const Task& task)
 {
+    m_status.state = StatusDownloader::State::Init;
     uri_parsed = Parser::uri_parse(task.uri);
     if (!uri_parsed)
         return false;
@@ -49,12 +58,21 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
     auto resolver = loop.template resource<GetAddrInfoReq>();
     resolver->template once<ErrorEvent>( [self = this->template shared_from_this()](const auto& err, auto&)
     {
-        self->on_error( std::string{"Can`t resolve "} + self->uri_parsed->host + " Code => " + std::to_string(err.code()) + std::string{" Reason => "} + err.what() );
+        std::string err_str = "Can`t resolve " + self->uri_parsed->host + " " + ErrorEvent2str(err);
+        if ( self->m_status.state == StatusDownloader::State::OnTheGo )
+            self->on_error( std::move(err_str) );
+        else
+            self->on_error_without_tick( std::move(err_str) );
     } );
     resolver->template once<AddrInfoEvent>( [self = this->template shared_from_this()](const auto& event, auto&) { self->on_resolve(event); } );
     resolver->getNodeAddrInfo(uri_parsed->host);
 
-    return true;
+    if ( m_status.state == StatusDownloader::State::Init )
+    {
+        m_status.state = StatusDownloader::State::OnTheGo;
+        return true;
+    }
+    return false;
 }
 
 template< typename AIO, typename Parser >
@@ -72,10 +90,18 @@ const StatusDownloader& DownloaderSimple<AIO, Parser>::status() const
 template< typename AIO, typename Parser >
 template< typename String >
 std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-DownloaderSimple<AIO, Parser>::on_error(String&& str)
+DownloaderSimple<AIO, Parser>::on_error_without_tick(String&& str)
 {
     m_status.state = StatusDownloader::State::Failed;
     m_status.state_str = std::forward<String>(str);
+}
+
+template< typename AIO, typename Parser >
+template< typename String >
+std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+DownloaderSimple<AIO, Parser>::on_error(String&& str)
+{
+    on_error_without_tick( std::forward<String>(str) );
     on_tick->invoke( this->template shared_from_this() );
 }
 
