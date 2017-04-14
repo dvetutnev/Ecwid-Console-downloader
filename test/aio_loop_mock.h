@@ -4,7 +4,7 @@
 #include <memory>
 
 template< typename Event, typename Resource >
-using Callback = std::function< void(const Event&, Resource&) >;
+using Callback = std::function< void(Event&, Resource&) >;
 
 struct LoopMock;
 struct GetAddrInfoReqMock;

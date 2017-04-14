@@ -139,7 +139,9 @@ TEST(DownloaderSimple, host_resolve_failed)
 
     EXPECT_CALL( *on_tick, invoke( static_pointer_cast<Downloader>(downloader) ) )
             .Times(1);
-    handler_resolver_error( ErrorEvent{ static_cast<int>(UV_EAI_NONAME) }, *resolver );
+    ErrorEvent error_event{ static_cast<int>(UV_EAI_NONAME) };
+    handler_resolver_error(error_event, *resolver );
+
 
     const auto status = downloader->status();
     ASSERT_EQ(status.state, StatusDownloader::State::Failed);
