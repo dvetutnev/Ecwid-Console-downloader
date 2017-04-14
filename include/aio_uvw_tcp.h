@@ -59,16 +59,15 @@ std::shared_ptr< TCPSocketWrapperSimple<AIO> > TCPSocketWrapperSimple<AIO>::crea
 {
     auto resource = std::make_shared< TCPSocketWrapperSimple<AIO> >( ConstructorAccess{42}, std::move(loop) );
     resource->tcp_handle = resource->loop->template resource<TcpHandle>();
-    if (resource->tcp_handle)
-    {
-        resource->tcp_handle->template on<ErrorEvent>( [resource](auto& err, const auto&) { resource->on_event(err); } );
-        resource->tcp_handle->template on<ConnectEvent>( [resource](auto& event, const auto&) { resource->on_event(event); } );
-        resource->tcp_handle->template on<DataEvent>( [resource](auto& data, const auto&) { resource->on_event( std::move(data) ); } );
-        resource->tcp_handle->template on<EndEvent>( [resource](auto& event, const auto&) { resource->on_event(event); } );
-        resource->tcp_handle->template on<WriteEvent>( [resource](auto& event, const auto&) { resource->on_event(event); } );
-        return resource;
-    }
-    return nullptr;
+    if ( resource->tcp_handle == nullptr )
+        return nullptr;
+
+    resource->tcp_handle->template on<ErrorEvent>( [resource](auto& err, const auto&) { resource->on_event(err); } );
+    resource->tcp_handle->template on<ConnectEvent>( [resource](auto& event, const auto&) { resource->on_event(event); } );
+    resource->tcp_handle->template on<DataEvent>( [resource](auto& data, const auto&) { resource->on_event( std::move(data) ); } );
+    resource->tcp_handle->template on<EndEvent>( [resource](auto& event, const auto&) { resource->on_event(event); } );
+    resource->tcp_handle->template on<WriteEvent>( [resource](auto& event, const auto&) { resource->on_event(event); } );
+    return resource;
 }
 
 } // namespace uvw
