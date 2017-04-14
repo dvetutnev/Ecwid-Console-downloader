@@ -86,7 +86,7 @@ TEST(DownloaderSimple, uri_parse_falied)
     const Task task{bad_uri, "invalid_fname"};
     EXPECT_CALL( *instance_uri_parse, uri_parse_(bad_uri) )
             .Times( AtLeast(1) )
-            .WillRepeatedly( Return( ByMove(unique_ptr<UriParseResult>{}) ) );
+            .WillRepeatedly( Return( ByMove(nullptr) ) );
     EXPECT_CALL( *on_tick, invoke(_) )
             .Times(0);
 
@@ -106,11 +106,11 @@ TEST(DownloaderSimple, host_resolve_failed)
     auto downloader = make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick);
 
     const string host = "www.internet.org";
-    UriParseResult uri_parse_result;
-    uri_parse_result.host = host;
+    auto uri_parse_result = make_unique<UriParseResult>();
+    uri_parse_result->host = host;
     EXPECT_CALL( *instance_uri_parse, uri_parse_(_) )
             .Times( AtLeast(1) )
-            .WillRepeatedly( Return( ByMove( make_unique<UriParseResult>(uri_parse_result) ) ) );
+            .WillRepeatedly( Return( ByMove( std::move(uri_parse_result) ) ) );
     EXPECT_CALL( *on_tick, invoke(_) )
             .Times(0);
 
