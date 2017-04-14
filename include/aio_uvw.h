@@ -35,6 +35,7 @@ struct AIO_UVW
     using ConnectEvent = uvw::ConnectEvent;
     using DataEvent = uvw::DataEvent;
     using EndEvent = uvw::EndEvent;
+    using WriteEvent = uvw::WriteEvent;
 };
 
 const AIO_UVW::IPAddress AIO_UVW::addrinfo2IPAddres(const addrinfo* addr)
