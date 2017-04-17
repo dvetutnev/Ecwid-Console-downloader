@@ -5,7 +5,7 @@
 #include "aio_uvw.h"
 #include "aio_callback_template.h"
 #include "aio_loop_mock.h"
-#include "aio_tcp_mock.h"
+#include "aio_tcp_wrapper_mock.h"
 #include "aio_timer_mock.h"
 #include "on_tick_mock.h"
 #include "http.h"
