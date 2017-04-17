@@ -8,9 +8,16 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
 {
     using Loop = typename AIO::Loop;
     using ErrorEvent = typename AIO::ErrorEvent;
+
+    using UriParseResult = typename Parser::UriParseResult;
+
     using AddrInfoEvent = typename AIO::AddrInfoEvent;
     using GetAddrInfoReq = typename AIO::GetAddrInfoReq;
-    using UriParseResult = typename Parser::UriParseResult;
+
+    using TCPSocket = typename AIO::TCPSocketWrapper;
+    using TCPSocketSimple = typename AIO::TCPSocketWrapperSimple;
+
+    using Timer = typename AIO::TimerHandle;
 
 public:
     DownloaderSimple(Loop& loop_, std::shared_ptr<OnTick> on_tick_)
@@ -28,6 +35,8 @@ private:
 
     StatusDownloader m_status;
     std::unique_ptr<UriParseResult> uri_parsed;
+    std::shared_ptr<TCPSocket> socket;
+    std::shared_ptr<Timer> net_timer;
 
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
@@ -99,11 +108,25 @@ std::enable_if_t< std::is_convertible<String, std::string>::value, void>
 DownloaderSimple<AIO, Parser>::on_error(String&& str)
 {
     on_error_without_tick( std::forward<String>(str) );
+    if (socket)
+        socket->close();
     on_tick->invoke( this->template shared_from_this() );
 }
 
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 {
+    socket = loop.template resource<TCPSocketSimple>();
+    if (!socket)
+    {
+        on_error("Can`t create socket");
+        return;
+    }
 
+    net_timer = loop.template resource<Timer>();
+    if (!net_timer)
+    {
+        on_error("Can`t create net_timer!");
+        return;
+    }
 }

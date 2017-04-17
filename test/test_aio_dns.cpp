@@ -52,6 +52,10 @@ TEST(aio_uvw__GetAddrInfoReq, loopback)
         resolved = true;
         auto address = AIO_UVW::addrinfo2IPAddres( event.data.get() );
         ASSERT_EQ(address.ip, host);
+        cout << "event.data->ai_flags => " << event.data->ai_flags << endl;
+        cout << "event.data->ai_family => " << ( (event.data->ai_family == AF_INET) ? "AF_INET" : "AF_INET6" ) << endl;
+        cout << "event.data->ai_socktype => " << event.data->ai_socktype << endl;
+        cout << "event.data->ai_protocol => " << event.data->ai_protocol << endl;
     }
                 );
     resolver->getNodeAddrInfo(host);

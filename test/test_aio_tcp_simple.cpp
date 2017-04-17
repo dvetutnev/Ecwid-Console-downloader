@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include "aio_callback_template.h"
 #include "aio_loop_mock.h"
 #include "aio_uvw.h"
 #include "aio_uvw_tcp.h"

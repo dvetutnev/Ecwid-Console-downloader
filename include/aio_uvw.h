@@ -2,6 +2,7 @@
 
 #include <uvw/loop.hpp>
 #include <uvw/dns.hpp>
+#include <uvw/timer.hpp>
 
 #include "aio_uvw_tcp.h"
 
@@ -36,6 +37,10 @@ struct AIO_UVW
     using DataEvent = uvw::DataEvent;
     using EndEvent = uvw::EndEvent;
     using WriteEvent = uvw::WriteEvent;
+    using TCPSocketWrapper = uvw::TCPSocketWrapper;
+    using TCPSocketWrapperSimple = uvw::TCPSocketWrapperSimple<AIO_UVW>;
+
+    using TimerHandle = uvw::TimerHandle;
 };
 
 const AIO_UVW::IPAddress AIO_UVW::addrinfo2IPAddres(const addrinfo* addr)
