@@ -216,7 +216,7 @@ void Downloader_completion_no_Task(StatusDownloader::State state)
 
     TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
-            .WillOnce( Return( shared_ptr<Task>{} ) );
+            .WillOnce( Return(nullptr) );
 
     auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(_) )
@@ -284,13 +284,13 @@ void Downloader_completion_Factory_returning_null_no_Task(StatusDownloader::Stat
     EXPECT_CALL( task_list, get() )
             .WillOnce( Return(first_bad_task_ptr) )
             .WillOnce( Return(second_bad_task_ptr) )
-            .WillOnce( Return(shared_ptr<Task>{}) );
+            .WillOnce( Return(nullptr) );
 
     Task first_call_factory_task, second_call_factory_task;
     auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(_) )
-            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(shared_ptr<Downloader>{}) ) )
-            .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(shared_ptr<Downloader>{}) ) );
+            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(nullptr) ) )
+            .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(nullptr) ) );
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
     on_tick.invoke(used_downloader);
@@ -517,13 +517,13 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_returning_null)
     auto next_downloader = make_shared<DownloaderMock>();
     auto factory = make_shared<FactoryMock>();
     EXPECT_CALL( *factory, create(_) )
-            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(shared_ptr<Downloader>{}) ) )
+            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(nullptr) ) )
             .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(next_downloader) ) );
 
     OnTickSimple<JobList> on_tick{job_list, factory, task_list};
     on_tick.invoke(used_downloader);
 
-    const Task redirect_task{ string{status.redirect_uri}, string{used_task.fname} };
+    const Task redirect_task{status.redirect_uri, used_task.fname};
     ASSERT_EQ( first_call_factory_task, redirect_task );
     ASSERT_EQ( second_call_factory_task, next_task );
 
