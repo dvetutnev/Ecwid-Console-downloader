@@ -7,6 +7,7 @@ using ::testing::_;
 using ::testing::Return;
 using ::testing::Invoke;
 using ::testing::SaveArg;
+using ::testing::InSequence;
 using ::testing::Expectation;
 
 using namespace std;
@@ -43,22 +44,24 @@ TEST(HttpParser__Response, normal)
             "World hello!";
 
     unique_ptr<HttpParser::OnHeadersComplete_Args> headers_complete_args;
-    OnHeadersCompleteMock on_headers_complete_mock;
-    Expectation invoke_on_headers_complete = EXPECT_CALL( on_headers_complete_mock, invoke(_) )
-            .WillOnce( Invoke( [&headers_complete_args](auto arg) -> bool { headers_complete_args.reset(arg); return true; } ) );
-    HttpParser::OnHeadersComplete on_headers_complete = [&on_headers_complete_mock](auto arg) ->bool { return on_headers_complete_mock.invoke( arg.release() ); };
-
     string body;
-    OnBodyMock on_body_mock;
-    Expectation invoke_on_body = EXPECT_CALL( on_body_mock, invoke(_,_) )
-            .After(invoke_on_headers_complete)
-            .WillOnce( Invoke( [&body](const char* buf, size_t len) { body = string{buf, len}; } ) );
-    HttpParser::OnBody on_body = [&on_body_mock](const char* buf, size_t len) { on_body_mock.invoke(buf, len); };
 
+    OnHeadersCompleteMock on_headers_complete_mock;
+    OnBodyMock on_body_mock;
     OnCompleteMock on_complete_mock;
-    EXPECT_CALL( on_complete_mock, invoke() )
-            .Times(1)
-            .After(invoke_on_body);
+
+    {
+        InSequence dummy;
+        EXPECT_CALL( on_headers_complete_mock, invoke(_) )
+            .WillOnce( Invoke( [&headers_complete_args](auto arg) -> bool { headers_complete_args.reset(arg); return true; } ) );
+        EXPECT_CALL( on_body_mock, invoke(_,_) )
+            .WillOnce( Invoke( [&body](const char* buf, size_t len) { body = string{buf, len}; } ) );
+        EXPECT_CALL( on_complete_mock, invoke() )
+                .Times(1);
+    }
+
+    HttpParser::OnHeadersComplete on_headers_complete = [&on_headers_complete_mock](auto arg) ->bool { return on_headers_complete_mock.invoke( arg.release() ); };
+    HttpParser::OnBody on_body = [&on_body_mock](const char* buf, size_t len) { on_body_mock.invoke(buf, len); };
     HttpParser::OnComplete on_complete = [&on_complete_mock]() { on_complete_mock.invoke(); };
 
     auto parser = HttpParser::create( on_headers_complete, on_body, on_complete );
