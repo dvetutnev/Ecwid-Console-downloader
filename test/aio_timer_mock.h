@@ -1,9 +1,9 @@
 #pragma once
 
 #include <gmock/gmock.h>
-#include "aio_callback_template.h"
+#include <uvw/emitter.hpp>
 
-struct TimerHandleMock
+struct TimerHandleMock : public uvw::Emitter<TimerHandleMock>
 {
 
 };
