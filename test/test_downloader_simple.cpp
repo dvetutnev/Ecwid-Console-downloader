@@ -305,7 +305,7 @@ TEST(DownloaderSimple, connect_failed)
 
     EXPECT_CALL( *socket, close_() )
             .Times(1);
-    EXPECT_CALL( *timer, close() )
+    EXPECT_CALL( *timer, close_() )
             .Times(1);
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .Times( AtLeast(1) )
@@ -373,7 +373,7 @@ TEST(DownloaderSimple, connect_timeout)
 
     EXPECT_CALL( *socket, close_() )
             .Times(1);
-    EXPECT_CALL( *timer, close() )
+    EXPECT_CALL( *timer, close_() )
             .Times(1);
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .Times( AtLeast(1) )

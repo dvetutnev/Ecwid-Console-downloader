@@ -141,10 +141,17 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
     }
 
 
-    socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&) { self->on_error( "Can`t connect to " + addr.ip + " " + ErrorEvent2str(err) ); } );
-
+    socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&)
+    {
+        self->net_timer->clear();
+        self->on_error( "Can`t connect to " + addr.ip + " " + ErrorEvent2str(err) );
+    } );
     socket->connect(addr.ip, uri_parsed->port);
 
-    net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to " + addr.ip); } );
+    net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&)
+    {
+        self->socket->clear();
+        self->on_error("Timeout connect to " + addr.ip);
+    } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 }
