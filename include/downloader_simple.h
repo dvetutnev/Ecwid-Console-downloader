@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 #include "downloader.h"
 #include "on_tick.h"
 
@@ -18,6 +20,7 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using TCPSocketSimple = typename AIO::TCPSocketWrapperSimple;
 
     using Timer = typename AIO::TimerHandle;
+    using TimerEvent = typename AIO::TimerEvent;
 
 public:
     DownloaderSimple(Loop& loop_, std::shared_ptr<OnTick> on_tick_)
@@ -53,7 +56,7 @@ private:
 template< typename ErrorEvent >
 inline std::string ErrorEvent2str(const ErrorEvent& err)
 {
-    return "Code => " + std::to_string(err.code()) + std::string{" Reason => "} + err.what();
+    return "Code => " + std::to_string(err.code()) + " Reason => " + err.what();
 }
 
 template< typename AIO, typename Parser >
@@ -67,7 +70,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
     auto resolver = loop.template resource<GetAddrInfoReq>();
     auto self = this->template shared_from_this();
 
-    resolver->template once<ErrorEvent>( [self](const auto& err, auto&)
+    resolver->template once<ErrorEvent>( [self](const auto& err, const auto&)
     {
         std::string err_str = "Can`t resolve " + self->uri_parsed->host + " " + ErrorEvent2str(err);
         if ( self->m_status.state == StatusDownloader::State::OnTheGo )
@@ -75,7 +78,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
         else
             self->on_error_without_tick( std::move(err_str) );
     } );
-    resolver->template once<AddrInfoEvent>( [self](const auto& event, auto&) { self->on_resolve(event); } );
+    resolver->template once<AddrInfoEvent>( [self](const auto& event, const auto&) { self->on_resolve(event); } );
 
     resolver->getNodeAddrInfo(uri_parsed->host);
 
@@ -110,12 +113,19 @@ DownloaderSimple<AIO, Parser>::on_error(String&& str)
     on_error_without_tick( std::forward<String>(str) );
     if (socket)
         socket->close();
+    if (net_timer)
+        net_timer->close();
     on_tick->invoke( this->template shared_from_this() );
 }
 
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 {
+    const auto addr = AIO::addrinfo2IPAddress( event.data.get() );
+    m_status.state_str = "Host Resolved. Connect to " + addr.ip;
+    auto self = this->template shared_from_this();
+    on_tick->invoke(self);
+
     socket = loop.template resource<TCPSocketSimple>();
     if (!socket)
     {
@@ -129,4 +139,12 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
         on_error("Can`t create net_timer!");
         return;
     }
+
+
+    socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&) { self->on_error( "Can`t connect to " + addr.ip + " " + ErrorEvent2str(err) ); } );
+
+    socket->connect(addr.ip, uri_parsed->port);
+
+    net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to " + addr.ip); } );
+    net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 }

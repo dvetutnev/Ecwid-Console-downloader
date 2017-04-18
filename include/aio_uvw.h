@@ -28,7 +28,7 @@ struct AIO_UVW
         std::string ip;
         bool v6;
     };
-    static const IPAddress addrinfo2IPAddres(const addrinfo*);
+    static const IPAddress addrinfo2IPAddress(const addrinfo*);
 
     using AddrInfoEvent = uvw::AddrInfoEvent;
     using GetAddrInfoReq = uvw::GetAddrInfoReq;
@@ -41,9 +41,10 @@ struct AIO_UVW
     using TCPSocketWrapperSimple = uvw::TCPSocketWrapperSimple<AIO_UVW>;
 
     using TimerHandle = uvw::TimerHandle;
+    using TimerEvent = uvw::TimerEvent;
 };
 
-const AIO_UVW::IPAddress AIO_UVW::addrinfo2IPAddres(const addrinfo* addr)
+const AIO_UVW::IPAddress AIO_UVW::addrinfo2IPAddress(const addrinfo* addr)
 {
     if (addr == nullptr)
         throw std::invalid_argument{"addrinfo must not be NULL!"};

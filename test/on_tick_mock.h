@@ -6,5 +6,6 @@
 class OnTickMock : public OnTick
 {
 public:
-    MOCK_METHOD1(invoke, void(std::shared_ptr<Downloader>));
+    virtual void invoke(std::shared_ptr<Downloader> d) override { invoke_( d.get() ); }
+    MOCK_METHOD1( invoke_, void(Downloader*) );
 };
