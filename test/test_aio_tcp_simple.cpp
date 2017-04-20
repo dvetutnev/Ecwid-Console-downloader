@@ -42,6 +42,10 @@ TEST(TCPSocketWrapperSimple, create_and_close)
 
     Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, TcpHandle_is_null)
@@ -51,6 +55,7 @@ TEST(TCPSocketWrapperSimple, TcpHandle_is_null)
             .WillOnce( Return(nullptr) );
     auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
     ASSERT_FALSE(resource);
+    ASSERT_TRUE( loop.unique() );
 }
 
 TEST(TCPSocketWrapperSimple, connect_failed)
@@ -82,13 +87,24 @@ TEST(TCPSocketWrapperSimple, connect_failed)
 
     const string ip = "127.0.0.1";
     const unsigned short port = 8080;
-    EXPECT_CALL( *tcp_handle, connect(ip, port) )
-            .Times(1);
-    resource->connect(ip, port);
-    Mock::VerifyAndClearExpectations(tcp_handle.get());
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, connect(ip, port) )
+                .Times(1);
+        EXPECT_CALL( *tcp_handle, close() )
+                .Times(1);
+    }
 
+    resource->connect(ip, port);
     tcp_handle->publish(event);
     ASSERT_TRUE(cb_called);
+    resource->close();
+
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, connect6_failed)
@@ -120,13 +136,24 @@ TEST(TCPSocketWrapperSimple, connect6_failed)
 
     const string ip = "::1";
     const unsigned short port = 8080;
-    EXPECT_CALL( *tcp_handle, connect6(ip, port) )
-            .Times(1);
-    resource->connect6(ip, port);
-    Mock::VerifyAndClearExpectations(tcp_handle.get());
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, connect(ip, port) )
+                .Times(1);
+        EXPECT_CALL( *tcp_handle, close() )
+                .Times(1);
+    }
 
+    resource->connect(ip, port);
     tcp_handle->publish(event);
     ASSERT_TRUE(cb_called);
+    resource->close();
+
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, connect_normal)
@@ -154,13 +181,23 @@ TEST(TCPSocketWrapperSimple, connect_normal)
     resource->once<AIO_UVW::EndEvent>( [](const auto&, const auto&) { FAIL(); } );
     resource->once<AIO_UVW::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
 
-    EXPECT_CALL( *tcp_handle, connect(_,_) )
-            .Times(1);
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, connect(_,_) )
+                .Times(1);
+        EXPECT_CALL( *tcp_handle, close() )
+                .Times(1);
+    }
     resource->connect("127.0.0.1", 8080);
-    Mock::VerifyAndClearExpectations(tcp_handle.get());
-
     tcp_handle->publish( AIO_UVW::ConnectEvent{} );
     ASSERT_TRUE(cb_called);
+    resource->close();
+
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, read_failed)
@@ -190,13 +227,23 @@ TEST(TCPSocketWrapperSimple, read_failed)
     resource->once<AIO_UVW::EndEvent>( [](auto&, auto&) { FAIL(); } );
     resource->once<AIO_UVW::WriteEvent>( [](auto&, auto&) { FAIL(); } );
 
-    EXPECT_CALL( *tcp_handle, read() )
-            .Times(1);
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, read() )
+                .Times(1);
+        EXPECT_CALL( *tcp_handle, close() )
+                .Times(1);
+    }
     resource->read();
-    Mock::VerifyAndClearExpectations(tcp_handle.get());
-
     tcp_handle->publish(event);
     ASSERT_TRUE(cb_called);
+    resource->close();
+
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, read_EOF)
@@ -224,13 +271,23 @@ TEST(TCPSocketWrapperSimple, read_EOF)
     resource->once<AIO_UVW::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
     resource->once<AIO_UVW::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
 
-    EXPECT_CALL( *tcp_handle, read() )
-            .Times(1);
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, read() )
+                .Times(1);
+        EXPECT_CALL( *tcp_handle, close() )
+                .Times(1);
+    }
     resource->read();
-    Mock::VerifyAndClearExpectations(tcp_handle.get());
-
     tcp_handle->publish( AIO_UVW::EndEvent{} );
     ASSERT_TRUE(cb_called);
+    resource->close();
+
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, read_normal)
@@ -264,13 +321,23 @@ TEST(TCPSocketWrapperSimple, read_normal)
     resource->once<AIO_UVW::EndEvent>( [](const auto&, auto&) { FAIL(); } );
     resource->once<AIO_UVW::WriteEvent>( [](const auto&, auto&) { FAIL(); } );
 
-    EXPECT_CALL( *tcp_handle, read() )
-            .Times(1);
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, read() )
+                .Times(1);
+        EXPECT_CALL( *tcp_handle, close() )
+                .Times(1);
+    }
     resource->read();
-    Mock::VerifyAndClearExpectations(tcp_handle.get());
-
     tcp_handle->publish( AIO_UVW::DataEvent{std::unique_ptr<char[]>{raw_data_ptr}, len} );
     ASSERT_TRUE(cb_called);
+    resource->close();
+
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, read_stop)
@@ -296,11 +363,18 @@ TEST(TCPSocketWrapperSimple, read_stop)
                 .Times(1);
         EXPECT_CALL( *tcp_handle, stop() )
                 .Times(1);
+        EXPECT_CALL( *tcp_handle, close() )
+                .Times(1);
     }
-
     resource->read();
     resource->stop();
+    resource->close();
+
     Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, write_normal)
@@ -330,11 +404,21 @@ TEST(TCPSocketWrapperSimple, write_normal)
 
     const unsigned int len = 42;
     char* raw_data_ptr = new char[len];
-    EXPECT_CALL( *tcp_handle, write_(raw_data_ptr, len) )
-            .Times(1);
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, write_(raw_data_ptr, len) )
+                .Times(1);
+        EXPECT_CALL( *tcp_handle, close() )
+                .Times(1);
+    }
     resource->write( std::unique_ptr<char[]>{raw_data_ptr}, len );
-    Mock::VerifyAndClearExpectations(tcp_handle.get());
-
     tcp_handle->publish( AIO_UVW::WriteEvent{} );
     ASSERT_TRUE(cb_called);
+    resource->close();
+
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
 }
