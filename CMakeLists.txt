@@ -35,7 +35,6 @@ find_package(UVW REQUIRED)
 find_package(http-parser REQUIRED)
 find_package(GoogleTest)
 
-include_directories(${UVPP_INCLUDE_DIR})
 include_directories(${UVW_INCLUDE_DIR})
 
 set(SRC_LIST
