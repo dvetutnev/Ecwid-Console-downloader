@@ -67,7 +67,11 @@ TEST(DownloaderSimple, uri_parse_falied)
             .Times(0);
 
     ASSERT_FALSE( downloader->run(task) );
+
     Mock::VerifyAndClearExpectations(on_tick.get());
+
+    ASSERT_TRUE( downloader.unique() );
+    ASSERT_EQ(on_tick.use_count(), 2);
 }
 
 auto on_tick_handler = [](Downloader* d) { cout << "on_tick: status => " << d->status().state_str << endl; };
@@ -111,6 +115,11 @@ TEST(DownloaderSimple, host_resolve_failed)
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
 
     Mock::VerifyAndClearExpectations(on_tick.get());
+
+    resolver.reset();
+    ASSERT_FALSE(resolver);
+    ASSERT_TRUE( downloader.unique() );
+    ASSERT_EQ(on_tick.use_count(), 2);
 }
 
 TEST(DownloaderSimple, dont_invoke_tick_if_resolver_failed_run)
@@ -143,6 +152,11 @@ TEST(DownloaderSimple, dont_invoke_tick_if_resolver_failed_run)
     Mock::VerifyAndClearExpectations(&loop);
     Mock::VerifyAndClearExpectations(resolver.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
+
+    resolver.reset();
+    ASSERT_FALSE(resolver);
+    ASSERT_TRUE( downloader.unique() );
+    ASSERT_EQ(on_tick.use_count(), 2);
 }
 
 AIO_UVW::AddrInfoEvent create_addr_info_event(const string& ip)
@@ -199,6 +213,11 @@ TEST(DownloaderSimple, create_socket_failed)
 
     Mock::VerifyAndClearExpectations(&loop);
     Mock::VerifyAndClearExpectations(on_tick.get());
+
+    resolver.reset();
+    ASSERT_FALSE(resolver);
+    ASSERT_TRUE( downloader.unique() );
+    ASSERT_EQ(on_tick.use_count(), 2);
 }
 
 TEST(DownloaderSimple, create_net_timer_failed)
@@ -246,6 +265,12 @@ TEST(DownloaderSimple, create_net_timer_failed)
     Mock::VerifyAndClearExpectations(&loop);
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
+
+    resolver.reset();
+    ASSERT_FALSE(resolver);
+    ASSERT_TRUE( downloader.unique() );
+    ASSERT_EQ(on_tick.use_count(), 2);
+    ASSERT_EQ(socket.use_count(), 2);
 }
 
 TEST(DownloaderSimple, connect_failed)
@@ -316,6 +341,13 @@ TEST(DownloaderSimple, connect_failed)
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
+
+    resolver.reset();
+    ASSERT_FALSE(resolver);
+    ASSERT_TRUE( downloader.unique() );
+    ASSERT_EQ(on_tick.use_count(), 2);
+    ASSERT_EQ(socket.use_count(), 2);
+    ASSERT_EQ(timer.use_count(), 2);
 }
 
 TEST(DownloaderSimple, connect_timeout)
@@ -384,6 +416,13 @@ TEST(DownloaderSimple, connect_timeout)
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
+
+    resolver.reset();
+    ASSERT_FALSE(resolver);
+    ASSERT_TRUE( downloader.unique() );
+    ASSERT_EQ(on_tick.use_count(), 2);
+    ASSERT_EQ(socket.use_count(), 2);
+    ASSERT_EQ(timer.use_count(), 2);
 }
 
 TEST(DownloaderSimple, net_timer_failed_on_run)
