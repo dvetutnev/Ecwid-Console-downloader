@@ -377,6 +377,55 @@ TEST(TCPSocketWrapperSimple, read_stop)
     ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
+TEST(TCPSocketWrapperSimple, write_failed_and_close_on_event)
+{
+    auto loop = make_shared<LoopMock>();
+    auto tcp_handle = make_shared<TcpHandleMock>();
+    EXPECT_CALL( *loop, resource_TcpHandleMock() )
+            .WillOnce( Return(tcp_handle) );
+
+    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    ASSERT_TRUE(resource);
+    Mock::VerifyAndClearExpectations(loop.get());
+
+    bool cb_called = false;
+    AIO_UVW::ErrorEvent event{ static_cast<int>(UV_ECONNREFUSED) };
+    resource->once<AIO_UVW::ErrorEvent>( [&cb_called, &event, &resource](const auto& err, auto& handle)
+    {
+        cb_called = true;
+        ASSERT_EQ( err.code(), event.code() );
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        ASSERT_NE(raw_ptr, nullptr);
+        auto ptr = raw_ptr->shared_from_this();
+        ASSERT_EQ(ptr, resource);
+
+        resource->close();
+    } );
+    resource->once<AIO_UVW::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<AIO_UVW::DataEvent>( [](auto&, auto&) { FAIL(); } );
+    resource->once<AIO_UVW::EndEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<AIO_UVW::WriteEvent>( [](const auto&, auto&) { FAIL(); } );
+
+    const unsigned int len = 42;
+    char* raw_data_ptr = new char[len];
+    {
+        InSequence dummy;
+        EXPECT_CALL( *tcp_handle, write_(raw_data_ptr, len) )
+                .Times(1);
+        EXPECT_CALL( *tcp_handle, close() )
+                .Times(1);
+    }
+    resource->write( std::unique_ptr<char[]>{raw_data_ptr}, len );
+    tcp_handle->publish(event);
+    ASSERT_TRUE(cb_called);
+
+    Mock::VerifyAndClearExpectations(tcp_handle.get());
+
+    ASSERT_TRUE( resource.unique() );
+    ASSERT_EQ(loop.use_count(), 2);
+    ASSERT_EQ(tcp_handle.use_count(), 2);
+}
+
 TEST(TCPSocketWrapperSimple, write_normal)
 {
     auto loop = make_shared<LoopMock>();
