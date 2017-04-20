@@ -41,7 +41,12 @@ public:
     virtual void read() override final { tcp_handle->read(); }
     virtual void stop() noexcept override final { tcp_handle->stop(); }
     virtual void write(std::unique_ptr<char[]> data, unsigned int length) override final { tcp_handle->write(std::move(data), length); }
-    virtual void close() noexcept override final;
+    virtual void close() noexcept override final
+    {
+        tcp_handle->clear();
+        tcp_handle->close();
+        closing = true;
+    }
 
 private:
     std::shared_ptr<Loop> loop;
@@ -49,13 +54,23 @@ private:
 
     std::shared_ptr<TcpHandle> tcp_handle;
 
-    bool is_closing() noexcept { return closing; }
+    bool is_closing() const noexcept { return closing; }
 
     template < typename Event >
-    void on_event(Event&, const TcpHandle&);
-};
+    void on_event(Event& event, const TcpHandle&)
+    {
+        publish( std::move(event) );
+        if ( !is_closing() )
+            tcp_handle->template once<Event>( bind<Event>(this->template shared_from_this()) );
+    }
 
-/* implemantation public TCPSocketWrapperSimple */
+    template < typename Event >
+    static std::function<void(Event&, const TcpHandle&)> bind(std::shared_ptr<TCPSocketWrapperSimple> self)
+    {
+        using namespace std::placeholders;
+        return std::bind(&TCPSocketWrapperSimple::on_event<Event>, std::move(self), _1, _2);
+    }
+};
 
 template< typename AIO >
 std::shared_ptr< TCPSocketWrapperSimple<AIO> > TCPSocketWrapperSimple<AIO>::create(std::shared_ptr<Loop> loop)
@@ -65,34 +80,14 @@ std::shared_ptr< TCPSocketWrapperSimple<AIO> > TCPSocketWrapperSimple<AIO>::crea
     if ( !tcp_handle )
         return nullptr;
 
-    using namespace std::placeholders;
-    tcp_handle->template once<ErrorEvent>( std::bind(&TCPSocketWrapperSimple::on_event<ErrorEvent>, self, _1, _2) );
-    tcp_handle->template once<ConnectEvent>( std::bind(&TCPSocketWrapperSimple::on_event<ConnectEvent>, self, _1, _2) );
-    tcp_handle->template once<DataEvent>( std::bind(&TCPSocketWrapperSimple::on_event<DataEvent>, self, _1, _2) );
-    tcp_handle->template once<EndEvent>( std::bind(&TCPSocketWrapperSimple::on_event<EndEvent>, self, _1, _2) );
-    tcp_handle->template once<WriteEvent>( std::bind(&TCPSocketWrapperSimple::on_event<WriteEvent>, self, _1, _2) );
+    tcp_handle->template once<ErrorEvent>( bind<ErrorEvent>(self) );
+    tcp_handle->template once<ConnectEvent>( bind<ConnectEvent>(self) );
+    tcp_handle->template once<DataEvent>( bind<DataEvent>(self) );
+    tcp_handle->template once<EndEvent>( bind<EndEvent>(self) );
+    tcp_handle->template once<WriteEvent>( bind<WriteEvent>(self) );
 
     self->tcp_handle = std::move(tcp_handle);
     return self;
-}
-
-template < typename AIO >
-template < typename Event >
-void TCPSocketWrapperSimple<AIO>::on_event(Event& event, const TcpHandle&)
-{
-    publish( std::move(event) );
-
-    using namespace std::placeholders;
-    if ( !is_closing() )
-        tcp_handle->template once<Event>( std::bind(&TCPSocketWrapperSimple::on_event<Event>, this->template shared_from_this(), _1, _2) );
-}
-
-template < typename AIO >
-void TCPSocketWrapperSimple<AIO>::close() noexcept
-{
-    tcp_handle->clear();
-    tcp_handle->close();
-    closing = true;
 }
 
 } // namespace uvw
