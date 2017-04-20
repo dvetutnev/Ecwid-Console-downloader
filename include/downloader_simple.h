@@ -72,7 +72,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
 
     resolver->template once<ErrorEvent>( [self](const auto& err, const auto&)
     {
-        std::string err_str = "Can`t resolve " + self->uri_parsed->host + " " + ErrorEvent2str(err);
+        std::string err_str = "Host <" + self->uri_parsed->host + "> can`t resolve. " + ErrorEvent2str(err);
         if ( self->m_status.state == StatusDownloader::State::OnTheGo )
             self->on_error( std::move(err_str) );
         else
@@ -103,6 +103,16 @@ DownloaderSimple<AIO, Parser>::on_error_without_tick(String&& str)
 {
     m_status.state = StatusDownloader::State::Failed;
     m_status.state_str = std::forward<String>(str);
+    if (socket)
+    {
+        socket->clear();
+        socket->close();
+    }
+    if (net_timer)
+    {
+        net_timer->clear();
+        net_timer->close();
+    }
 }
 
 template< typename AIO, typename Parser >
@@ -111,10 +121,6 @@ std::enable_if_t< std::is_convertible<String, std::string>::value, void>
 DownloaderSimple<AIO, Parser>::on_error(String&& str)
 {
     on_error_without_tick( std::forward<String>(str) );
-    if (socket)
-        socket->close();
-    if (net_timer)
-        net_timer->close();
     on_tick->invoke( this->template shared_from_this() );
 }
 
@@ -129,29 +135,21 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
     socket = loop.template resource<TCPSocketSimple>();
     if (!socket)
     {
-        on_error("Can`t create socket");
+        on_error("Socket can`t create!");
         return;
     }
 
     net_timer = loop.template resource<Timer>();
     if (!net_timer)
     {
-        on_error("Can`t create net_timer!");
+        on_error("Net_timer can`t create!");
         return;
     }
 
-
-    socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&)
-    {
-        self->net_timer->clear();
-        self->on_error( "Can`t connect to " + addr.ip + " " + ErrorEvent2str(err) );
-    } );
+    socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&) { self->on_error( "Host <" + addr.ip + "> can`t available. " + ErrorEvent2str(err) ); } );
     socket->connect(addr.ip, uri_parsed->port);
 
-    net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&)
-    {
-        self->socket->clear();
-        self->on_error("Timeout connect to " + addr.ip);
-    } );
+    net_timer->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Net_timer run failed! " + ErrorEvent2str(err) ); } );
+    net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to host <" + addr.ip + ">"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 }
