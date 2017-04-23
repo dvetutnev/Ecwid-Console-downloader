@@ -18,6 +18,7 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
 
     using TCPSocket = typename AIO::TCPSocketWrapper;
     using TCPSocketSimple = typename AIO::TCPSocketWrapperSimple;
+    using ConnectEvent = typename AIO::ConnectEvent;
 
     using Timer = typename AIO::TimerHandle;
     using TimerEvent = typename AIO::TimerEvent;
@@ -49,6 +50,7 @@ private:
     on_error(String&&);
 
     void on_resolve(const AddrInfoEvent&);
+    void on_connect();
 };
 
 
@@ -127,11 +129,6 @@ DownloaderSimple<AIO, Parser>::on_error(String&& str)
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 {
-    const auto addr = AIO::addrinfo2IPAddress( event.data.get() );
-    m_status.state_str = "Host Resolved. Connect to " + addr.ip;
-    auto self = this->template shared_from_this();
-    on_tick->invoke(self);
-
     socket = loop.template resource<TCPSocketSimple>();
     if (!socket)
     {
@@ -146,10 +143,39 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
         return;
     }
 
+    const auto addr = AIO::addrinfo2IPAddress( event.data.get() );
+    auto self = this->template shared_from_this();
+
     socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&) { self->on_error( "Host <" + addr.ip + "> can`t available. " + ErrorEvent2str(err) ); } );
+    socket->template once<ConnectEvent>( [self](const auto&, const auto&) { self->on_connect(); } );
     socket->connect(addr.ip, uri_parsed->port);
 
     net_timer->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Net_timer run failed! " + ErrorEvent2str(err) ); } );
     net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to host <" + addr.ip + ">"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
+
+    if ( m_status.state != StatusDownloader::State::Failed)
+    {
+        m_status.state_str = "Host Resolved. Connect to <" + addr.ip + ">";
+        on_tick->invoke(self);
+    }
+}
+
+template< typename AIO, typename Parser >
+void DownloaderSimple<AIO, Parser>::on_connect()
+{
+    socket->clear();
+    net_timer->template clear<TimerEvent>();
+    net_timer->stop();
+
+    auto self = this->template shared_from_this();
+
+    socket->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Request failed. " + ErrorEvent2str(err) ); } );
+    socket->write( std::unique_ptr<char[]>{}, 0 );
+
+    net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout write request"); } );
+    net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
+
+    m_status.state_str = "Connected, write request";
+    on_tick->invoke(self);
 }
