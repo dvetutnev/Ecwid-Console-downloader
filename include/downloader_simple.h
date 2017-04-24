@@ -51,6 +51,8 @@ private:
 
     void on_resolve(const AddrInfoEvent&);
     void on_connect();
+
+    std::pair< std::unique_ptr<char[]>, unsigned int > make_request() const;
 };
 
 
@@ -174,11 +176,24 @@ void DownloaderSimple<AIO, Parser>::on_connect()
     auto self = this->template shared_from_this();
 
     socket->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Request failed. " + ErrorEvent2str(err) ); } );
-    socket->write( std::unique_ptr<char[]>{}, 0 );
+    auto request = make_request();
+    socket->write( std::move(request.first), request.second );
 
     net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout write request"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 
     m_status.state_str = "Connected, write request";
     on_tick->invoke(self);
+}
+
+template< typename AIO, typename Parser >
+std::pair< std::unique_ptr<char[]>, unsigned int > DownloaderSimple<AIO, Parser>::make_request() const
+{
+    const std::string query = ""
+            "GET " + uri_parsed->query + " HTTP/1.1\r\n"
+            "Host: " + uri_parsed->host + "\r\n"
+            "\r\n";
+    auto raw_ptr = new char[ query.size() ];
+    std::copy( std::begin(query), std::end(query), raw_ptr );
+    return std::make_pair( std::unique_ptr<char[]>{raw_ptr}, query.size() );
 }

@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include <regex>
+
 #include "downloader_simple.h"
 #include "aio_loop_mock.h"
 #include "aio_dns_mock.h"
@@ -567,8 +569,13 @@ TEST(DownloaderSimple, http_request_write_failed)
 
     auto downloader = make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick);
 
+    const string host = "www.internat.org";
+    const string query = "/uri/fname.zip";
+    auto uri_parsed = make_unique<UriParseResult>();
+    uri_parsed->host = host;
+    uri_parsed->query = query;
     EXPECT_CALL( *instance_uri_parse, uri_parse_(_) )
-            .WillOnce( Return( ByMove( make_unique<UriParseResult>() ) ) );
+            .WillOnce( Return( ByMove( std::move(uri_parsed) ) ) );
     EXPECT_CALL( *on_tick, invoke_(_) )
             .Times(0);
 
@@ -606,8 +613,9 @@ TEST(DownloaderSimple, http_request_write_failed)
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
+    string request;
     EXPECT_CALL( *socket, write_(_,_) )
-            .Times(1);
+            .WillOnce( Invoke( [&request](const char data[], unsigned int len) { request = string{data, len}; } ) );
     {
         InSequence dummy;
         EXPECT_CALL( *timer, stop() )
@@ -620,6 +628,22 @@ TEST(DownloaderSimple, http_request_write_failed)
 
     socket->publish( AIO_UVW::ConnectEvent{} );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+
+    const string pattern_request_line = "^GET\\s" + query + "\\sHTTP/1.1\\r\\n";
+    std::regex re_request_line{pattern_request_line};
+    if ( !std::regex_search(request, re_request_line) )
+        FAIL() << "Request failed, invalid request line. Request:" << endl << request << endl;
+
+    const string pattern_host_header = "\\r\\nHost:\\s" + host + "\\r\\n";
+    std::regex re_host_header{pattern_host_header};
+    if ( !std::regex_search(request, re_host_header) )
+        FAIL() << "Request failed, invalid Host header. Request:" << endl << request << endl;
+
+    const string pattern_tail = "\\r\\n\\r\\n";
+    std::regex re_tail{pattern_tail};
+    if ( !std::regex_search(request, re_tail) )
+        FAIL() << "Request failed, invalid tail. Request:" << endl << request << endl;
+
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());

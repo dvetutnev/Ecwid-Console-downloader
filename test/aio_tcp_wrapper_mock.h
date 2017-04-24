@@ -10,7 +10,7 @@ struct TCPSocketWrapperMock : public uvw::TCPSocketWrapper
     MOCK_METHOD0(read, void());
     MOCK_METHOD0(stop, void());
     virtual void write(std::unique_ptr<char[]> ptr, unsigned int len) { write_(ptr.get(), len); }
-    MOCK_METHOD2(write_, void(char[], unsigned int));
+    MOCK_METHOD2(write_, void(const char[], unsigned int));
     virtual void close() noexcept { close_(); }
     MOCK_METHOD0(close_, void());
 
