@@ -48,6 +48,9 @@ private:
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
     on_error(String&&);
+    template< typename String >
+    std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+    update_status(String&&);
 
     void on_resolve(const AddrInfoEvent&);
     void on_connect();
@@ -129,6 +132,18 @@ DownloaderSimple<AIO, Parser>::on_error(String&& str)
 }
 
 template< typename AIO, typename Parser >
+template< typename String >
+std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+DownloaderSimple<AIO, Parser>::update_status(String&& str)
+{
+    if ( m_status.state != StatusDownloader::State::Failed)
+    {
+        m_status.state_str = std::forward<String>(str);
+        on_tick->invoke( this->template shared_from_this() );
+    }
+}
+
+template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 {
     socket = loop.template resource<TCPSocketSimple>();
@@ -159,11 +174,7 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
     net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to host <" + addr.ip + ">"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 
-    if ( m_status.state != StatusDownloader::State::Failed)
-    {
-        m_status.state_str = "Host Resolved. Connect to <" + addr.ip + ">";
-        on_tick->invoke(self);
-    }
+    update_status( "Host Resolved. Connect to <" + addr.ip + ">" );
 }
 
 template< typename AIO, typename Parser >
@@ -182,8 +193,7 @@ void DownloaderSimple<AIO, Parser>::on_connect()
     net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout write request"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 
-    m_status.state_str = "Connected, write request";
-    on_tick->invoke(self);
+    update_status( "Connected, write request" );
 }
 
 template< typename AIO, typename Parser >

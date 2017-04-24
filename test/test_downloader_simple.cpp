@@ -723,7 +723,9 @@ TEST(DownloaderSimple, http_request_write_timeout)
         InSequence dummy;
         EXPECT_CALL( *timer, stop() )
                 .Times(1);
-        EXPECT_CALL( *timer, start(_,_) )
+        TimerHandleMock::Time repeat{0};
+        TimerHandleMock::Time timeout{5000};
+        EXPECT_CALL( *timer, start(timeout, repeat) )
                 .Times(1);
     }
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
@@ -743,6 +745,87 @@ TEST(DownloaderSimple, http_request_write_timeout)
             .WillOnce( Invoke(on_tick_handler) );
 
     timer->publish( AIO_UVW::TimerEvent{} );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+
+    resolver.reset();
+    ASSERT_FALSE(resolver);
+    ASSERT_TRUE( downloader.unique() );
+    ASSERT_EQ(on_tick.use_count(), 2);
+    ASSERT_EQ(socket.use_count(), 2);
+    ASSERT_EQ(timer.use_count(), 2);
+}
+
+TEST(DownloaderSimple, http_request_timer_failed_on_run)
+{
+    LoopMock loop;
+    auto on_tick = make_shared<OnTickMock>();
+    auto instance_uri_parse = make_shared<HttpParserMock>();
+    HttpParserMock::instance_uri_parse = instance_uri_parse.get();
+
+    auto downloader = make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick);
+
+    EXPECT_CALL( *instance_uri_parse, uri_parse_(_) )
+            .WillOnce( Return( ByMove( make_unique<UriParseResult>() ) ) );
+    EXPECT_CALL( *on_tick, invoke_(_) )
+            .Times(0);
+
+    auto resolver = make_shared<GetAddrInfoReqMock>();
+    EXPECT_CALL( loop, resource_GetAddrInfoReqMock() )
+            .WillOnce( Return(resolver) );
+    EXPECT_CALL( *resolver, getNodeAddrInfo(_) )
+            .Times(1);
+
+    ASSERT_TRUE( downloader->run( Task{} ) );
+    ASSERT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
+    Mock::VerifyAndClearExpectations(instance_uri_parse.get());
+    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(resolver.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+
+    auto socket = make_shared<TCPSocketWrapperMock>();
+    EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
+            .WillOnce( Return(socket) );
+    auto timer = make_shared<TimerHandleMock>();
+    EXPECT_CALL( loop, resource_TimerHandleMock() )
+            .WillOnce( Return(timer) );
+
+    EXPECT_CALL( *socket, connect(_,_) )
+            .Times(1);
+    EXPECT_CALL( *timer, start(_,_) )
+            .Times(1);
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
+
+    resolver->publish( create_addr_info_event("127.0.0.1") );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+
+    {
+        InSequence dummy;
+        EXPECT_CALL( *socket, write_(_,_) )
+                .Times(1);
+        EXPECT_CALL( *socket, close_() )
+                .Times(1);
+    }
+    {
+        InSequence dummy;
+        EXPECT_CALL( *timer, stop() )
+                .Times(1);
+        EXPECT_CALL( *timer, start(_,_) )
+                .WillOnce( Invoke( [&timer](const auto&, const auto&) { timer->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
+        EXPECT_CALL( *timer, close_() )
+                .Times(1);
+    }
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
+
+    socket->publish( AIO_UVW::ConnectEvent{} );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
