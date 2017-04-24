@@ -166,6 +166,19 @@ AIO_UVW::AddrInfoEvent create_addr_info_event(const string& ip)
     return AIO_UVW::AddrInfoEvent{ std::move(addrinfo_ptr) };
 }
 
+AIO_UVW::AddrInfoEvent create_addr_info_event_ipv6(const string& ip)
+{
+    auto addrinfo_raw_ptr = new addrinfo;
+    addrinfo_raw_ptr->ai_family = AF_INET6;
+    addrinfo_raw_ptr->ai_addrlen = sizeof(sockaddr_in6);
+    addrinfo_raw_ptr->ai_addr = reinterpret_cast<sockaddr*>(new sockaddr_in6);
+    uv_ip6_addr(ip.c_str(), 0, reinterpret_cast<sockaddr_in6*>(addrinfo_raw_ptr->ai_addr));
+    addrinfo_raw_ptr->ai_next = nullptr;
+    addrinfo_raw_ptr->ai_canonname = nullptr;
+    auto addrinfo_ptr = unique_ptr<addrinfo, void(*)(addrinfo*)>{addrinfo_raw_ptr, [](addrinfo* ptr) { uv_freeaddrinfo(ptr); } };
+    return AIO_UVW::AddrInfoEvent{ std::move(addrinfo_ptr) };
+}
+
 TEST(DownloaderSimple, create_socket_failed)
 {
     LoopMock loop;
@@ -308,6 +321,79 @@ TEST(DownloaderSimple, connect_failed)
             .WillOnce( Invoke(on_tick_handler) );
 
     resolver->publish( create_addr_info_event(ip) );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
+
+    socket->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNREFUSED) } );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+
+    resolver.reset();
+    ASSERT_FALSE(resolver);
+    ASSERT_TRUE( downloader.unique() );
+    ASSERT_EQ(on_tick.use_count(), 2);
+    ASSERT_EQ(socket.use_count(), 2);
+    ASSERT_EQ(timer.use_count(), 2);
+}
+
+TEST(DownloaderSimple, connect6_failed)
+{
+    LoopMock loop;
+    auto on_tick = make_shared<OnTickMock>();
+    auto instance_uri_parse = make_shared<HttpParserMock>();
+    HttpParserMock::instance_uri_parse = instance_uri_parse.get();
+
+    auto downloader = make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick);
+
+    const unsigned short port = 8080;
+    auto uri_parsed = make_unique<UriParseResult>();
+    uri_parsed->port = port;
+    EXPECT_CALL( *instance_uri_parse, uri_parse_(_) )
+            .WillOnce( Return( ByMove( std::move(uri_parsed) ) ) );
+    EXPECT_CALL( *on_tick, invoke_(_) )
+            .Times(0);
+
+    auto resolver = make_shared<GetAddrInfoReqMock>();
+    EXPECT_CALL( loop, resource_GetAddrInfoReqMock() )
+            .WillOnce( Return(resolver) );
+    EXPECT_CALL( *resolver, getNodeAddrInfo(_) )
+            .Times(1);
+
+    ASSERT_TRUE( downloader->run( Task{} ) );
+    ASSERT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
+    Mock::VerifyAndClearExpectations(instance_uri_parse.get());
+    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(resolver.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+
+    auto socket = make_shared<TCPSocketWrapperMock>();
+    EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
+            .WillOnce( Return(socket) );
+    auto timer = make_shared<TimerHandleMock>();
+    EXPECT_CALL( loop, resource_TimerHandleMock() )
+            .WillOnce( Return(timer) );
+
+    const string ip = "::1";
+    EXPECT_CALL( *socket, connect6(ip, port) )
+            .Times(1);
+    EXPECT_CALL( *timer, start(_,_) )
+            .Times(1);
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
+
+    resolver->publish( create_addr_info_event_ipv6(ip) );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
     Mock::VerifyAndClearExpectations(&loop);
     Mock::VerifyAndClearExpectations(socket.get());

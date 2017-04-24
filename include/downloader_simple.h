@@ -148,7 +148,10 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 
     socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&) { self->on_error( "Host <" + addr.ip + "> can`t available. " + ErrorEvent2str(err) ); } );
     socket->template once<ConnectEvent>( [self](const auto&, const auto&) { self->on_connect(); } );
-    socket->connect(addr.ip, uri_parsed->port);
+    if (addr.v6)
+        socket->connect6(addr.ip, uri_parsed->port);
+    else
+        socket->connect(addr.ip, uri_parsed->port);
 
     net_timer->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Net_timer run failed! " + ErrorEvent2str(err) ); } );
     net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to host <" + addr.ip + ">"); } );
