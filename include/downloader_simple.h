@@ -60,7 +60,7 @@ private:
     void on_write_http_request();
     void on_read(std::unique_ptr<char[]>, std::size_t);
 
-    std::pair< std::unique_ptr<char[]>, unsigned int > make_request() const;
+    std::pair< std::unique_ptr<char[]>, std::size_t > make_request() const;
 };
 
 /* -- implementation, because template( -- */
@@ -244,7 +244,7 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
 }
 
 template< typename AIO, typename Parser >
-std::pair< std::unique_ptr<char[]>, unsigned int > DownloaderSimple<AIO, Parser>::make_request() const
+std::pair<std::unique_ptr<char[]>, std::size_t> DownloaderSimple<AIO, Parser>::make_request() const
 {
     const std::string query = ""
             "GET " + uri_parsed->query + " HTTP/1.1\r\n"
