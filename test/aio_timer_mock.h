@@ -9,6 +9,7 @@ struct TimerHandleMock : public uvw::Emitter<TimerHandleMock>
 
     MOCK_METHOD2( start, void(Time, Time) );
     MOCK_METHOD0( stop, void() );
+    MOCK_METHOD0( again, void() );
     void close() noexcept { close_(); }
     MOCK_METHOD0( close_, void() );
 

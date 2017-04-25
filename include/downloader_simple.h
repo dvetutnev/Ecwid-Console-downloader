@@ -19,6 +19,8 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using TCPSocket = typename AIO::TCPSocketWrapper;
     using TCPSocketSimple = typename AIO::TCPSocketWrapperSimple;
     using ConnectEvent = typename AIO::ConnectEvent;
+    using WriteEvent = typename AIO::WriteEvent;
+    using DataEvent = typename AIO::DataEvent;
 
     using Timer = typename AIO::TimerHandle;
     using TimerEvent = typename AIO::TimerEvent;
@@ -41,6 +43,7 @@ private:
     std::unique_ptr<UriParseResult> uri_parsed;
     std::shared_ptr<TCPSocket> socket;
     std::shared_ptr<Timer> net_timer;
+    std::unique_ptr<Parser> http_parser;
 
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
@@ -54,12 +57,14 @@ private:
 
     void on_resolve(const AddrInfoEvent&);
     void on_connect();
+    void on_write_http_request();
+    void on_read(std::unique_ptr<char[]>, std::size_t);
 
     std::pair< std::unique_ptr<char[]>, unsigned int > make_request() const;
 };
 
-
 /* -- implementation, because template( -- */
+
 template< typename ErrorEvent >
 inline std::string ErrorEvent2str(const ErrorEvent& err)
 {
@@ -174,7 +179,7 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
     net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to host <" + addr.ip + ">"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 
-    update_status( "Host Resolved. Connect to <" + addr.ip + ">" );
+    update_status("Host Resolved. Connect to <" + addr.ip + ">");
 }
 
 template< typename AIO, typename Parser >
@@ -187,13 +192,55 @@ void DownloaderSimple<AIO, Parser>::on_connect()
     auto self = this->template shared_from_this();
 
     socket->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Request failed. " + ErrorEvent2str(err) ); } );
+    socket->template once<WriteEvent>( [self](const auto&, const auto&) { self->on_write_http_request(); } );
     auto request = make_request();
     socket->write( std::move(request.first), request.second );
 
     net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout write request"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 
-    update_status( "Connected, write request" );
+    update_status("Connected, write request.");
+}
+
+template< typename AIO, typename Parser >
+void DownloaderSimple<AIO, Parser>::on_write_http_request()
+{
+    socket->clear();
+    net_timer->template clear<TimerEvent>();
+    net_timer->stop();
+
+    auto self = this->template shared_from_this();
+
+    socket->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Response read failed. " + ErrorEvent2str(err) ); } );
+    socket->template once<DataEvent>( [self](auto& event, const auto&)
+    {
+        self->http_parser = Parser::create(nullptr);
+        self->on_read( std::move(event.data), event.length );
+    } );
+    socket->read();
+
+    net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout read response"); } );
+    net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
+
+    update_status("Write request done. Wait response.");
+}
+
+template< typename AIO, typename Parser >
+void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::size_t length)
+{
+    using State = typename Parser::ResponseParseResult::State;
+    auto result = http_parser->response_parse(std::move(data), length);
+    if (result.state == State::InProgress)
+    {
+        auto self = this->template shared_from_this();
+        socket->template once<DataEvent>( [self](auto& event, const auto&) { self->on_read(std::move(event.data), event.length); } );
+        net_timer->again();
+    } else if (result.state == State::Error)
+    {
+        on_error("Response parse failed. " + std::move(result.err_str) );
+    }
+
+    update_status("Data received.");
 }
 
 template< typename AIO, typename Parser >

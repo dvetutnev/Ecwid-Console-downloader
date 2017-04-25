@@ -5,7 +5,6 @@
 #include <memory>
 #include <functional>
 #include <type_traits>
-#include <stdexcept>
 
 extern "C" {
     #include <http_parser.h>
@@ -32,7 +31,7 @@ public:
         std::string err_str;
     };
 
-    ResponseParseResult response_parse(std::unique_ptr<char[]>, unsigned int);
+    ResponseParseResult response_parse(std::unique_ptr<char[]>, std::size_t);
 
     struct UriParseResult;
     static std::unique_ptr<UriParseResult> uri_parse(const std::string&);
