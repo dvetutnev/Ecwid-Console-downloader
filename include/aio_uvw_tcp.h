@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cassert>
+#include <limits>
+
 #include <uvw/tcp.hpp>
 
 namespace uvw {
@@ -11,7 +14,7 @@ public:
     virtual void connect6(const std::string& ip, unsigned short port) = 0;
     virtual void read() = 0;
     virtual void stop() = 0;
-    virtual void write(std::unique_ptr<char[]>, unsigned int) = 0;
+    virtual void write(std::unique_ptr<char[]>, std::size_t) = 0;
     virtual void close() noexcept = 0;
     virtual ~TCPSocketWrapper() = default;
 protected:
@@ -40,7 +43,11 @@ public:
     virtual void connect6(const std::string& ip, unsigned short port) override final { tcp_handle->template connect<uvw::IPv6>(ip, port); }
     virtual void read() override final { tcp_handle->read(); }
     virtual void stop() noexcept override final { tcp_handle->stop(); }
-    virtual void write(std::unique_ptr<char[]> data, unsigned int length) override final { tcp_handle->write(std::move(data), length); }
+    virtual void write(std::unique_ptr<char[]> data, std::size_t length) override final
+    {
+        assert(length <= std::numeric_limits<unsigned int>::max());
+        tcp_handle->write(std::move(data), length);
+    }
     virtual void close() noexcept override final
     {
         tcp_handle->clear();
