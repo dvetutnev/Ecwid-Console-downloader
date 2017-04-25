@@ -74,7 +74,8 @@ inline std::string ErrorEvent2str(const ErrorEvent& err)
 template< typename AIO, typename Parser >
 bool DownloaderSimple<AIO, Parser>::run(const Task& task)
 {
-    m_status.state = StatusDownloader::State::Init;
+    using State = StatusDownloader::State;
+    m_status.state = State::Init;
     uri_parsed = Parser::uri_parse(task.uri);
     if (!uri_parsed)
         return false;
@@ -85,7 +86,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
     resolver->template once<ErrorEvent>( [self](const auto& err, const auto&)
     {
         std::string err_str = "Host <" + self->uri_parsed->host + "> can`t resolve. " + ErrorEvent2str(err);
-        if ( self->m_status.state == StatusDownloader::State::OnTheGo )
+        if ( self->m_status.state == State::OnTheGo )
             self->on_error( std::move(err_str) );
         else
             self->on_error_without_tick( std::move(err_str) );
@@ -94,9 +95,9 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
 
     resolver->getNodeAddrInfo(uri_parsed->host);
 
-    if ( m_status.state == StatusDownloader::State::Init )
+    if ( m_status.state == State::Init )
     {
-        m_status.state = StatusDownloader::State::OnTheGo;
+        m_status.state = State::OnTheGo;
         return true;
     }
     return false;
@@ -182,14 +183,14 @@ void DownloaderSimple<AIO, Parser>::on_write_http_request()
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::size_t length)
 {
-    using State = typename Parser::ResponseParseResult::State;
+    using Result = typename Parser::ResponseParseResult::State;
     auto result = http_parser->response_parse(std::move(data), length);
-    if (result.state == State::InProgress)
+    if (result.state == Result::InProgress)
     {
         auto self = this->template shared_from_this();
         socket->template once<DataEvent>( [self](auto& event, const auto&) { self->on_read(std::move(event.data), event.length); } );
         net_timer->again();
-    } else if (result.state == State::Error)
+    } else if (result.state == Result::Error)
     {
         on_error("Response parse failed. " + std::move(result.err_str) );
     }
