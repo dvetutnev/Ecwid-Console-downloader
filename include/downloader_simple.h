@@ -103,52 +103,6 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task)
 }
 
 template< typename AIO, typename Parser >
-void DownloaderSimple<AIO, Parser>::stop()
-{
-
-}
-
-template< typename AIO, typename Parser >
-template< typename String >
-std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-DownloaderSimple<AIO, Parser>::on_error_without_tick(String&& str)
-{
-    m_status.state = StatusDownloader::State::Failed;
-    m_status.state_str = std::forward<String>(str);
-    if (socket)
-    {
-        socket->clear();
-        socket->close();
-    }
-    if (net_timer)
-    {
-        net_timer->clear();
-        net_timer->close();
-    }
-}
-
-template< typename AIO, typename Parser >
-template< typename String >
-std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-DownloaderSimple<AIO, Parser>::on_error(String&& str)
-{
-    on_error_without_tick( std::forward<String>(str) );
-    on_tick->invoke( this->template shared_from_this() );
-}
-
-template< typename AIO, typename Parser >
-template< typename String >
-std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-DownloaderSimple<AIO, Parser>::update_status(String&& str)
-{
-    if ( m_status.state != StatusDownloader::State::Failed)
-    {
-        m_status.state_str = std::forward<String>(str);
-        on_tick->invoke( this->template shared_from_this() );
-    }
-}
-
-template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 {
     socket = loop.template resource<TCPSocketSimple>();
@@ -241,6 +195,52 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
     }
 
     update_status("Data received.");
+}
+
+template< typename AIO, typename Parser >
+void DownloaderSimple<AIO, Parser>::stop()
+{
+
+}
+
+template< typename AIO, typename Parser >
+template< typename String >
+std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+DownloaderSimple<AIO, Parser>::on_error_without_tick(String&& str)
+{
+    m_status.state = StatusDownloader::State::Failed;
+    m_status.state_str = std::forward<String>(str);
+    if (socket)
+    {
+        socket->clear();
+        socket->close();
+    }
+    if (net_timer)
+    {
+        net_timer->clear();
+        net_timer->close();
+    }
+}
+
+template< typename AIO, typename Parser >
+template< typename String >
+std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+DownloaderSimple<AIO, Parser>::on_error(String&& str)
+{
+    on_error_without_tick( std::forward<String>(str) );
+    on_tick->invoke( this->template shared_from_this() );
+}
+
+template< typename AIO, typename Parser >
+template< typename String >
+std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+DownloaderSimple<AIO, Parser>::update_status(String&& str)
+{
+    if ( m_status.state != StatusDownloader::State::Failed)
+    {
+        m_status.state_str = std::forward<String>(str);
+        on_tick->invoke( this->template shared_from_this() );
+    }
 }
 
 template< typename AIO, typename Parser >
