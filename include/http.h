@@ -39,7 +39,7 @@ public:
 private:
 
     template < typename T>
-    HttpParser(T&& on_data)
+    explicit HttpParser(T&& on_data)
         : cb_on_data{ std::forward<T>(on_data) }
     {}
 
