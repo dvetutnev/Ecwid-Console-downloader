@@ -172,6 +172,8 @@ void DownloaderSimple<AIO, Parser>::on_write_http_request()
     socket->template once<EndEvent>( [self](const auto&, const auto&) { self->on_error("Connection it`s unexpecdly closed."); } );
     socket->template once<DataEvent>( [self](auto& event, const auto&)
     {
+        self->socket->template clear<EndEvent>();
+        self->socket->template once<EndEvent>( [self](const auto&, const auto&) { self->on_read(nullptr, 0); } );
         self->http_parser = Parser::create(nullptr);
         self->on_read( std::move(event.data), event.length );
     } );
@@ -200,6 +202,11 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
         m_status.state = StatusDownloader::State::Redirect;
         m_status.redirect_uri = std::move(result.redirect_uri);
         m_status.state_str = "Redirect to <" + m_status.redirect_uri + ">";
+        close_handles();
+        on_tick->invoke(self);
+    } else if (result.state == Result::Done)
+    {
+        m_status.state = StatusDownloader::State::Done;
         close_handles();
         on_tick->invoke(self);
     } else if (result.state == Result::Error)
