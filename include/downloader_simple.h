@@ -8,6 +8,8 @@
 template< typename AIO, typename Parser >
 class DownloaderSimple : public Downloader, public std::enable_shared_from_this< DownloaderSimple<AIO, Parser> >
 {
+    using State = StatusDownloader::State;
+
     using Loop = typename AIO::Loop;
     using ErrorEvent = typename AIO::ErrorEvent;
 
@@ -47,15 +49,32 @@ private:
     std::unique_ptr<Parser> http_parser;
 
     void close_handles();
+
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-    on_error_without_tick(String&&);
+    on_error_without_tick(String&& str)
+    {
+        m_status.state = StatusDownloader::State::Failed;
+        m_status.state_str = std::forward<String>(str);
+        close_handles();
+    }
+
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-    on_error(String&&);
+    on_error(String&& str)
+    {
+        on_error_without_tick( std::forward<String>(str) );
+        on_tick->invoke( this->template shared_from_this() );
+    }
+
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-    update_status(String&&);
+    update_status(State state, String&& str)
+    {
+        m_status.state = state;
+        m_status.state_str = std::forward<String>(str);
+        on_tick->invoke( this->template shared_from_this() );
+    }
 
     void on_resolve(const AddrInfoEvent&);
     void on_connect();
@@ -76,7 +95,6 @@ inline std::string ErrorEvent2str(const ErrorEvent& err)
 template< typename AIO, typename Parser >
 bool DownloaderSimple<AIO, Parser>::run(const Task& task)
 {
-    using State = StatusDownloader::State;
     m_status.state = State::Init;
     uri_parsed = Parser::uri_parse(task.uri);
     if (!uri_parsed)
@@ -125,18 +143,19 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
     const auto addr = AIO::addrinfo2IPAddress( event.data.get() );
     auto self = this->template shared_from_this();
 
-    socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&) { self->on_error( "Host <" + addr.ip + "> can`t available. " + ErrorEvent2str(err) ); } );
+    socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&) { self->on_error("Host <" + addr.ip + "> can`t available. " + ErrorEvent2str(err) ); } );
     socket->template once<ConnectEvent>( [self](const auto&, const auto&) { self->on_connect(); } );
     if (addr.v6)
         socket->connect6(addr.ip, uri_parsed->port);
     else
         socket->connect(addr.ip, uri_parsed->port);
 
-    net_timer->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Net_timer run failed! " + ErrorEvent2str(err) ); } );
+    net_timer->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("Net_timer run failed! " + ErrorEvent2str(err) ); } );
     net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to host <" + addr.ip + ">"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 
-    update_status("Host Resolved. Connect to <" + addr.ip + ">");
+    if (m_status.state != State::Failed)
+        update_status(State::OnTheGo, "Host Resolved. Connect to <" + addr.ip + ">");
 }
 
 template< typename AIO, typename Parser >
@@ -156,7 +175,8 @@ void DownloaderSimple<AIO, Parser>::on_connect()
     net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout write request"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 
-    update_status("Connected, write request.");
+    if (m_status.state != State::Failed)
+        update_status(State::OnTheGo, "Connected, write request.");
 }
 
 template< typename AIO, typename Parser >
@@ -182,7 +202,8 @@ void DownloaderSimple<AIO, Parser>::on_write_http_request()
     net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout read response"); } );
     net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
 
-    update_status("Write request done. Wait response.");
+    if (m_status.state != State::Failed)
+        update_status(State::OnTheGo, "Write request done. Wait response.");
 }
 
 template< typename AIO, typename Parser >
@@ -193,34 +214,29 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
     auto result = http_parser->response_parse(std::move(data), length);
     auto self = this->template shared_from_this();
 
-    if (result.state == Result::InProgress)
+    switch (result.state)
     {
+    case Result::InProgress:
         socket->template once<DataEvent>( [self](auto& event, const auto&) { self->on_read(std::move(event.data), event.length); } );
         net_timer->again();
-    } else if(result.state == Result::Redirect)
-    {
-        m_status.state = StatusDownloader::State::Redirect;
+        update_status(State::OnTheGo, "Data received.");
+        break;
+
+    case Result::Redirect:
+        close_handles();
         m_status.redirect_uri = std::move(result.redirect_uri);
-        m_status.state_str = "Redirect to <" + m_status.redirect_uri + ">";
+        update_status(State::Redirect, "Redirect to <" + m_status.redirect_uri + ">");
+        break;
+
+    case Result::Done:
         close_handles();
-        on_tick->invoke(self);
-    } else if (result.state == Result::Done)
-    {
-        m_status.state = StatusDownloader::State::Done;
-        close_handles();
-        on_tick->invoke(self);
-    } else if (result.state == Result::Error)
-    {
+        update_status(State::Done, "Done");
+        break;
+
+    case Result::Error:
         on_error("Response parse failed. " + std::move(result.err_str) );
+        break;
     }
-
-    update_status("Data received.");
-}
-
-template< typename AIO, typename Parser >
-void DownloaderSimple<AIO, Parser>::stop()
-{
-
 }
 
 template< typename AIO, typename Parser >
@@ -239,37 +255,6 @@ void DownloaderSimple<AIO, Parser>::close_handles()
 }
 
 template< typename AIO, typename Parser >
-template< typename String >
-std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-DownloaderSimple<AIO, Parser>::on_error_without_tick(String&& str)
-{
-    m_status.state = StatusDownloader::State::Failed;
-    m_status.state_str = std::forward<String>(str);
-    close_handles();
-}
-
-template< typename AIO, typename Parser >
-template< typename String >
-std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-DownloaderSimple<AIO, Parser>::on_error(String&& str)
-{
-    on_error_without_tick( std::forward<String>(str) );
-    on_tick->invoke( this->template shared_from_this() );
-}
-
-template< typename AIO, typename Parser >
-template< typename String >
-std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-DownloaderSimple<AIO, Parser>::update_status(String&& str)
-{
-    if ( m_status.state == StatusDownloader::State::OnTheGo)
-    {
-        m_status.state_str = std::forward<String>(str);
-        on_tick->invoke( this->template shared_from_this() );
-    }
-}
-
-template< typename AIO, typename Parser >
 std::pair<std::unique_ptr<char[]>, std::size_t> DownloaderSimple<AIO, Parser>::make_request() const
 {
     const std::string query = ""
@@ -279,4 +264,10 @@ std::pair<std::unique_ptr<char[]>, std::size_t> DownloaderSimple<AIO, Parser>::m
     auto raw_ptr = new char[ query.size() ];
     std::copy( std::begin(query), std::end(query), raw_ptr );
     return std::make_pair( std::unique_ptr<char[]>{raw_ptr}, query.size() );
+}
+
+template< typename AIO, typename Parser >
+void DownloaderSimple<AIO, Parser>::stop()
+{
+
 }
