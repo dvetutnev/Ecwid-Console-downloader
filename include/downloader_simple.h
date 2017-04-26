@@ -46,6 +46,7 @@ private:
     std::shared_ptr<Timer> net_timer;
     std::unique_ptr<Parser> http_parser;
 
+    void close_handles();
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
     on_error_without_tick(String&&);
@@ -186,12 +187,21 @@ template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::size_t length)
 {
     using Result = typename Parser::ResponseParseResult::State;
+
     auto result = http_parser->response_parse(std::move(data), length);
+    auto self = this->template shared_from_this();
+
     if (result.state == Result::InProgress)
     {
-        auto self = this->template shared_from_this();
         socket->template once<DataEvent>( [self](auto& event, const auto&) { self->on_read(std::move(event.data), event.length); } );
         net_timer->again();
+    } else if(result.state == Result::Redirect)
+    {
+        m_status.state = StatusDownloader::State::Redirect;
+        m_status.redirect_uri = std::move(result.redirect_uri);
+        m_status.state_str = "Redirect to <" + m_status.redirect_uri + ">";
+        close_handles();
+        on_tick->invoke(self);
     } else if (result.state == Result::Error)
     {
         on_error("Response parse failed. " + std::move(result.err_str) );
@@ -207,12 +217,8 @@ void DownloaderSimple<AIO, Parser>::stop()
 }
 
 template< typename AIO, typename Parser >
-template< typename String >
-std::enable_if_t< std::is_convertible<String, std::string>::value, void>
-DownloaderSimple<AIO, Parser>::on_error_without_tick(String&& str)
+void DownloaderSimple<AIO, Parser>::close_handles()
 {
-    m_status.state = StatusDownloader::State::Failed;
-    m_status.state_str = std::forward<String>(str);
     if (socket)
     {
         socket->clear();
@@ -223,6 +229,16 @@ DownloaderSimple<AIO, Parser>::on_error_without_tick(String&& str)
         net_timer->clear();
         net_timer->close();
     }
+}
+
+template< typename AIO, typename Parser >
+template< typename String >
+std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+DownloaderSimple<AIO, Parser>::on_error_without_tick(String&& str)
+{
+    m_status.state = StatusDownloader::State::Failed;
+    m_status.state_str = std::forward<String>(str);
+    close_handles();
 }
 
 template< typename AIO, typename Parser >
@@ -239,7 +255,7 @@ template< typename String >
 std::enable_if_t< std::is_convertible<String, std::string>::value, void>
 DownloaderSimple<AIO, Parser>::update_status(String&& str)
 {
-    if ( m_status.state != StatusDownloader::State::Failed)
+    if ( m_status.state == StatusDownloader::State::OnTheGo)
     {
         m_status.state_str = std::forward<String>(str);
         on_tick->invoke( this->template shared_from_this() );

@@ -688,9 +688,9 @@ TEST_F(DownloaderSimpleReadStart, timeout_read)
 
 /*------- response parse -------*/
 
-struct DownloaderSimpleResponseRead : public DownloaderSimpleReadStart
+struct DownloaderSimpleResponseParse : public DownloaderSimpleReadStart
 {
-    DownloaderSimpleResponseRead()
+    DownloaderSimpleResponseParse()
         : http_parser{ new HttpParserMock }
     {
         HttpParserMock::instance_response_parse = http_parser;
@@ -701,7 +701,7 @@ struct DownloaderSimpleResponseRead : public DownloaderSimpleReadStart
     HttpParserMock* http_parser;
 };
 
-TEST_F(DownloaderSimpleResponseRead, response_parse_error)
+TEST_F(DownloaderSimpleResponseParse, response_parse_error)
 {
     const size_t len1 = 42;
     char* data1 = new char[len1];
@@ -745,9 +745,32 @@ TEST_F(DownloaderSimpleResponseRead, response_parse_error)
     Mock::VerifyAndClearExpectations(on_tick.get());
 }
 
-TEST(DownloaderSimple, redirect)
+TEST_F(DownloaderSimpleResponseParse, redirect)
 {
+    const size_t len = 1510;
+    char* data = new char[len];
+    const string redirect_uri = "www.internet.org/redirect";
+    HttpParser::ResponseParseResult result2;
+    result2.state = HttpParser::ResponseParseResult::State::Redirect;
+    result2.redirect_uri = redirect_uri;
+    EXPECT_CALL( *http_parser, response_parse_(data, len) )
+            .WillOnce( Return(result2) );
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
 
+    socket->publish( AIO_UVW::DataEvent{ unique_ptr<char[]>{data}, len } );
+
+    const auto status = downloader->status();
+    ASSERT_EQ(status.state, StatusDownloader::State::Redirect);
+    ASSERT_EQ(status.redirect_uri, redirect_uri);
+    Mock::VerifyAndClearExpectations(http_parser);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
 }
 
 TEST(DownloaderSimple, on_read_error)
