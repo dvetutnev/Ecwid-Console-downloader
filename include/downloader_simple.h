@@ -21,6 +21,7 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using ConnectEvent = typename AIO::ConnectEvent;
     using WriteEvent = typename AIO::WriteEvent;
     using DataEvent = typename AIO::DataEvent;
+    using EndEvent = typename AIO::EndEvent;
 
     using Timer = typename AIO::TimerHandle;
     using TimerEvent = typename AIO::TimerEvent;
@@ -166,7 +167,8 @@ void DownloaderSimple<AIO, Parser>::on_write_http_request()
 
     auto self = this->template shared_from_this();
 
-    socket->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Response read failed. " + ErrorEvent2str(err) ); } );
+    socket->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("Response read failed. " + ErrorEvent2str(err) ); } );
+    socket->template once<EndEvent>( [self](const auto&, const auto&) { self->on_error("Connection it`s unexpecdly closed."); } );
     socket->template once<DataEvent>( [self](auto& event, const auto&)
     {
         self->http_parser = Parser::create(nullptr);

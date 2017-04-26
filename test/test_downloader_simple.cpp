@@ -36,6 +36,7 @@ struct AIO_Mock
     using ConnectEvent = AIO_UVW::ConnectEvent;
     using WriteEvent = AIO_UVW::WriteEvent;
     using DataEvent = AIO_UVW::DataEvent;
+    using EndEvent = AIO_UVW::EndEvent;
 
     using TimerHandle = TimerHandleMock;
     using TimerEvent = AIO_UVW::TimerEvent;
@@ -588,13 +589,12 @@ TEST_F(DownloaderSimpleHttpRequest, timer_failed_on_run)
     Mock::VerifyAndClearExpectations(on_tick.get());
 }
 
-struct DownloaderSimpleResponseRead : public DownloaderSimpleHttpRequest
-{
-    DownloaderSimpleResponseRead()
-        : http_parser{ new HttpParserMock }
-    {
-        HttpParserMock::instance_response_parse = http_parser;
+/*------- read start -------*/
 
+struct DownloaderSimpleReadStart : public DownloaderSimpleHttpRequest
+{
+    DownloaderSimpleReadStart()
+    {
         EXPECT_CALL( *socket, write_(_,_) )
                 .Times(1);
         {
@@ -632,9 +632,70 @@ struct DownloaderSimpleResponseRead : public DownloaderSimpleHttpRequest
         Mock::VerifyAndClearExpectations(socket.get());
         Mock::VerifyAndClearExpectations(timer.get());
         Mock::VerifyAndClearExpectations(on_tick.get());
+    }
+};
 
+TEST_F(DownloaderSimpleReadStart, unexpectedly_EOF)
+{
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
+
+    socket->publish( AIO_UVW::EndEvent{} );
+
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+}
+
+TEST_F(DownloaderSimpleReadStart, error_read)
+{
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
+
+    socket->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNREFUSED) } );
+
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+}
+
+TEST_F(DownloaderSimpleReadStart, timeout_read)
+{
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
+
+    timer->publish( AIO_UVW::TimerEvent{} );
+
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+}
+
+/*------- response parse -------*/
+
+struct DownloaderSimpleResponseRead : public DownloaderSimpleReadStart
+{
+    DownloaderSimpleResponseRead()
+        : http_parser{ new HttpParserMock }
+    {
+        HttpParserMock::instance_response_parse = http_parser;
         EXPECT_CALL( *http_parser, create_(_) )
-                .WillOnce( Return( ByMove( unique_ptr<HttpParserMock>{http_parser} ) ) );
+            .WillOnce( Return( ByMove( unique_ptr<HttpParserMock>{http_parser} ) ) );
     }
 
     HttpParserMock* http_parser;
