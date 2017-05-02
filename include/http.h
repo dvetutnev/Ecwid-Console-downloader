@@ -13,7 +13,7 @@ extern "C" {
 class HttpParser
 {
 public:
-    using OnData = std::function<bool(std::unique_ptr<char>, std::size_t)>;
+    using OnData = std::function<void(std::unique_ptr<char[]>, std::size_t)>;
 
     template< typename T >
     static

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <fcntl.h>
 
 #include "downloader.h"
 #include "on_tick.h"
@@ -28,6 +29,8 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using Timer = typename AIO::TimerHandle;
     using TimerEvent = typename AIO::TimerEvent;
 
+    using File = typename AIO::FileReq;
+
 public:
     DownloaderSimple(Loop& loop_, std::shared_ptr<OnTick> on_tick_)
         : loop{loop_},
@@ -42,11 +45,13 @@ private:
     Loop& loop;
     std::shared_ptr<OnTick> on_tick;
 
+    Task task;
     StatusDownloader m_status;
     std::unique_ptr<UriParseResult> uri_parsed;
     std::shared_ptr<TCPSocket> socket;
     std::shared_ptr<Timer> net_timer;
     std::unique_ptr<Parser> http_parser;
+    std::shared_ptr<File> file;
 
     void close_handles();
 
@@ -80,6 +85,7 @@ private:
     void on_connect();
     void on_write_http_request();
     void on_read(std::unique_ptr<char[]>, std::size_t);
+    void on_data(std::unique_ptr<char[]>, std::size_t);
 
     std::pair< std::unique_ptr<char[]>, std::size_t > make_request() const;
 };
@@ -93,8 +99,9 @@ inline std::string ErrorEvent2str(const ErrorEvent& err)
 }
 
 template< typename AIO, typename Parser >
-bool DownloaderSimple<AIO, Parser>::run(const Task& task)
+bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
 {
+    task = task_;
     m_status.state = State::Init;
     uri_parsed = Parser::uri_parse(task.uri);
     if (!uri_parsed)
@@ -194,7 +201,11 @@ void DownloaderSimple<AIO, Parser>::on_write_http_request()
     {
         self->socket->template clear<EndEvent>();
         self->socket->template once<EndEvent>( [self](const auto&, const auto&) { self->on_read(nullptr, 0); } );
-        self->http_parser = Parser::create(nullptr);
+
+        using namespace std::placeholders;
+        auto on_data = std::bind(&DownloaderSimple<AIO, Parser>::on_data, self, _1, _2);
+        self->http_parser = Parser::create( std::move(on_data) );
+
         self->on_read( std::move(event.data), event.length );
     } );
     socket->read();
@@ -212,6 +223,9 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
     using Result = typename Parser::ResponseParseResult::State;
 
     auto result = http_parser->response_parse(std::move(data), length);
+    if ( m_status.state == State::Failed )
+        return;
+
     auto self = this->template shared_from_this();
 
     switch (result.state)
@@ -237,6 +251,16 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
         on_error("Response parse failed. " + std::move(result.err_str) );
         break;
     }
+}
+
+template< typename AIO, typename Parser >
+void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]>, std::size_t length)
+{
+    file = loop.template resource<File>();
+
+    auto self = this->template shared_from_this();
+    file->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("File <" + self->task.fname + "> can`t open! " + ErrorEvent2str(err) ); } );
+    file->open(task.fname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
 }
 
 template< typename AIO, typename Parser >
