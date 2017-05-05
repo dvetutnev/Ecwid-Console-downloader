@@ -946,6 +946,42 @@ TEST_F(DownloaderSimpleFileWrite, read_error)
     Mock::VerifyAndClearExpectations(fs.get());
 }
 
+TEST_F(DownloaderSimpleFileWrite, unexpected_EOF)
+{
+    HttpParser::ResponseParseResult result;
+    result.state = HttpParser::ResponseParseResult::State::Error;
+    result.err_str = "Connection lost, unexpected EOF (HttpParserMock)";
+    EXPECT_CALL( *http_parser, response_parse_(nullptr,_) )
+            .WillOnce( Return(result) );
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *file, close() )
+            .Times(1);
+    EXPECT_CALL( loop, resource_FsReqMock() )
+            .WillOnce( Return(fs) );
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
+
+    socket->publish( AIO_UVW::EndEvent{} );
+
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(http_parser);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(file.get());
+    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(on_tick.get());
+
+    EXPECT_CALL( *fs, unlink(task.fname) )
+            .Times(1);
+
+    file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
+
+    Mock::VerifyAndClearExpectations(fs.get());
+}
+
 // File write & close & delete
 // socket EOF
 // file error event
