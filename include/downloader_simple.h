@@ -333,8 +333,7 @@ void DownloaderSimple<AIO, Parser>::close_handles()
         file->clear();
         if (file_openned)
         {
-            std::string fname = task.fname;
-            file->template once<FileCloseEvent>( [fs = loop.template resource<FsReq>(), fname](const auto&, const auto&) { fs->unlink(fname); } );
+            file->template once<FileCloseEvent>( [fs = loop.template resource<FsReq>(), fname = task.fname ](const auto&, const auto&) { fs->unlink(fname); } );
             file->close();
         }
     }
