@@ -8,6 +8,7 @@ struct GetAddrInfoReqMock;
 struct TcpHandleMock;
 struct TimerHandleMock;
 struct FileReqMock;
+struct FsReqMock;
 struct TCPSocketWrapperMock;
 
 namespace LoopMock_internal {
@@ -28,6 +29,9 @@ template<>
 std::shared_ptr<FileReqMock> resource<FileReqMock>(LoopMock&);
 
 template<>
+std::shared_ptr<FsReqMock> resource<FsReqMock>(LoopMock&);
+
+template<>
 std::shared_ptr<TCPSocketWrapperMock> resource<TCPSocketWrapperMock>(LoopMock&);
 
 }
@@ -40,8 +44,9 @@ struct LoopMock
     MOCK_METHOD0( resource_GetAddrInfoReqMock, std::shared_ptr<GetAddrInfoReqMock>() );
     MOCK_METHOD0( resource_TcpHandleMock, std::shared_ptr<TcpHandleMock>() );
     MOCK_METHOD0( resource_TimerHandleMock, std::shared_ptr<TimerHandleMock>() );
-    MOCK_METHOD0( resource_TCPSocketWrapperMock, std::shared_ptr<TCPSocketWrapperMock>() );
     MOCK_METHOD0( resource_FileReqMock, std::shared_ptr<FileReqMock>() );
+    MOCK_METHOD0( resource_FsReqMock, std::shared_ptr<FsReqMock>() );
+    MOCK_METHOD0( resource_TCPSocketWrapperMock, std::shared_ptr<TCPSocketWrapperMock>() );
 };
 
 namespace LoopMock_internal {
@@ -56,8 +61,11 @@ template<>
 std::shared_ptr<TimerHandleMock> resource<TimerHandleMock>(LoopMock& self) { return self.resource_TimerHandleMock(); }
 
 template<>
-std::shared_ptr<TCPSocketWrapperMock> resource<TCPSocketWrapperMock>(LoopMock& self) { return self.resource_TCPSocketWrapperMock(); }
+std::shared_ptr<FileReqMock> resource<FileReqMock>(LoopMock& self) { return self.resource_FileReqMock(); }
 
 template<>
-std::shared_ptr<FileReqMock> resource<FileReqMock>(LoopMock& self) { return self.resource_FileReqMock(); }
+std::shared_ptr<FsReqMock> resource<FsReqMock>(LoopMock& self) { return self.resource_FsReqMock(); }
+
+template<>
+std::shared_ptr<TCPSocketWrapperMock> resource<TCPSocketWrapperMock>(LoopMock& self) { return self.resource_TCPSocketWrapperMock(); }
 }

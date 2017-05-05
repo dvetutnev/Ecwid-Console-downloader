@@ -1,7 +1,10 @@
 #pragma once
 
 #include <chrono>
+#include <queue>
 #include <fcntl.h>
+#include <cassert>
+#include <limits>
 
 #include "downloader.h"
 #include "on_tick.h"
@@ -29,7 +32,12 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using Timer = typename AIO::TimerHandle;
     using TimerEvent = typename AIO::TimerEvent;
 
-    using File = typename AIO::FileReq;
+    using FileReq = typename AIO::FileReq;
+    using FileOpenEvent = typename AIO::FileOpenEvent;
+    using FileWriteEvent = typename AIO::FileWriteEvent;
+    using FileCloseEvent = typename AIO::FileCloseEvent;
+
+    using FsReq = typename AIO::FsReq;
 
 public:
     DownloaderSimple(Loop& loop_, std::shared_ptr<OnTick> on_tick_)
@@ -51,7 +59,13 @@ private:
     std::shared_ptr<TCPSocket> socket;
     std::shared_ptr<Timer> net_timer;
     std::unique_ptr<Parser> http_parser;
-    std::shared_ptr<File> file;
+    std::shared_ptr<FileReq> file;
+
+    using Chunk = std::pair<std::unique_ptr<char[]>, std::size_t>;
+    Chunk chunk;
+    std::queue<Chunk> queue;
+    bool file_openned = false;
+    bool write_running = false;
 
     void close_handles();
 
@@ -86,6 +100,7 @@ private:
     void on_write_http_request();
     void on_read(std::unique_ptr<char[]>, std::size_t);
     void on_data(std::unique_ptr<char[]>, std::size_t);
+    void on_write();
 
     std::pair< std::unique_ptr<char[]>, std::size_t > make_request() const;
 };
@@ -254,13 +269,50 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
 }
 
 template< typename AIO, typename Parser >
-void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]>, std::size_t length)
+void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::size_t length)
 {
-    file = loop.template resource<File>();
+    queue.emplace(std::move(data), length);
+
+    if (!file)
+    {
+        file = loop.template resource<FileReq>();
+        auto self = this->template shared_from_this();
+        file->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("File <" + self->task.fname + "> can`t open! " + ErrorEvent2str(err) ); } );
+        file->template once<FileOpenEvent>( [self](const auto&, const auto&)
+        {
+            self->file_openned = true;
+            self->file->template clear<ErrorEvent>();
+            self->file->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("File <" + self->task.fname + "> write error! " + ErrorEvent2str(err) ); } );
+            self->on_write();
+        } );
+        file->open(task.fname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
+    }
+
+    if (file_openned && !write_running)
+    {
+        write_running = true;
+        on_write();
+    }
+}
+
+template< typename AIO, typename Parser >
+void DownloaderSimple<AIO, Parser>::on_write()
+{
+    if ( queue.empty() )
+    {
+        write_running = false;
+        return;
+    }
+
+    write_running = true;
+
+    chunk = std::move( queue.front() );
+    queue.pop();
 
     auto self = this->template shared_from_this();
-    file->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("File <" + self->task.fname + "> can`t open! " + ErrorEvent2str(err) ); } );
-    file->open(task.fname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
+    file->template once<FileWriteEvent>( [self](const auto&, const auto&) { self->on_write(); } );
+    assert( chunk.second <= std::numeric_limits<unsigned int>::max() );
+    file->write(chunk.first.get(), chunk.second, 0);
 }
 
 template< typename AIO, typename Parser >
@@ -275,6 +327,16 @@ void DownloaderSimple<AIO, Parser>::close_handles()
     {
         net_timer->clear();
         net_timer->close();
+    }
+    if (file)
+    {
+        file->clear();
+        if (file_openned)
+        {
+            std::string fname = task.fname;
+            file->template once<FileCloseEvent>( [fs = loop.template resource<FsReq>(), fname](const auto&, const auto&) { fs->unlink(fname); } );
+            file->close();
+        }
     }
 }
 

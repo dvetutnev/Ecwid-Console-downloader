@@ -45,6 +45,11 @@ struct AIO_UVW
     using TimerEvent = uvw::TimerEvent;
 
     using FileReq = uvw::FileReq;
+    using FileOpenEvent = uvw::FsEvent<uvw::FileReq::Type::OPEN>;
+    using FileWriteEvent = uvw::FsEvent<uvw::FileReq::Type::WRITE>;
+    using FileCloseEvent = uvw::FsEvent<uvw::FileReq::Type::CLOSE>;
+
+    using FsReq = uvw::FsReq;
 };
 
 const AIO_UVW::IPAddress AIO_UVW::addrinfo2IPAddress(const addrinfo* addr)
