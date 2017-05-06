@@ -309,8 +309,8 @@ void DownloaderSimple<AIO, Parser>::on_write()
     chunk = std::move( queue.front() );
     queue.pop();
 
-    auto self = this->template shared_from_this();
-    file->template once<FileWriteEvent>( [self](const auto&, const auto&) { self->on_write(); } );
+    std::weak_ptr<DownloaderSimple> weak{ this->template shared_from_this() };
+    file->template once<FileWriteEvent>( [weak](const auto&, const auto&) { auto self = weak.lock(); if (self) self->on_write(); } );
     assert( chunk.second <= std::numeric_limits<unsigned int>::max() );
     file->write(chunk.first.get(), chunk.second, 0);
 }
