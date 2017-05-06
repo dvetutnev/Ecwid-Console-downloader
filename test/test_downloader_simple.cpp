@@ -1044,7 +1044,7 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error)
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
-    EXPECT_CALL( *file, write(data_file, len, _) ) // TODO: offest check
+    EXPECT_CALL( *file, write(data_file, len, length_file) )
             .Times(1);
 
     file->publish( AIO_UVW::FileWriteEvent{ task.fname.c_str(), length_file } );
@@ -1106,7 +1106,7 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error_sync)
 
     {
         InSequence s;
-        EXPECT_CALL( *file, write(data_file, len, _) ) // TODO: offest check
+        EXPECT_CALL( *file, write(data_file, len, length_file) )
                 .WillOnce( InvokeWithoutArgs( [this]() { file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } ); } ) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
@@ -1136,15 +1136,7 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error_sync)
     file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
 
     Mock::VerifyAndClearExpectations(fs.get());
-    cout << "downloader.use_count => " << downloader.use_count() << endl;
-    cout << "socket.use_count => " << socket.use_count() << endl;
-    cout << "timer.use_count => " << timer.use_count() << endl;
-    cout << "file.use_count => " << file.use_count() << endl;
 }
-
-// File write & close & delete
-// file error event
-// file error event sync
 
 // queue size
 // file partial write

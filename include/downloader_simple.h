@@ -66,6 +66,7 @@ private:
     std::queue<Chunk> queue;
     bool file_openned = false;
     bool write_running = false;
+    std::size_t offset = 0;
 
     void close_handles();
 
@@ -310,9 +311,17 @@ void DownloaderSimple<AIO, Parser>::on_write()
     queue.pop();
 
     std::weak_ptr<DownloaderSimple> weak{ this->template shared_from_this() };
-    file->template once<FileWriteEvent>( [weak](const auto&, const auto&) { auto self = weak.lock(); if (self) self->on_write(); } );
+    file->template once<FileWriteEvent>( [weak](const auto& event, const auto&)
+        {
+            auto self = weak.lock();
+            if (self)
+            {
+                self->offset += event.size;
+                self->on_write();
+            }
+        } );
     assert( chunk.second <= std::numeric_limits<unsigned int>::max() );
-    file->write(chunk.first.get(), chunk.second, 0);
+    file->write(chunk.first.get(), chunk.second, offset);
 }
 
 template< typename AIO, typename Parser >
