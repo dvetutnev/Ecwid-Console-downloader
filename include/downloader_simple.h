@@ -47,7 +47,10 @@ public:
     {}
 
     virtual bool run(const Task&) override final;
-    virtual void stop() override final;
+    virtual void stop() override final
+    {
+        on_error("Abort.");
+    }
     virtual const StatusDownloader& status() const override final { return m_status; }
 
 private:
@@ -67,7 +70,7 @@ private:
     Chunk chunk;
     std::queue<Chunk> queue;
     bool file_openned = false;
-    bool write_running = false;
+    bool file_operation_started = false;
     std::size_t offset = 0;
 
     void close_handles();
@@ -275,25 +278,36 @@ template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::size_t length)
 {
     queue.emplace(std::move(data), length);
+    if ( queue.size() >= backlog )
+        socket->stop();
 
     if (!file)
     {
         file = loop.template resource<FileReq>();
         auto self = this->template shared_from_this();
-        file->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("File <" + self->task.fname + "> can`t open! " + ErrorEvent2str(err) ); } );
+        file->template once<ErrorEvent>( [self](const auto& err, const auto&)
+        {
+            self->file_operation_started = false;
+            self->on_error("File <" + self->task.fname + "> can`t open! " + ErrorEvent2str(err) );
+        } );
         file->template once<FileOpenEvent>( [self](const auto&, const auto&)
         {
             self->file_openned = true;
             self->file->template clear<ErrorEvent>();
-            self->file->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("File <" + self->task.fname + "> write error! " + ErrorEvent2str(err) ); } );
+            self->file->template once<ErrorEvent>( [self](const auto& err, const auto&)
+            {
+                self->file_operation_started = false;
+                self->on_error("File <" + self->task.fname + "> write error! " + ErrorEvent2str(err) );
+            } );
             self->on_write();
         } );
+        file_operation_started = true;
         file->open(task.fname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
     }
 
-    if (file_openned && !write_running)
+    if (file_openned && !file_operation_started)
     {
-        write_running = true;
+        file_operation_started = true;
         on_write();
     }
 }
@@ -303,11 +317,9 @@ void DownloaderSimple<AIO, Parser>::on_write()
 {
     if ( queue.empty() )
     {
-        write_running = false;
+        file_operation_started = false;
         return;
     }
-
-    write_running = true;
 
     chunk = std::move( queue.front() );
     queue.pop();
@@ -342,6 +354,9 @@ void DownloaderSimple<AIO, Parser>::close_handles()
     if (file)
     {
         file->clear();
+        if (file_operation_started)
+            file->cancel();
+
         if (file_openned)
         {
             file->template once<FileCloseEvent>( [fs = loop.template resource<FsReq>(), fname = task.fname ](const auto&, const auto&) { fs->unlink(fname); } );
@@ -360,10 +375,4 @@ std::pair<std::unique_ptr<char[]>, std::size_t> DownloaderSimple<AIO, Parser>::m
     auto raw_ptr = new char[ query.size() ];
     std::copy( std::begin(query), std::end(query), raw_ptr );
     return std::make_pair( std::unique_ptr<char[]>{raw_ptr}, query.size() );
-}
-
-template< typename AIO, typename Parser >
-void DownloaderSimple<AIO, Parser>::stop()
-{
-
 }

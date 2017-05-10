@@ -83,7 +83,7 @@ struct DownloaderSimpleF : public ::testing::Test
           on_tick{ make_shared<OnTickMock>() },
           instance_uri_parse{ make_unique<HttpParserMock>() },
 
-          backlog{3},
+          backlog{4},
           downloader{ make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick, backlog) }
     {
         HttpParserMock::instance_uri_parse = instance_uri_parse.get();
@@ -817,6 +817,8 @@ TEST_F(DownloaderSimpleFileOpen, error_open_file)
             .Times(1);
     EXPECT_CALL( *timer, close_() )
             .Times(1);
+    EXPECT_CALL( *file, cancel() )
+            .Times(0);
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
@@ -844,6 +846,8 @@ TEST_F(DownloaderSimpleFileOpen, error_open_file__failed_on_try)
             .Times(1);
     EXPECT_CALL( *timer, close_() )
             .Times(1);
+    EXPECT_CALL( *file, cancel() )
+            .Times(0);
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
@@ -923,10 +927,15 @@ TEST_F(DownloaderSimpleFileWrite, read_error)
             .Times(1);
     EXPECT_CALL( *timer, close_() )
             .Times(1);
-    EXPECT_CALL( *file, close() )
-            .Times(1);
-    EXPECT_CALL( loop, resource_FsReqMock() )
-            .WillOnce( Return(fs) );
+    {
+        InSequence s;
+        EXPECT_CALL( *file, cancel() )
+                .WillOnce( Return(true) );
+        EXPECT_CALL( loop, resource_FsReqMock() )
+                .WillOnce( Return(fs) );
+        EXPECT_CALL( *file, close() )
+                .Times(1);
+    }
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
@@ -959,10 +968,15 @@ TEST_F(DownloaderSimpleFileWrite, unexpected_EOF)
             .Times(1);
     EXPECT_CALL( *timer, close_() )
             .Times(1);
-    EXPECT_CALL( *file, close() )
-            .Times(1);
-    EXPECT_CALL( loop, resource_FsReqMock() )
-            .WillOnce( Return(fs) );
+    {
+        InSequence s;
+        EXPECT_CALL( *file, cancel() )
+                .WillOnce( Return(true) );
+        EXPECT_CALL( loop, resource_FsReqMock() )
+                .WillOnce( Return(fs) );
+        EXPECT_CALL( *file, close() )
+                .Times(1);
+    }
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
@@ -997,10 +1011,15 @@ TEST_F(DownloaderSimpleFileWrite, parser_error)
             .Times(1);
     EXPECT_CALL( *timer, close_() )
             .Times(1);
-    EXPECT_CALL( *file, close() )
-            .Times(1);
-    EXPECT_CALL( loop, resource_FsReqMock() )
-            .WillOnce( Return(fs) );
+    {
+        InSequence s;
+        EXPECT_CALL( *file, cancel() )
+                .WillOnce( Return(true) );
+        EXPECT_CALL( loop, resource_FsReqMock() )
+                .WillOnce( Return(fs) );
+        EXPECT_CALL( *file, close() )
+                .Times(1);
+    }
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
@@ -1058,10 +1077,15 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error)
             .Times(1);
     EXPECT_CALL( *timer, close_() )
             .Times(1);
-    EXPECT_CALL( *file, close() )
-            .Times(1);
-    EXPECT_CALL( loop, resource_FsReqMock() )
-            .WillOnce( Return(fs) );
+    {
+        InSequence s;
+        EXPECT_CALL( *file, cancel() )
+                .Times(0);
+        EXPECT_CALL( loop, resource_FsReqMock() )
+                .WillOnce( Return(fs) );
+        EXPECT_CALL( *file, close() )
+                .Times(1);
+    }
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
@@ -1110,6 +1134,10 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error_sync)
         InSequence s;
         EXPECT_CALL( *file, write(data_file, len, length_file) )
                 .WillOnce( InvokeWithoutArgs( [this]() { file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } ); } ) );
+        EXPECT_CALL( *file, cancel() )
+                .Times(0);
+        EXPECT_CALL( loop, resource_FsReqMock() )
+                .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
     }
@@ -1117,8 +1145,6 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error_sync)
             .Times(1);
     EXPECT_CALL( *timer, close_() )
             .Times(1);
-    EXPECT_CALL( loop, resource_FsReqMock() )
-            .WillOnce( Return(fs) );
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
@@ -1128,7 +1154,6 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error_sync)
     Mock::VerifyAndClearExpectations(file.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
-    Mock::VerifyAndClearExpectations(file.get());
     Mock::VerifyAndClearExpectations(&loop);
     Mock::VerifyAndClearExpectations(on_tick.get());
 
@@ -1143,18 +1168,55 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error_sync)
 struct DownloaderSimpleQueue : public DownloaderSimpleFileOpen
 {
     DownloaderSimpleQueue()
-        : fs{ make_shared<FsReqMock>() }
     {
         EXPECT_CALL( *file, open(task.fname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP) )
                 .Times(1);
-        EXPECT_CALL( loop, resource_FsReqMock() )
-                .WillOnce( Return(fs) );
     }
-
-    virtual ~DownloaderSimpleQueue()
-    {
-        EXPECT_LE(fs.use_count(), 2);
-    }
-
-    shared_ptr<FsReqMock> fs;
 };
+
+TEST_F(DownloaderSimpleQueue, socket_stop_on_queue_overflow)
+{
+    HttpParser::ResponseParseResult result;
+    result.state = HttpParser::ResponseParseResult::State::InProgress;
+    auto on_data = [this]() { handler_on_data(unique_ptr<char[]>{}, 0); };
+    EXPECT_CALL( *http_parser, response_parse_(_,_) )
+            .Times( static_cast<int>(backlog) )
+            .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
+                                    Return(result) ) );
+    EXPECT_CALL( *timer, again() )
+            .Times( static_cast<int>(backlog) );
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .Times( static_cast<int>(backlog) )
+            .WillRepeatedly( Invoke(on_tick_handler) );
+    EXPECT_CALL( *socket, stop() )
+            .Times(1);
+
+    for (size_t i = 1; i <= backlog; i++)
+        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    Mock::VerifyAndClearExpectations(file.get());
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *file, cancel() )
+            .Times(1);
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillOnce( Invoke(on_tick_handler) );
+
+    downloader->stop();
+
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(file.get());
+
+    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
+}
+
