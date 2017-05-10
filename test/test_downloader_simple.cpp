@@ -786,7 +786,7 @@ struct DownloaderSimpleFileOpen : public DownloaderSimpleResponseParse
     shared_ptr<FileReqMock> file;
 };
 
-TEST_F(DownloaderSimpleFileOpen, error_open_file)
+TEST_F(DownloaderSimpleFileOpen, file_open_error)
 {
     HttpParser::ResponseParseResult result;
     result.state = HttpParser::ResponseParseResult::State::InProgress;
@@ -830,7 +830,7 @@ TEST_F(DownloaderSimpleFileOpen, error_open_file)
     Mock::VerifyAndClearExpectations(on_tick.get());
 }
 
-TEST_F(DownloaderSimpleFileOpen, error_open_file__failed_on_try)
+TEST_F(DownloaderSimpleFileOpen, file_open_error_invoke)
 {
     HttpParser::ResponseParseResult result;
     result.state = HttpParser::ResponseParseResult::State::InProgress;
@@ -949,6 +949,8 @@ TEST_F(DownloaderSimpleFileWrite, read_error)
     Mock::VerifyAndClearExpectations(&loop);
     Mock::VerifyAndClearExpectations(on_tick.get());
 
+    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
+
     EXPECT_CALL( *fs, unlink(task.fname) )
             .Times(1);
 
@@ -989,6 +991,8 @@ TEST_F(DownloaderSimpleFileWrite, unexpected_EOF)
     Mock::VerifyAndClearExpectations(file.get());
     Mock::VerifyAndClearExpectations(&loop);
     Mock::VerifyAndClearExpectations(on_tick.get());
+
+    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
 
     EXPECT_CALL( *fs, unlink(task.fname) )
             .Times(1);
@@ -1032,6 +1036,8 @@ TEST_F(DownloaderSimpleFileWrite, parser_error)
     Mock::VerifyAndClearExpectations(file.get());
     Mock::VerifyAndClearExpectations(&loop);
     Mock::VerifyAndClearExpectations(on_tick.get());
+
+    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
 
     EXPECT_CALL( *fs, unlink(task.fname) )
             .Times(1);
@@ -1106,7 +1112,7 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error)
     Mock::VerifyAndClearExpectations(fs.get());
 }
 
-TEST_F(DownloaderSimpleFileWrite, file_write_error_sync)
+TEST_F(DownloaderSimpleFileWrite, file_write_error_invoke)
 {
     HttpParser::ResponseParseResult result;
     result.state = HttpParser::ResponseParseResult::State::InProgress;
