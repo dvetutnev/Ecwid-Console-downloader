@@ -40,9 +40,10 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using FsReq = typename AIO::FsReq;
 
 public:
-    DownloaderSimple(Loop& loop_, std::shared_ptr<OnTick> on_tick_)
+    DownloaderSimple(Loop& loop_, std::shared_ptr<OnTick> on_tick_, std::size_t backlog_ = 10)
         : loop{loop_},
-          on_tick{on_tick_}
+          on_tick{on_tick_},
+          backlog{backlog_}
     {}
 
     virtual bool run(const Task&) override final;
@@ -52,6 +53,7 @@ public:
 private:
     Loop& loop;
     std::shared_ptr<OnTick> on_tick;
+    const std::size_t backlog;
 
     Task task;
     StatusDownloader m_status;

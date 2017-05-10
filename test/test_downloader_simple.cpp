@@ -83,7 +83,8 @@ struct DownloaderSimpleF : public ::testing::Test
           on_tick{ make_shared<OnTickMock>() },
           instance_uri_parse{ make_unique<HttpParserMock>() },
 
-          downloader{ make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick) }
+          backlog{3},
+          downloader{ make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick, backlog) }
     {
         HttpParserMock::instance_uri_parse = instance_uri_parse.get();
     }
@@ -98,6 +99,7 @@ struct DownloaderSimpleF : public ::testing::Test
     shared_ptr<OnTickMock> on_tick;
     unique_ptr<HttpParserMock> instance_uri_parse;
 
+    const std::size_t backlog;
     shared_ptr<Downloader> downloader;
 };
 
@@ -1138,5 +1140,21 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error_sync)
     Mock::VerifyAndClearExpectations(fs.get());
 }
 
-// queue size
-// file partial write
+struct DownloaderSimpleQueue : public DownloaderSimpleFileOpen
+{
+    DownloaderSimpleQueue()
+        : fs{ make_shared<FsReqMock>() }
+    {
+        EXPECT_CALL( *file, open(task.fname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP) )
+                .Times(1);
+        EXPECT_CALL( loop, resource_FsReqMock() )
+                .WillOnce( Return(fs) );
+    }
+
+    virtual ~DownloaderSimpleQueue()
+    {
+        EXPECT_LE(fs.use_count(), 2);
+    }
+
+    shared_ptr<FsReqMock> fs;
+};
