@@ -47,8 +47,8 @@ TEST(TCPSocketWrapperSimple, create_and_close)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, TcpHandle_is_null)
@@ -107,8 +107,8 @@ TEST(TCPSocketWrapperSimple, connect_failed)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, connect6_failed)
@@ -157,8 +157,8 @@ TEST(TCPSocketWrapperSimple, connect6_failed)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, connect_shutdown_close_normal)
@@ -230,8 +230,8 @@ TEST(TCPSocketWrapperSimple, connect_shutdown_close_normal)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, read_failed)
@@ -277,8 +277,8 @@ TEST(TCPSocketWrapperSimple, read_failed)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, read_EOF)
@@ -322,8 +322,8 @@ TEST(TCPSocketWrapperSimple, read_EOF)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, read_normal)
@@ -373,8 +373,8 @@ TEST(TCPSocketWrapperSimple, read_normal)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, read_stop)
@@ -411,8 +411,8 @@ TEST(TCPSocketWrapperSimple, read_stop)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, write_failed_and_close_on_event)
@@ -461,8 +461,8 @@ TEST(TCPSocketWrapperSimple, write_failed_and_close_on_event)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, write_normal)
@@ -508,8 +508,8 @@ TEST(TCPSocketWrapperSimple, write_normal)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
 TEST(TCPSocketWrapperSimple, read_EOF_and_close_on_event)
@@ -554,6 +554,6 @@ TEST(TCPSocketWrapperSimple, read_EOF_and_close_on_event)
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
     ASSERT_TRUE( resource.unique() );
-    ASSERT_EQ(loop.use_count(), 2);
-    ASSERT_EQ(tcp_handle.use_count(), 2);
+    ASSERT_LE(loop.use_count(), 2);
+    ASSERT_LE(tcp_handle.use_count(), 2);
 }
