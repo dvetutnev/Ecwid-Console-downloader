@@ -318,6 +318,7 @@ void DownloaderSimple<AIO, Parser>::on_write()
     if ( queue.empty() )
     {
         file_operation_started = false;
+        socket->read();
         return;
     }
 

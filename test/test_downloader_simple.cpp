@@ -24,6 +24,7 @@ using ::testing::InvokeWithoutArgs;
 using ::testing::InSequence;
 using ::testing::DoAll;
 using ::testing::SaveArg;
+using ::testing::AtLeast;
 
 struct AIO_Mock
 {
@@ -1226,3 +1227,66 @@ TEST_F(DownloaderSimpleQueue, socket_stop_on_queue_overflow)
     file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
 }
 
+TEST_F(DownloaderSimpleQueue, socket_read_on_queue_empty)
+{
+    HttpParser::ResponseParseResult result;
+    result.state = HttpParser::ResponseParseResult::State::InProgress;
+    auto on_data = [this]() { handler_on_data(unique_ptr<char[]>{}, 42); };
+    EXPECT_CALL( *http_parser, response_parse_(_,_) )
+            .Times( static_cast<int>(backlog + 2) )
+            .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
+                                    Return(result) ) );
+    EXPECT_CALL( *timer, again() )
+            .Times( static_cast<int>(backlog + 2) );
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .WillRepeatedly( Invoke(on_tick_handler) );
+    EXPECT_CALL( *file, write(_,42,_) )
+            .Times( static_cast<int>(backlog + 2) );
+
+    EXPECT_CALL( *socket, stop() )
+            .Times(1);
+    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    file->publish( AIO_UVW::FileOpenEvent{ task.fname.c_str() } );
+    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+    for (size_t i = 1; i <= backlog; i++)
+        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    Mock::VerifyAndClearExpectations(socket.get());
+
+    EXPECT_CALL( *socket, read() )
+            .Times(1);
+    for (std::size_t i = 1; i <= backlog + 1; i++)
+        file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+    Mock::VerifyAndClearExpectations(socket.get());
+
+    // Cancel download
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *file, cancel() )
+            .Times(0);
+    auto fs = make_shared<FsReqMock>();
+    EXPECT_CALL( *fs, unlink(_) )
+            .Times(0);
+    {
+        InSequence s;
+        EXPECT_CALL( loop, resource_FsReqMock() )
+                .WillOnce( Return(fs) );
+        EXPECT_CALL( *file, close() )
+                .Times(1);
+    }
+    downloader->stop();
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(file.get());
+    // Delete file
+    EXPECT_CALL( *fs, unlink(_) )
+            .Times(1);
+    file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
+
+    Mock::VerifyAndClearExpectations(fs.get());
+    ASSERT_LE(fs.use_count(), 2);
+}
