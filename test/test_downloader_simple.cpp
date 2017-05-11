@@ -25,6 +25,7 @@ using ::testing::InSequence;
 using ::testing::DoAll;
 using ::testing::SaveArg;
 using ::testing::AtLeast;
+using ::testing::AnyNumber;
 
 struct AIO_Mock
 {
@@ -761,7 +762,7 @@ struct DownloaderSimpleFileOpen : public DownloaderSimpleResponseParse
 
     virtual ~DownloaderSimpleFileOpen()
     {
-        EXPECT_EQ(file.use_count(), 2);
+        EXPECT_LE(file.use_count(), 2);
     }
 
     shared_ptr<FileReqMock> file;
@@ -1253,3 +1254,41 @@ TEST_F(DownloaderSimpleQueue, socket_read_on_queue_empty)
     Mock::VerifyAndClearExpectations(fs.get());
     ASSERT_LE(fs.use_count(), 2);
 }
+/*
+TEST_F(DownloaderSimpleQueue, downloader_normal_complete)
+{
+    EXPECT_CALL( *file, write(_,_,_) )
+            .Times( AtLeast(1) );
+    // stop read
+    EXPECT_CALL( *socket, stop() )
+            .Times(1);
+    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    file->publish( AIO_UVW::FileOpenEvent{ task.fname.c_str() } );
+    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+    for (size_t i = 1; i <= backlog; i++)
+        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    Mock::VerifyAndClearExpectations(socket.get());
+    // continue read
+    EXPECT_CALL( *socket, read() )
+            .Times(1);
+    for (std::size_t i = 1; i <= backlog + 1; i++)
+        file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+    Mock::VerifyAndClearExpectations(socket.get());
+    // done
+    EXPECT_CALL( *socket, stop() )
+            .Times( AnyNumber() );
+    //EXPECT_CALL() socket shutdown?
+    for (std::size_t i = 1; i < backlog; i++)
+        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    Mock::VerifyAndClearExpectations(http_parser);
+    HttpParser::ResponseParseResult result;
+    result.state = HttpParser::ResponseParseResult::State::Done;
+    auto on_data = [this]() { handler_on_data(unique_ptr<char[]>{}, 0); };
+    EXPECT_CALL( *http_parser, response_parse_(_,_) )
+            .Times(1)
+            .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
+                                    Return(result) ) );
+    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+}
+*/

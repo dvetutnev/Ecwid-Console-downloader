@@ -15,6 +15,7 @@ public:
     virtual void read() = 0;
     virtual void stop() = 0;
     virtual void write(std::unique_ptr<char[]>, std::size_t) = 0;
+    virtual void shutdown() = 0;
     virtual void close() noexcept = 0;
     virtual ~TCPSocketWrapper() = default;
 protected:
@@ -32,6 +33,7 @@ class TCPSocketWrapperSimple final : public TCPSocketWrapper, public std::enable
     using DataEvent = typename AIO::DataEvent;
     using EndEvent = typename AIO::EndEvent;
     using WriteEvent = typename AIO::WriteEvent;
+    using ShutdownEvent = typename AIO::ShutdownEvent;
 
 public:
     TCPSocketWrapperSimple(ConstructorAccess, std::shared_ptr<Loop> loop_)
@@ -48,6 +50,7 @@ public:
         assert(length <= std::numeric_limits<unsigned int>::max());
         tcp_handle->write(std::move(data), length);
     }
+    virtual void shutdown() override final { tcp_handle->shutdown(); }
     virtual void close() noexcept override final
     {
         tcp_handle->clear();
@@ -92,6 +95,7 @@ std::shared_ptr< TCPSocketWrapperSimple<AIO> > TCPSocketWrapperSimple<AIO>::crea
     tcp_handle->template once<DataEvent>( bind<DataEvent>(self) );
     tcp_handle->template once<EndEvent>( bind<EndEvent>(self) );
     tcp_handle->template once<WriteEvent>( bind<WriteEvent>(self) );
+    tcp_handle->template once<ShutdownEvent>( bind<ShutdownEvent>(self) );
 
     self->tcp_handle = std::move(tcp_handle);
     return self;

@@ -28,6 +28,7 @@ struct TcpHandleMock : public uvw::Emitter<TcpHandleMock>
     MOCK_METHOD0( stop, void() );
     void write(std::unique_ptr<char[]>ptr, unsigned int len) { write_(ptr.get(), len); }
     MOCK_METHOD2( write_, void(char[], unsigned int) );
+    MOCK_METHOD0( shutdown, void() );
     MOCK_METHOD0( close, void() );
 
     template< typename Event >

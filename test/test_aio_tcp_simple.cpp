@@ -23,6 +23,8 @@ struct AIO_Mock
     using DataEvent = AIO_UVW::DataEvent;
     using EndEvent = AIO_UVW::EndEvent;
     using WriteEvent = AIO_UVW::WriteEvent;
+    using ShutdownEvent = AIO_UVW::ShutdownEvent;
+    using CloseEvent = AIO_UVW::CloseEvent;
 };
 
 TEST(TCPSocketWrapperSimple, create_and_close)
@@ -156,7 +158,7 @@ TEST(TCPSocketWrapperSimple, connect6_failed)
     ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, connect_normal)
+TEST(TCPSocketWrapperSimple, connect_shutdown_normal)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
@@ -167,10 +169,19 @@ TEST(TCPSocketWrapperSimple, connect_normal)
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
-    bool cb_called = false;
-    resource->once<AIO_UVW::ConnectEvent>( [&cb_called, &resource](const auto&, auto& handle)
+    bool cb_connect_called = false;
+    resource->once<AIO_UVW::ConnectEvent>( [&cb_connect_called, &resource](const auto&, auto& handle)
     {
-        cb_called = true;
+        cb_connect_called = true;
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        ASSERT_NE(raw_ptr, nullptr);
+        auto ptr = raw_ptr->shared_from_this();
+        ASSERT_EQ(ptr, resource);
+    } );
+    bool cb_shutdown_called = false;
+    resource->once<AIO_UVW::ShutdownEvent>( [&cb_shutdown_called, &resource](const auto&, auto& handle)
+    {
+        cb_shutdown_called = true;
         auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
@@ -181,16 +192,25 @@ TEST(TCPSocketWrapperSimple, connect_normal)
     resource->once<AIO_UVW::EndEvent>( [](const auto&, const auto&) { FAIL(); } );
     resource->once<AIO_UVW::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
 
+    const string ip = "127.0.0.1";
+    const size_t port = 8080;
     {
         InSequence dummy;
-        EXPECT_CALL( *tcp_handle, connect(_,_) )
+        EXPECT_CALL( *tcp_handle, connect(ip, port) )
+                .Times(1);
+        EXPECT_CALL( *tcp_handle, shutdown() )
                 .Times(1);
         EXPECT_CALL( *tcp_handle, close() )
                 .Times(1);
     }
-    resource->connect("127.0.0.1", 8080);
+    resource->connect(ip, port);
     tcp_handle->publish( AIO_UVW::ConnectEvent{} );
-    ASSERT_TRUE(cb_called);
+    ASSERT_TRUE(cb_connect_called);
+
+    resource->shutdown();
+    tcp_handle->publish( AIO_UVW::ShutdownEvent{} );
+    ASSERT_TRUE(cb_shutdown_called);
+
     resource->close();
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());

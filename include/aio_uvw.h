@@ -34,10 +34,13 @@ struct AIO_UVW
     using AddrInfoEvent = uvw::AddrInfoEvent;
     using GetAddrInfoReq = uvw::GetAddrInfoReq;
 
+    using CloseEvent = uvw::CloseEvent;
+
     using ConnectEvent = uvw::ConnectEvent;
     using DataEvent = uvw::DataEvent;
     using EndEvent = uvw::EndEvent;
     using WriteEvent = uvw::WriteEvent;
+    using ShutdownEvent = uvw::ShutdownEvent;
     using TCPSocketWrapper = uvw::TCPSocketWrapper;
     using TCPSocketWrapperSimple = uvw::TCPSocketWrapperSimple<AIO_UVW>;
 
