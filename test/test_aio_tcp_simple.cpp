@@ -41,6 +41,7 @@ TEST(TCPSocketWrapperSimple, create_and_close)
     auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     resource->close();
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(tcp_handle.get());
@@ -101,6 +102,7 @@ TEST(TCPSocketWrapperSimple, connect_failed)
     tcp_handle->publish(event);
     ASSERT_TRUE(cb_called);
     resource->close();
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
@@ -150,6 +152,7 @@ TEST(TCPSocketWrapperSimple, connect6_failed)
     tcp_handle->publish(event);
     ASSERT_TRUE(cb_called);
     resource->close();
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
@@ -158,7 +161,7 @@ TEST(TCPSocketWrapperSimple, connect6_failed)
     ASSERT_EQ(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, connect_shutdown_normal)
+TEST(TCPSocketWrapperSimple, connect_shutdown_close_normal)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
@@ -182,6 +185,15 @@ TEST(TCPSocketWrapperSimple, connect_shutdown_normal)
     resource->once<AIO_UVW::ShutdownEvent>( [&cb_shutdown_called, &resource](const auto&, auto& handle)
     {
         cb_shutdown_called = true;
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        ASSERT_NE(raw_ptr, nullptr);
+        auto ptr = raw_ptr->shared_from_this();
+        ASSERT_EQ(ptr, resource);
+    } );
+    bool cb_close_called = false;
+    resource->once<AIO_UVW::CloseEvent>( [&cb_close_called, &resource](const auto&, auto& handle)
+    {
+        cb_close_called = true;
         auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
@@ -212,6 +224,8 @@ TEST(TCPSocketWrapperSimple, connect_shutdown_normal)
     ASSERT_TRUE(cb_shutdown_called);
 
     resource->close();
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
+    ASSERT_TRUE(cb_close_called);
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
@@ -258,6 +272,7 @@ TEST(TCPSocketWrapperSimple, read_failed)
     tcp_handle->publish(event);
     ASSERT_TRUE(cb_called);
     resource->close();
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
@@ -302,6 +317,7 @@ TEST(TCPSocketWrapperSimple, read_EOF)
     tcp_handle->publish( AIO_UVW::EndEvent{} );
     ASSERT_TRUE(cb_called);
     resource->close();
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
@@ -352,6 +368,7 @@ TEST(TCPSocketWrapperSimple, read_normal)
     tcp_handle->publish( AIO_UVW::DataEvent{std::unique_ptr<char[]>{raw_data_ptr}, len} );
     ASSERT_TRUE(cb_called);
     resource->close();
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
@@ -389,6 +406,7 @@ TEST(TCPSocketWrapperSimple, read_stop)
     resource->read();
     resource->stop();
     resource->close();
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
@@ -438,6 +456,7 @@ TEST(TCPSocketWrapperSimple, write_failed_and_close_on_event)
     resource->write( std::unique_ptr<char[]>{raw_data_ptr}, len );
     tcp_handle->publish(event);
     ASSERT_TRUE(cb_called);
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
@@ -484,6 +503,7 @@ TEST(TCPSocketWrapperSimple, write_normal)
     tcp_handle->publish( AIO_UVW::WriteEvent{} );
     ASSERT_TRUE(cb_called);
     resource->close();
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 
@@ -529,6 +549,7 @@ TEST(TCPSocketWrapperSimple, read_EOF_and_close_on_event)
     resource->read();
     tcp_handle->publish( AIO_UVW::EndEvent{} );
     ASSERT_TRUE(cb_called);
+    tcp_handle->publish( AIO_UVW::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 

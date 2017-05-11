@@ -53,9 +53,10 @@ public:
     virtual void shutdown() override final { tcp_handle->shutdown(); }
     virtual void close() noexcept override final
     {
-        tcp_handle->clear();
-        tcp_handle->close();
         closing = true;
+        tcp_handle->clear();
+        tcp_handle->template once<CloseEvent>( bind<CloseEvent>(this->template shared_from_this()) );
+        tcp_handle->close();
     }
 
 private:
