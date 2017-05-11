@@ -93,7 +93,7 @@ struct DownloaderSimpleF : public ::testing::Test
     virtual ~DownloaderSimpleF()
     {
         EXPECT_TRUE( downloader.unique() );
-        EXPECT_EQ(on_tick.use_count(), 2);
+        EXPECT_LE(on_tick.use_count(), 2);
     }
 
     LoopMock loop;
@@ -223,9 +223,9 @@ AIO_UVW::AddrInfoEvent create_addr_info_event_ipv6(const string& ip)
     return AIO_UVW::AddrInfoEvent{ std::move(addrinfo_ptr) };
 }
 
-struct DownloaderSimpleConnect : public DownloaderSimpleResolve
+struct DownloaderSimpleConnect_CreateHandles : public DownloaderSimpleResolve
 {
-    DownloaderSimpleConnect()
+    DownloaderSimpleConnect_CreateHandles()
     {
         EXPECT_CALL( *on_tick, invoke_(_) )
                 .Times(0);
@@ -242,7 +242,7 @@ struct DownloaderSimpleConnect : public DownloaderSimpleResolve
     }
 };
 
-TEST_F(DownloaderSimpleConnect, socket_create_failed)
+TEST_F(DownloaderSimpleConnect_CreateHandles, socket_create_failed)
 {
     EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
             .WillRepeatedly( Return(nullptr) );
@@ -259,7 +259,7 @@ TEST_F(DownloaderSimpleConnect, socket_create_failed)
     Mock::VerifyAndClearExpectations(on_tick.get());
 }
 
-TEST_F(DownloaderSimpleConnect, socket_timer_failed)
+TEST_F(DownloaderSimpleConnect_CreateHandles, timer_create_failed)
 {
     auto socket = make_shared<TCPSocketWrapperMock>();
     EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
@@ -280,15 +280,30 @@ TEST_F(DownloaderSimpleConnect, socket_timer_failed)
     ASSERT_EQ(socket.use_count(), 2);
 }
 
+struct DownloaderSimpleConnect : DownloaderSimpleConnect_CreateHandles
+{
+    DownloaderSimpleConnect()
+        : socket{ make_shared<TCPSocketWrapperMock>() },
+          timer{ make_shared<TimerHandleMock>() }
+    {
+        EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
+                .WillOnce( Return(socket) );
+        EXPECT_CALL( loop, resource_TimerHandleMock() )
+                .WillOnce( Return(timer) );
+    }
+
+    virtual ~DownloaderSimpleConnect()
+    {
+        EXPECT_LE(socket.use_count(), 2);
+        EXPECT_LE(timer.use_count(), 2);
+    }
+
+    shared_ptr<TCPSocketWrapperMock> socket;
+    shared_ptr<TimerHandleMock> timer;
+};
+
 TEST_F(DownloaderSimpleConnect, connect_failed)
 {
-    auto socket = make_shared<TCPSocketWrapperMock>();
-    EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
-            .WillOnce( Return(socket) );
-    auto timer = make_shared<TimerHandleMock>();
-    EXPECT_CALL( loop, resource_TimerHandleMock() )
-            .WillOnce( Return(timer) );
-
     const string ip = "127.0.0.1";
     EXPECT_CALL( *socket, connect(ip, port) )
             .Times(1);
@@ -324,13 +339,6 @@ TEST_F(DownloaderSimpleConnect, connect_failed)
 
 TEST_F(DownloaderSimpleConnect, connect6_failed)
 {
-    auto socket = make_shared<TCPSocketWrapperMock>();
-    EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
-            .WillOnce( Return(socket) );
-    auto timer = make_shared<TimerHandleMock>();
-    EXPECT_CALL( loop, resource_TimerHandleMock() )
-            .WillOnce( Return(timer) );
-
     const string ip = "::1";
     EXPECT_CALL( *socket, connect6(ip, port) )
             .Times(1);
@@ -366,13 +374,6 @@ TEST_F(DownloaderSimpleConnect, connect6_failed)
 
 TEST_F(DownloaderSimpleConnect, connect_timeout)
 {
-    auto socket = make_shared<TCPSocketWrapperMock>();
-    EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
-            .WillOnce( Return(socket) );
-    auto timer = make_shared<TimerHandleMock>();
-    EXPECT_CALL( loop, resource_TimerHandleMock() )
-            .WillOnce( Return(timer) );
-
     EXPECT_CALL( *socket, connect(_,_) )
             .Times(1);
     TimerHandleMock::Time repeat{0};
@@ -409,13 +410,6 @@ TEST_F(DownloaderSimpleConnect, connect_timeout)
 
 TEST_F(DownloaderSimpleConnect, timer_failed_on_run)
 {
-    auto socket = make_shared<TCPSocketWrapperMock>();
-    EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
-            .WillOnce( Return(socket) );
-    auto timer = make_shared<TimerHandleMock>();
-    EXPECT_CALL( loop, resource_TimerHandleMock() )
-            .WillOnce( Return(timer) );
-
     {
         InSequence s;
         EXPECT_CALL( *socket, connect(_,_) )
@@ -451,14 +445,8 @@ struct DownloaderSimpleHttpRequest : public DownloaderSimpleConnect
     DownloaderSimpleHttpRequest()
         : ip{"127.0.0.1"},
           timeout{5000},
-          repeat{0},
-          socket{ make_shared<TCPSocketWrapperMock>() },
-          timer{ make_shared<TimerHandleMock>() }
+          repeat{0}
     {
-        EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
-                .WillOnce( Return(socket) );
-        EXPECT_CALL( loop, resource_TimerHandleMock() )
-                .WillOnce( Return(timer) );
         EXPECT_CALL( *socket, connect(ip, port) )
                 .Times(1);
         EXPECT_CALL( *timer, start(timeout, repeat) )
@@ -475,17 +463,9 @@ struct DownloaderSimpleHttpRequest : public DownloaderSimpleConnect
         Mock::VerifyAndClearExpectations(on_tick.get());
     }
 
-    virtual ~DownloaderSimpleHttpRequest()
-    {
-        EXPECT_EQ(socket.use_count(), 2);
-        EXPECT_EQ(timer.use_count(), 2);
-    }
-
     const string ip;
     TimerHandleMock::Time timeout;
     TimerHandleMock::Time repeat;
-    shared_ptr<TCPSocketWrapperMock> socket;
-    shared_ptr<TimerHandleMock> timer;
 };
 
 TEST_F(DownloaderSimpleHttpRequest, write_failed__and_check_request_data)
