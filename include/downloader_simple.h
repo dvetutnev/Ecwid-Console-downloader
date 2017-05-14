@@ -28,6 +28,7 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using WriteEvent = typename AIO::WriteEvent;
     using DataEvent = typename AIO::DataEvent;
     using EndEvent = typename AIO::EndEvent;
+    using ShutdownEvent = typename AIO::ShutdownEvent;
 
     using Timer = typename AIO::TimerHandle;
     using TimerEvent = typename AIO::TimerEvent;
@@ -66,6 +67,9 @@ private:
     std::unique_ptr<Parser> http_parser;
     std::shared_ptr<FileReq> file;
 
+    bool receive_done = false;
+    bool socket_connected = false;
+
     using Chunk = std::pair<std::unique_ptr<char[]>, std::size_t>;
     Chunk chunk;
     std::queue<Chunk> queue;
@@ -73,6 +77,7 @@ private:
     bool file_operation_started = false;
     std::size_t offset = 0;
 
+    void terminate_handles();
     void close_handles();
 
     template< typename String >
@@ -81,7 +86,7 @@ private:
     {
         m_status.state = StatusDownloader::State::Failed;
         m_status.state_str = std::forward<String>(str);
-        close_handles();
+        terminate_handles();
     }
 
     template< typename String >
@@ -189,6 +194,7 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_connect()
 {
+    socket_connected = true;
     socket->clear();
     net_timer->template clear<TimerEvent>();
     net_timer->stop();
@@ -258,14 +264,15 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
         break;
 
     case Result::Redirect:
-        close_handles();
+        terminate_handles();
         m_status.redirect_uri = std::move(result.redirect_uri);
         update_status(State::Redirect, "Redirect to <" + m_status.redirect_uri + ">");
         break;
 
     case Result::Done:
+        receive_done = true;
         close_handles();
-        update_status(State::Done, "Done");
+        update_status(State::OnTheGo, "Receive done");
         break;
 
     case Result::Error:
@@ -317,8 +324,21 @@ void DownloaderSimple<AIO, Parser>::on_write()
 {
     if ( queue.empty() )
     {
-        file_operation_started = false;
-        socket->read();
+        if (receive_done)
+        {
+            file->clear();
+            file->template once<FileCloseEvent>( [self = this->template shared_from_this()](const auto&, const auto&)
+            {
+                self->file_openned = false;
+                if ( !(self->socket_connected) )
+                    self->m_status.state = State::Done;
+            } );
+            file->close();
+        } else
+        {
+            file_operation_started = false;
+            socket->read();
+        }
         return;
     }
 
@@ -340,7 +360,7 @@ void DownloaderSimple<AIO, Parser>::on_write()
 }
 
 template< typename AIO, typename Parser >
-void DownloaderSimple<AIO, Parser>::close_handles()
+void DownloaderSimple<AIO, Parser>::terminate_handles()
 {
     if (socket)
     {
@@ -364,6 +384,24 @@ void DownloaderSimple<AIO, Parser>::close_handles()
             file->close();
         }
     }
+}
+
+template< typename AIO, typename Parser >
+void DownloaderSimple<AIO, Parser>::close_handles()
+{
+    socket->clear();
+    socket->template once<ShutdownEvent>( [self = this->template shared_from_this()](const auto&, const auto&)
+    {
+        self->socket_connected = false;
+        if ( !(self->file_openned) )
+            self->m_status.state = State::Done;
+        self->socket->close();
+    } );
+    socket->shutdown();
+
+    net_timer->clear();
+    net_timer->stop();
+    net_timer->close();
 }
 
 template< typename AIO, typename Parser >

@@ -43,6 +43,7 @@ struct AIO_Mock
     using WriteEvent = AIO_UVW::WriteEvent;
     using DataEvent = AIO_UVW::DataEvent;
     using EndEvent = AIO_UVW::EndEvent;
+    using ShutdownEvent = AIO_UVW::ShutdownEvent;
 
     using TimerHandle = TimerHandleMock;
     using TimerEvent = AIO_UVW::TimerEvent;
@@ -1220,7 +1221,7 @@ TEST_F(DownloaderSimpleQueue, socket_read_on_queue_empty)
     // continue read
     EXPECT_CALL( *socket, read() )
             .Times(1);
-    for (std::size_t i = 1; i <= backlog + 1; i++)
+    for (size_t i = 1; i <= backlog + 1; i++)
         file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
     Mock::VerifyAndClearExpectations(socket.get());
     // Cancel download
@@ -1254,41 +1255,85 @@ TEST_F(DownloaderSimpleQueue, socket_read_on_queue_empty)
     Mock::VerifyAndClearExpectations(fs.get());
     ASSERT_LE(fs.use_count(), 2);
 }
-/*
-TEST_F(DownloaderSimpleQueue, downloader_normal_complete)
+
+struct DownloaderSimpleComplete : public DownloaderSimpleQueue
 {
-    EXPECT_CALL( *file, write(_,_,_) )
-            .Times( AtLeast(1) );
-    // stop read
-    EXPECT_CALL( *socket, stop() )
-            .Times(1);
-    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
-    file->publish( AIO_UVW::FileOpenEvent{ task.fname.c_str() } );
-    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
-    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
-    for (size_t i = 1; i <= backlog; i++)
+    DownloaderSimpleComplete()
+    {
+        EXPECT_CALL( *file, write(_,_,_) )
+                .Times( AtLeast(1) );
+        // stop read
+        EXPECT_CALL( *socket, stop() )
+                .Times(1);
         socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
-    Mock::VerifyAndClearExpectations(socket.get());
-    // continue read
-    EXPECT_CALL( *socket, read() )
-            .Times(1);
-    for (std::size_t i = 1; i <= backlog + 1; i++)
+        file->publish( AIO_UVW::FileOpenEvent{ task.fname.c_str() } );
+        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
         file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
-    Mock::VerifyAndClearExpectations(socket.get());
-    // done
-    EXPECT_CALL( *socket, stop() )
-            .Times( AnyNumber() );
-    //EXPECT_CALL() socket shutdown?
-    for (std::size_t i = 1; i < backlog; i++)
+        for (size_t i = 1; i <= backlog; i++)
+            socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+        Mock::VerifyAndClearExpectations(socket.get());
+        // continue read
+        EXPECT_CALL( *socket, read() )
+                .Times(1);
+        for (size_t i = 1; i <= backlog + 1; i++)
+            file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+        Mock::VerifyAndClearExpectations(socket.get());
+        // done, close connection
+        for (size_t i = 1; i <= backlog - 1; i++)
+            socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+        Mock::VerifyAndClearExpectations(http_parser);
+        bool timer_stoped = false;
+        EXPECT_CALL( *timer, stop() )
+                .Times( AnyNumber() )
+                .WillRepeatedly( Invoke( [&timer_stoped]() { timer_stoped = true; } ) );
+        EXPECT_CALL( *socket, shutdown() )
+                .Times(1);
+        EXPECT_CALL( *timer, close_() )
+                .Times(1);
+        HttpParser::ResponseParseResult result;
+        result.state = HttpParser::ResponseParseResult::State::Done;
+        auto on_data = [this]() { handler_on_data(unique_ptr<char[]>{}, 0); };
+        EXPECT_CALL( *http_parser, response_parse_(_,_) )
+                .Times(1)
+                .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
+                                        Return(result) ) );
         socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
-    Mock::VerifyAndClearExpectations(http_parser);
-    HttpParser::ResponseParseResult result;
-    result.state = HttpParser::ResponseParseResult::State::Done;
-    auto on_data = [this]() { handler_on_data(unique_ptr<char[]>{}, 0); };
-    EXPECT_CALL( *http_parser, response_parse_(_,_) )
-            .Times(1)
-            .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
-                                    Return(result) ) );
-    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+        Mock::VerifyAndClearExpectations(socket.get());
+        Mock::VerifyAndClearExpectations(http_parser);
+        if (!timer_stoped)
+            timer->publish( AIO_UVW::TimerEvent{} ); // timer should be cleared or stoped
+        EXPECT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+        // done, close file
+        EXPECT_CALL( *file, close() )
+                .Times(1);
+        EXPECT_CALL( loop, resource_FsReqMock() ) // dont delete file
+                .Times(0);
+        EXPECT_CALL( *socket, read() )
+                .Times(0);
+        for (size_t i = 1; i <= backlog; i++)
+            file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+        Mock::VerifyAndClearExpectations(file.get());
+        Mock::VerifyAndClearExpectations(&loop);
+        Mock::VerifyAndClearExpectations(socket.get());
+        EXPECT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+        // close handles
+        EXPECT_CALL( *socket, close_() )
+                .Times(1);
+    }
+};
+
+TEST_F(DownloaderSimpleComplete, close_socket_before_file)
+{
+    socket->publish( AIO_UVW::ShutdownEvent{} );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Done);
 }
-*/
+
+TEST_F(DownloaderSimpleComplete, close_file_before_socket)
+{
+    file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    socket->publish( AIO_UVW::ShutdownEvent{} );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Done);
+}
