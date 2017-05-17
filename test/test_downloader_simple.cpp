@@ -1326,6 +1326,12 @@ TEST_F(DownloaderSimpleComplete, close_socket_before_file)
 {
     socket->publish( AIO_UVW::ShutdownEvent{} );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+
+    Mock::VerifyAndClearExpectations(on_tick.get());
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .Times( AtLeast(1) )
+            .WillRepeatedly( Invoke(on_tick_handler) );
+
     file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Done);
 }
@@ -1334,6 +1340,12 @@ TEST_F(DownloaderSimpleComplete, close_file_before_socket)
 {
     file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+
+    Mock::VerifyAndClearExpectations(on_tick.get());
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .Times( AtLeast(1) )
+            .WillRepeatedly( Invoke(on_tick_handler) );
+
     socket->publish( AIO_UVW::ShutdownEvent{} );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Done);
 }
@@ -1347,6 +1359,10 @@ TEST_F(DownloaderSimpleComplete, close_socket_before_file_error)
             .Times( AnyNumber() );
     EXPECT_CALL( *timer, close_() )
             .Times( AnyNumber() );
+    Mock::VerifyAndClearExpectations(on_tick.get());
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .Times( AtLeast(1) )
+            .WillRepeatedly( Invoke(on_tick_handler) );
 
     file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
@@ -1356,6 +1372,11 @@ TEST_F(DownloaderSimpleComplete, file_error)
 {
     EXPECT_CALL( *timer, close_() )
             .Times( AnyNumber() );
+    Mock::VerifyAndClearExpectations(on_tick.get());
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .Times( AtLeast(1) )
+            .WillRepeatedly( Invoke(on_tick_handler) );
+
     file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
 }

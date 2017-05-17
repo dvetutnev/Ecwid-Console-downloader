@@ -340,7 +340,7 @@ void DownloaderSimple<AIO, Parser>::on_write()
                 self->file_openned = false;
                 self->file->clear();
                 if ( !(self->socket_connected) )
-                    self->m_status.state = State::Done;
+                    self->update_status(State::Done, "Downloading complete");
             } );
             file->close();
         } else
@@ -403,7 +403,7 @@ void DownloaderSimple<AIO, Parser>::close_handles()
     {
         self->socket_connected = false;
         if ( !(self->file_openned) )
-            self->m_status.state = State::Done;
+            self->update_status(State::Done, "Downloading complete");
         self->socket->close();
     } );
     socket->shutdown();
