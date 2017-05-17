@@ -62,6 +62,7 @@ private:
     Task task;
     StatusDownloader m_status;
     std::unique_ptr<UriParseResult> uri_parsed;
+    std::shared_ptr<GetAddrInfoReq> resolver;
     std::shared_ptr<TCPSocket> socket;
     std::shared_ptr<Timer> net_timer;
     std::unique_ptr<Parser> http_parser;
@@ -133,18 +134,23 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
     if (!uri_parsed)
         return false;
 
-    auto resolver = loop.template resource<GetAddrInfoReq>();
+    resolver = loop.template resource<GetAddrInfoReq>();
     auto self = this->template shared_from_this();
 
     resolver->template once<ErrorEvent>( [self](const auto& err, const auto&)
     {
+        self->resolver.reset();
         std::string err_str = "Host <" + self->uri_parsed->host + "> can`t resolve. " + ErrorEvent2str(err);
         if ( self->m_status.state == State::OnTheGo )
             self->on_error( std::move(err_str) );
         else
             self->on_error_without_tick( std::move(err_str) );
     } );
-    resolver->template once<AddrInfoEvent>( [self](const auto& event, const auto&) { self->on_resolve(event); } );
+    resolver->template once<AddrInfoEvent>( [self](const auto& event, const auto&)
+    {
+        self->resolver.reset();
+        self->on_resolve(event);
+    } );
 
     resolver->getNodeAddrInfo(uri_parsed->host);
 
@@ -376,6 +382,11 @@ void DownloaderSimple<AIO, Parser>::on_write()
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::terminate_handles()
 {
+    if (resolver)
+    {
+        resolver->clear();
+        resolver->cancel();
+    }
     if (socket)
     {
         socket->clear();

@@ -145,8 +145,7 @@ struct DownloaderSimpleResolve : public DownloaderSimpleF
 
     virtual ~DownloaderSimpleResolve()
     {
-        resolver.reset();
-        EXPECT_FALSE(resolver);
+        EXPECT_LE(resolver.use_count(), 2);
     }
 
     const string host;
@@ -177,6 +176,23 @@ TEST_F(DownloaderSimpleResolve, host_resolve_failed)
     resolver->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EAI_NONAME) } );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
     Mock::VerifyAndClearExpectations(on_tick.get());
+}
+
+TEST_F(DownloaderSimpleResolve, stop)
+{
+    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+            .Times( AtLeast(1) )
+            .WillRepeatedly( Invoke(on_tick_handler) );
+    EXPECT_CALL( *resolver, getNodeAddrInfo(host) )
+            .Times(1);
+    ASSERT_TRUE( downloader->run(task) );
+    ASSERT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
+    Mock::VerifyAndClearExpectations(&loop);
+
+    EXPECT_CALL( *resolver, cancel() )
+            .WillOnce( Return(true) );
+    downloader->stop();
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
 }
 
 TEST_F(DownloaderSimpleResolve, dont_invoke_tick_if_resolver_failed_run)
