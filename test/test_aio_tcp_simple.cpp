@@ -310,10 +310,13 @@ TEST(TCPSocketWrapperSimple, read_EOF)
         InSequence dummy;
         EXPECT_CALL( *tcp_handle, read() )
                 .Times(1);
+        EXPECT_CALL( *tcp_handle, active() )
+                .WillOnce( Return(true) );
         EXPECT_CALL( *tcp_handle, close() )
                 .Times(1);
     }
     resource->read();
+    ASSERT_TRUE( resource->active() );
     tcp_handle->publish( AIO_UVW::EndEvent{} );
     ASSERT_TRUE(cb_called);
     resource->close();

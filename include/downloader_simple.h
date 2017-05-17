@@ -357,7 +357,8 @@ void DownloaderSimple<AIO, Parser>::on_write()
         } else
         {
             file_operation_started = false;
-            socket->read();
+            if ( !(socket->active()) )
+                socket->read();
         }
         return;
     }

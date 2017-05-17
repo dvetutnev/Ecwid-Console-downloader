@@ -1288,6 +1288,64 @@ TEST_F(DownloaderSimpleQueue, socket_read_on_queue_empty)
     ASSERT_LE(fs.use_count(), 2);
 }
 
+TEST_F(DownloaderSimpleQueue, dont_call_read_if_socket_active)
+{
+    EXPECT_CALL( *file, write(_,_,_) )
+            .Times( AtLeast(1) );
+    EXPECT_CALL( *socket, active_() )
+            .Times( AtLeast(1) )
+            .WillRepeatedly( Return(true) );
+    EXPECT_CALL( *socket, read() )
+            .Times(0);
+
+    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    file->publish( AIO_UVW::FileOpenEvent{task.fname.c_str()} );
+    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+
+    Mock::VerifyAndClearExpectations(file.get());
+    Mock::VerifyAndClearExpectations(socket.get());
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    // continue write file
+    EXPECT_CALL( *file, write(_,_,_) )
+            .Times(1);
+    socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    Mock::VerifyAndClearExpectations(file.get());
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    // Cancel download
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *file, cancel() )
+            .Times(1);
+    auto fs = make_shared<FsReqMock>();
+    EXPECT_CALL( *fs, unlink(_) )
+            .Times(0);
+    {
+        InSequence s;
+        EXPECT_CALL( loop, resource_FsReqMock() )
+                .WillOnce( Return(fs) );
+        EXPECT_CALL( *file, close() )
+                .Times(1);
+    }
+    downloader->stop();
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(file.get());
+    // Delete file
+    EXPECT_CALL( *fs, unlink(_) )
+            .Times(1);
+    file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
+
+    Mock::VerifyAndClearExpectations(fs.get());
+    ASSERT_LE(fs.use_count(), 2);
+}
+
 struct DownloaderSimpleComplete : public DownloaderSimpleQueue
 {
     DownloaderSimpleComplete()

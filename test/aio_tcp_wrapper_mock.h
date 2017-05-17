@@ -12,6 +12,8 @@ struct TCPSocketWrapperMock : public uvw::TCPSocketWrapper
     virtual void write(std::unique_ptr<char[]> ptr, std::size_t len) { write_(ptr.get(), len); }
     MOCK_METHOD2( write_, void(const char[], std::size_t) );
     MOCK_METHOD0( shutdown, void() );
+    virtual bool active() const noexcept { return  active_(); }
+    MOCK_CONST_METHOD0( active_, bool() );
     virtual void close() noexcept { close_(); }
     MOCK_METHOD0( close_, void() );
 

@@ -16,6 +16,7 @@ public:
     virtual void stop() = 0;
     virtual void write(std::unique_ptr<char[]>, std::size_t) = 0;
     virtual void shutdown() = 0;
+    virtual bool active() const noexcept= 0;
     virtual void close() noexcept = 0;
     virtual ~TCPSocketWrapper() = default;
 protected:
@@ -51,6 +52,7 @@ public:
         tcp_handle->write(std::move(data), length);
     }
     virtual void shutdown() override final { tcp_handle->shutdown(); }
+    virtual bool active() const noexcept override final { return tcp_handle->active(); }
     virtual void close() noexcept override final
     {
         closing = true;
