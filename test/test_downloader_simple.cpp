@@ -711,14 +711,30 @@ TEST_F(DownloaderSimpleResponseParse, redirect)
     result.redirect_uri = redirect_uri;
     EXPECT_CALL( *http_parser, response_parse_(data, len) )
             .WillOnce( Return(result) );
-    EXPECT_CALL( *socket, close_() )
-            .Times(1);
+
+    bool timer_stopped = false;
+    EXPECT_CALL( *timer, stop() )
+            .Times( AnyNumber() )
+            .WillRepeatedly( Invoke( [&timer_stopped]() { timer_stopped = true; } ) );
     EXPECT_CALL( *timer, close_() )
             .Times(1);
+
+    EXPECT_CALL( *socket, shutdown() )
+            .Times(1);
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .WillOnce( Invoke(on_tick_handler) );
+            .Times( AtLeast(1) )
+            .WillRepeatedly( Invoke(on_tick_handler) );
 
     socket->publish( AIO_UVW::DataEvent{ unique_ptr<char[]>{data}, len } );
+    if (!timer_stopped)
+        timer->publish( AIO_UVW::TimerEvent{} );
+
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+
+    socket->publish( AIO_UVW::ShutdownEvent{} );
 
     const auto status = downloader->status();
     ASSERT_EQ(status.state, StatusDownloader::State::Redirect);

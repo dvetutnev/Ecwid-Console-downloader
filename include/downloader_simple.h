@@ -78,7 +78,10 @@ private:
     std::size_t offset = 0;
 
     void terminate_handles();
-    void close_handles();
+
+    template< typename String >
+    std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+    close_handles(State, String&&);
 
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
@@ -264,14 +267,14 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
         break;
 
     case Result::Redirect:
-        terminate_handles();
         m_status.redirect_uri = std::move(result.redirect_uri);
-        update_status(State::Redirect, "Redirect to <" + m_status.redirect_uri + ">");
+        close_handles(State::Redirect, "Redirect to <" + m_status.redirect_uri + ">");
+        update_status(State::OnTheGo, "Redirect to <" + m_status.redirect_uri + ">");
         break;
 
     case Result::Done:
         receive_done = true;
-        close_handles();
+        close_handles(State::Done, "Downloading complete");
         update_status(State::OnTheGo, "Receive done");
         break;
 
@@ -396,15 +399,18 @@ void DownloaderSimple<AIO, Parser>::terminate_handles()
 }
 
 template< typename AIO, typename Parser >
-void DownloaderSimple<AIO, Parser>::close_handles()
+template< typename String >
+std::enable_if_t< std::is_convertible<String, std::string>::value, void>
+DownloaderSimple<AIO, Parser>::close_handles(State state, String&& str)
 {
     socket->clear();
-    socket->template once<ShutdownEvent>( [self = this->template shared_from_this()](const auto&, const auto&)
+    auto self = this->template shared_from_this();
+    socket->template once<ShutdownEvent>( [self, state, str = std::forward<String>(str)](const auto&, const auto&)
     {
         self->socket_connected = false;
-        if ( !(self->file_openned) )
-            self->update_status(State::Done, "Downloading complete");
         self->socket->close();
+        if ( !(self->file_openned) )
+            self->update_status( state, std::move(str) );
     } );
     socket->shutdown();
 
