@@ -1,7 +1,7 @@
 #pragma once
 
 #include "task.h"
-#include <istream>
+#include <iosfwd>
 
 class TaskListSimple : public TaskList
 {
