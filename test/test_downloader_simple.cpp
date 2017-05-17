@@ -1337,3 +1337,25 @@ TEST_F(DownloaderSimpleComplete, close_file_before_socket)
     socket->publish( AIO_UVW::ShutdownEvent{} );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Done);
 }
+
+TEST_F(DownloaderSimpleComplete, close_socket_before_file_error)
+{
+    socket->publish( AIO_UVW::ShutdownEvent{} );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+
+    EXPECT_CALL( *socket, close_() )
+            .Times( AnyNumber() );
+    EXPECT_CALL( *timer, close_() )
+            .Times( AnyNumber() );
+
+    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+}
+
+TEST_F(DownloaderSimpleComplete, file_error)
+{
+    EXPECT_CALL( *timer, close_() )
+            .Times( AnyNumber() );
+    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } );
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+}

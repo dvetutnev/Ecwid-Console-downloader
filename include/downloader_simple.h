@@ -327,9 +327,18 @@ void DownloaderSimple<AIO, Parser>::on_write()
         if (receive_done)
         {
             file->clear();
-            file->template once<FileCloseEvent>( [self = this->template shared_from_this()](const auto&, const auto&)
+            auto self = this->template shared_from_this();
+            file->template once<ErrorEvent>( [self](const auto& err, const auto&)
             {
+                self->file_operation_started = false;
+                self->file.reset();
+                self->on_error("File <" + self->task.fname + "> close error! " + ErrorEvent2str(err) );
+            } );
+            file->template once<FileCloseEvent>( [self](const auto&, const auto&)
+            {
+                self->file_operation_started = false;
                 self->file_openned = false;
+                self->file->clear();
                 if ( !(self->socket_connected) )
                     self->m_status.state = State::Done;
             } );
