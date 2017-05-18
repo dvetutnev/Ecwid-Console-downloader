@@ -1239,6 +1239,9 @@ TEST_F(DownloaderSimpleQueue, socket_read_on_queue_empty)
 {
     EXPECT_CALL( *file, write(_,_,_) )
             .Times( static_cast<int>(backlog + 2) );
+    EXPECT_CALL( *socket, active_() )
+            .Times( AnyNumber() )
+            .WillRepeatedly( Return(true) );
     EXPECT_CALL( *socket, stop() )
             .Times(1);
 
@@ -1251,8 +1254,13 @@ TEST_F(DownloaderSimpleQueue, socket_read_on_queue_empty)
 
     Mock::VerifyAndClearExpectations(socket.get());
     // continue read
-    EXPECT_CALL( *socket, read() )
-            .Times(1);
+    {
+        InSequence s;
+        EXPECT_CALL( *socket, active_() )
+                .WillOnce( Return(false) );
+        EXPECT_CALL( *socket, read() )
+                .Times(1);
+    }
     for (size_t i = 1; i <= backlog + 1; i++)
         file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
     Mock::VerifyAndClearExpectations(socket.get());
@@ -1355,6 +1363,9 @@ struct DownloaderSimpleComplete : public DownloaderSimpleQueue
         // stop read
         EXPECT_CALL( *socket, stop() )
                 .Times(1);
+        EXPECT_CALL( *socket, active_() )
+                .Times( AnyNumber() )
+                .WillRepeatedly( Return(true) );
         socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
         file->publish( AIO_UVW::FileOpenEvent{ task.fname.c_str() } );
         socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
@@ -1363,8 +1374,13 @@ struct DownloaderSimpleComplete : public DownloaderSimpleQueue
             socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
         Mock::VerifyAndClearExpectations(socket.get());
         // continue read
-        EXPECT_CALL( *socket, read() )
-                .Times(1);
+        {
+            InSequence s;
+            EXPECT_CALL( *socket, active_() )
+                    .WillOnce( Return(false) );
+            EXPECT_CALL( *socket, read() )
+                    .Times(1);
+        }
         for (size_t i = 1; i <= backlog + 1; i++)
             file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
         Mock::VerifyAndClearExpectations(socket.get());
