@@ -29,6 +29,7 @@ public:
         State state;
         std::string redirect_uri;
         std::string err_str;
+        std::size_t content_length;
     };
 
     ResponseParseResult response_parse(std::unique_ptr<char[]>, std::size_t);

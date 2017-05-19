@@ -1322,15 +1322,19 @@ TEST_F(DownloaderSimpleQueue, partial_file_write)
 struct DownloaderSimpleBacklog : public DownloaderSimpleQueue
 {
     DownloaderSimpleBacklog()
+        : written_length{1042}
     {
         HttpParser::ResponseParseResult result;
         result.state = HttpParser::ResponseParseResult::State::InProgress;
-        auto on_data = [this]() { handler_on_data(unique_ptr<char[]>{ new char[42] }, 42); };
+        result.content_length = backlog * written_length;
+        auto on_data = [this]() { handler_on_data(unique_ptr<char[]>{ new char[written_length] }, written_length); };
         EXPECT_CALL( *http_parser, response_parse_(_,_) )
                 .Times( AtLeast(1) )
                 .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
                                         Return(result) ) );
     }
+
+    const size_t written_length;
 };
 
 TEST_F(DownloaderSimpleBacklog, socket_stop_on_queue_overflow)
@@ -1339,7 +1343,12 @@ TEST_F(DownloaderSimpleBacklog, socket_stop_on_queue_overflow)
             .Times(1);
 
     for (size_t i = 1; i <= backlog; i++)
+    {
         socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+        const auto status = downloader->status();
+        EXPECT_EQ(status.size, backlog * written_length);
+        EXPECT_EQ(status.downloaded, i * written_length);
+    }
 
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
     Mock::VerifyAndClearExpectations(file.get());
@@ -1374,7 +1383,7 @@ TEST_F(DownloaderSimpleBacklog, socket_read_on_queue_empty)
     socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
     file->publish( AIO_UVW::FileOpenEvent{ task.fname.c_str() } );
     socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
-    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), written_length} );
     for (size_t i = 1; i <= backlog; i++)
         socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
 
@@ -1388,7 +1397,7 @@ TEST_F(DownloaderSimpleBacklog, socket_read_on_queue_empty)
                 .Times(1);
     }
     for (size_t i = 1; i <= backlog + 1; i++)
-        file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+        file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), written_length} );
     Mock::VerifyAndClearExpectations(socket.get());
     // Cancel download
     EXPECT_CALL( *socket, close_() )
@@ -1436,8 +1445,8 @@ TEST_F(DownloaderSimpleBacklog, dont_call_read_if_socket_active)
     file->publish( AIO_UVW::FileOpenEvent{task.fname.c_str()} );
     socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
 
-    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
-    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), written_length} );
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), written_length} );
 
     Mock::VerifyAndClearExpectations(file.get());
     Mock::VerifyAndClearExpectations(socket.get());
@@ -1495,7 +1504,7 @@ struct DownloaderSimpleComplete : public DownloaderSimpleBacklog
         socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
         file->publish( AIO_UVW::FileOpenEvent{ task.fname.c_str() } );
         socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
-        file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+        file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), written_length} );
         for (size_t i = 1; i <= backlog; i++)
             socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
         Mock::VerifyAndClearExpectations(socket.get());
@@ -1508,7 +1517,7 @@ struct DownloaderSimpleComplete : public DownloaderSimpleBacklog
                     .Times(1);
         }
         for (size_t i = 1; i <= backlog + 1; i++)
-            file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+            file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), written_length} );
         Mock::VerifyAndClearExpectations(socket.get());
         // done, close connection
         for (size_t i = 1; i <= backlog - 1; i++)
@@ -1543,7 +1552,7 @@ struct DownloaderSimpleComplete : public DownloaderSimpleBacklog
         EXPECT_CALL( *socket, read() )
                 .Times(0);
         for (size_t i = 1; i <= backlog; i++)
-            file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), 42} );
+            file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), written_length} );
         Mock::VerifyAndClearExpectations(file.get());
         Mock::VerifyAndClearExpectations(&loop);
         Mock::VerifyAndClearExpectations(socket.get());

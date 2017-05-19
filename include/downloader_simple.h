@@ -293,6 +293,8 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
     if ( m_status.state == State::Failed )
         return;
 
+    m_status.size = result.content_length;
+
     auto self = this->template shared_from_this();
 
     switch (result.state)
@@ -329,6 +331,7 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::size_t length)
 {
+    m_status.downloaded += length;
     queue.emplace(std::move(data), length);
     if ( queue.size() >= backlog )
         socket->stop();
