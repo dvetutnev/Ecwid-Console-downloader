@@ -76,7 +76,8 @@ private:
     std::queue<Chunk> queue;
     bool file_openned = false;
     bool file_operation_started = false;
-    std::size_t offset = 0;
+    std::size_t offset_file = 0;
+    std::size_t offset_chunk = 0;
 
     void terminate_handles();
     void close_handles(std::function<void()>);
@@ -333,7 +334,7 @@ void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::s
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_write()
 {
-    if ( queue.empty() )
+    if ( queue.empty() && !chunk.first )
     {
         if (receive_done)
         {
@@ -363,8 +364,11 @@ void DownloaderSimple<AIO, Parser>::on_write()
         return;
     }
 
-    chunk = std::move( queue.front() );
-    queue.pop();
+    if (!chunk.first)
+    {
+        chunk = std::move( queue.front() );
+        queue.pop();
+    }
 
     std::weak_ptr<DownloaderSimple> weak{ this->template shared_from_this() };
     file->template once<FileWriteEvent>( [weak](const auto& event, const auto&)
@@ -372,12 +376,18 @@ void DownloaderSimple<AIO, Parser>::on_write()
             auto self = weak.lock();
             if (self)
             {
-                self->offset += event.size;
+                self->offset_file += event.size;
+                self->offset_chunk += event.size;
+                if (self->offset_chunk == self->chunk.second)
+                {
+                    self->chunk.first.reset();
+                    self->offset_chunk = 0;
+                }
                 self->on_write();
             }
         } );
     assert( chunk.second <= std::numeric_limits<unsigned int>::max() );
-    file->write(chunk.first.get(), chunk.second, offset);
+    file->write(chunk.first.get() + offset_chunk, chunk.second - offset_chunk, offset_file);
 }
 
 template< typename AIO, typename Parser >

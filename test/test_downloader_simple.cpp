@@ -2,6 +2,8 @@
 #include <gmock/gmock.h>
 
 #include <regex>
+#include <algorithm>
+#include <random>
 
 #include "downloader_simple.h"
 #include "aio_loop_mock.h"
@@ -1190,13 +1192,6 @@ struct DownloaderSimpleQueue : public DownloaderSimpleFileOpen
 {
     DownloaderSimpleQueue()
     {
-        HttpParser::ResponseParseResult result;
-        result.state = HttpParser::ResponseParseResult::State::InProgress;
-        auto on_data = [this]() { handler_on_data(unique_ptr<char[]>{}, 0); };
-        EXPECT_CALL( *http_parser, response_parse_(_,_) )
-                .Times( AtLeast(1) )
-                .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
-                                        Return(result) ) );
         EXPECT_CALL( *timer, again() )
                 .Times( AtLeast(1) );
         EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
@@ -1207,7 +1202,138 @@ struct DownloaderSimpleQueue : public DownloaderSimpleFileOpen
     }
 };
 
-TEST_F(DownloaderSimpleQueue, socket_stop_on_queue_overflow)
+TEST_F(DownloaderSimpleQueue, partial_file_write)
+{
+    const size_t chunk_size = 1000;
+    using Chunk = std::pair< unique_ptr<char[]>, std::size_t >;
+    auto generate_chunk = [chunk_size]()
+    {
+        char* ptr = new char[chunk_size];
+        std::random_device rd{};
+        std::uniform_int_distribution<unsigned int> dist{0, 255};
+        std::generate_n( ptr, chunk_size, [&dist, &rd]() { return static_cast<char>( dist(rd) ); } );
+        return Chunk{unique_ptr<char[]>{ptr}, chunk_size};
+    };
+    vector<Chunk> chunks{backlog};
+    std::generate(std::begin(chunks), std::end(chunks), generate_chunk);
+    string buffer;
+    for (const auto& item : chunks)
+        buffer.append(item.first.get(), item.second);
+
+    std::size_t it = 0;
+    auto on_data = [this, &it, &chunks]()
+    {
+        Chunk chunk = std::move( chunks[it++] );
+        handler_on_data(std::move(chunk.first), chunk.second);
+    };
+    HttpParser::ResponseParseResult result;
+    result.state = HttpParser::ResponseParseResult::State::InProgress;
+    EXPECT_CALL( *http_parser, response_parse_(_,_) )
+            .Times( AtLeast(1) )
+            .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
+                                    Return(result) ) );
+    EXPECT_CALL( *socket, stop() )
+            .Times(1);
+    for (size_t i = 1; i <= backlog; i++)
+        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
+    EXPECT_CALL( *socket, read() )
+            .Times(0);
+
+    string buff(chunk_size * backlog, '\0');
+    auto buff_replace = [&buff](const char* data, size_t length, size_t offset) { buff.replace(offset, length, data, length); };
+
+    ASSERT_EQ(backlog, 4);
+
+    {
+        InSequence s;
+        EXPECT_CALL( *file, write(_, chunk_size, 0) ) // first chunk
+                .WillOnce( Invoke(buff_replace) );
+
+        EXPECT_CALL( *file, write(_, chunk_size, chunk_size) ) // second cnunk, part one
+                .WillOnce( Invoke(buff_replace) );
+        EXPECT_CALL( *file, write(_, chunk_size / 2, chunk_size + chunk_size / 2) ) // second chunk, part two
+                .WillOnce( Invoke(buff_replace) );
+
+        EXPECT_CALL( *file, write(_, chunk_size, chunk_size * 2) ) // 3
+                .WillOnce( Invoke(buff_replace) );
+
+        EXPECT_CALL( *file, write(_, chunk_size, chunk_size * 3) ) // second cnunk, part one
+                .WillOnce( Invoke(buff_replace) );
+        EXPECT_CALL( *file, write(_, chunk_size / 2, chunk_size * 3 + chunk_size / 2) ) // second chunk, part two
+                .WillOnce( Invoke(buff_replace) );
+    }
+
+    file->publish( AIO_UVW::FileOpenEvent{task.fname.c_str()} );
+
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), chunk_size} ); // first chunk write done
+
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), chunk_size / 2} ); // second chunk, part one
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), chunk_size / 2} ); // second chunk, part two
+
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), chunk_size} ); // 3, all write
+
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), chunk_size / 2} ); // 4 chunk, part one
+    Mock::VerifyAndClearExpectations(socket.get());
+    {
+        InSequence s;
+        EXPECT_CALL( *socket, active_() )   // continue read
+                .WillRepeatedly( Return(false) );
+        EXPECT_CALL( *socket, read() )
+                .Times(1);
+    }
+    file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), chunk_size / 2} ); // 4 chunk, part two
+
+    Mock::VerifyAndClearExpectations(socket.get());
+    EXPECT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    EXPECT_TRUE(buffer == buff);
+
+    // Cancel download
+    EXPECT_CALL( *socket, close_() )
+            .Times(1);
+    EXPECT_CALL( *timer, close_() )
+            .Times(1);
+    EXPECT_CALL( *file, cancel() )
+            .Times(0);
+    auto fs = make_shared<FsReqMock>();
+    EXPECT_CALL( *fs, unlink(_) )
+            .Times(0);
+    {
+        InSequence s;
+        EXPECT_CALL( loop, resource_FsReqMock() )
+                .WillOnce( Return(fs) );
+        EXPECT_CALL( *file, close() )
+                .Times(1);
+    }
+    downloader->stop();
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(socket.get());
+    Mock::VerifyAndClearExpectations(timer.get());
+    Mock::VerifyAndClearExpectations(file.get());
+    // Delete file
+    EXPECT_CALL( *fs, unlink(_) )
+            .Times(1);
+    file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
+
+    Mock::VerifyAndClearExpectations(fs.get());
+    ASSERT_LE(fs.use_count(), 2);
+}
+
+struct DownloaderSimpleBacklog : public DownloaderSimpleQueue
+{
+    DownloaderSimpleBacklog()
+    {
+        HttpParser::ResponseParseResult result;
+        result.state = HttpParser::ResponseParseResult::State::InProgress;
+        auto on_data = [this]() { handler_on_data(unique_ptr<char[]>{ new char[42] }, 42); };
+        EXPECT_CALL( *http_parser, response_parse_(_,_) )
+                .Times( AtLeast(1) )
+                .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
+                                        Return(result) ) );
+    }
+};
+
+TEST_F(DownloaderSimpleBacklog, socket_stop_on_queue_overflow)
 {
     EXPECT_CALL( *socket, stop() )
             .Times(1);
@@ -1235,7 +1361,7 @@ TEST_F(DownloaderSimpleQueue, socket_stop_on_queue_overflow)
     file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
 }
 
-TEST_F(DownloaderSimpleQueue, socket_read_on_queue_empty)
+TEST_F(DownloaderSimpleBacklog, socket_read_on_queue_empty)
 {
     EXPECT_CALL( *file, write(_,_,_) )
             .Times( static_cast<int>(backlog + 2) );
@@ -1296,7 +1422,7 @@ TEST_F(DownloaderSimpleQueue, socket_read_on_queue_empty)
     ASSERT_LE(fs.use_count(), 2);
 }
 
-TEST_F(DownloaderSimpleQueue, dont_call_read_if_socket_active)
+TEST_F(DownloaderSimpleBacklog, dont_call_read_if_socket_active)
 {
     EXPECT_CALL( *file, write(_,_,_) )
             .Times( AtLeast(1) );
@@ -1354,7 +1480,7 @@ TEST_F(DownloaderSimpleQueue, dont_call_read_if_socket_active)
     ASSERT_LE(fs.use_count(), 2);
 }
 
-struct DownloaderSimpleComplete : public DownloaderSimpleQueue
+struct DownloaderSimpleComplete : public DownloaderSimpleBacklog
 {
     DownloaderSimpleComplete()
     {
@@ -1486,3 +1612,4 @@ TEST_F(DownloaderSimpleComplete, file_error)
     file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
 }
+
