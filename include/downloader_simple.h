@@ -71,13 +71,46 @@ private:
     bool receive_done = false;
     bool socket_connected = false;
 
-    using Chunk = std::pair<std::unique_ptr<char[]>, std::size_t>;
+    struct Chunk
+    {
+        Chunk(std::unique_ptr<char[]> data_ = nullptr, std::size_t length_ = 0, std::size_t offset_ = 0) noexcept
+            : data{ std::move(data_) },
+              length{length_},
+              offset{offset_}
+        {}
+
+        Chunk(Chunk&& other) noexcept
+            : data{ std::move(other.data) },
+              length{other.length},
+              offset{other.offset}
+        {}
+
+        Chunk& operator= (Chunk&& other) noexcept
+        {
+            data = std::move(other.data);
+            length = other.length;
+            offset = other.offset;
+            return *this;
+        }
+
+        Chunk(const Chunk&) = delete;
+        Chunk& operator= (const Chunk&) = delete;
+        ~Chunk() = default;
+
+        operator bool() const noexcept { return data != nullptr; }
+        void reset() noexcept { data.reset(); }
+        const char* get() const noexcept { return data.get(); }
+
+        std::unique_ptr<char[]> data;
+        std::size_t length;
+        std::size_t offset;
+    };
+
     Chunk chunk;
     std::queue<Chunk> queue;
     bool file_openned = false;
     bool file_operation_started = false;
     std::size_t offset_file = 0;
-    std::size_t offset_chunk = 0;
 
     void terminate_handles();
     void close_handles(std::function<void()>);
@@ -334,7 +367,7 @@ void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::s
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_write()
 {
-    if ( queue.empty() && !chunk.first )
+    if ( queue.empty() && !chunk)
     {
         if (receive_done)
         {
@@ -364,7 +397,7 @@ void DownloaderSimple<AIO, Parser>::on_write()
         return;
     }
 
-    if (!chunk.first)
+    if (!chunk)
     {
         chunk = std::move( queue.front() );
         queue.pop();
@@ -377,17 +410,14 @@ void DownloaderSimple<AIO, Parser>::on_write()
             if (self)
             {
                 self->offset_file += event.size;
-                self->offset_chunk += event.size;
-                if (self->offset_chunk == self->chunk.second)
-                {
-                    self->chunk.first.reset();
-                    self->offset_chunk = 0;
-                }
+                self->chunk.offset += event.size;
+                if (self->chunk.offset == self->chunk.length)
+                    self->chunk.reset();
                 self->on_write();
             }
         } );
-    assert( chunk.second <= std::numeric_limits<unsigned int>::max() );
-    file->write(chunk.first.get() + offset_chunk, chunk.second - offset_chunk, offset_file);
+    assert( chunk.length <= std::numeric_limits<unsigned int>::max() );
+    file->write(chunk.get() + chunk.offset, chunk.length - chunk.offset, offset_file);
 }
 
 template< typename AIO, typename Parser >
