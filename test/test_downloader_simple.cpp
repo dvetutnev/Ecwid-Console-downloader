@@ -73,8 +73,8 @@ struct HttpParserMock
     static HttpParserMock* instance_response_parse;
     static unique_ptr<HttpParserMock> create(OnData on_data) { return instance_response_parse->create_( std::move(on_data) ); }
     MOCK_METHOD1( create_, unique_ptr<HttpParserMock>(OnData) );
-    ResponseParseResult response_parse(unique_ptr<char[]> data, std::size_t len) { return response_parse_(data.get(), len); }
-    MOCK_METHOD2( response_parse_, ResponseParseResult(const char[], std::size_t) );
+    const ResponseParseResult response_parse(unique_ptr<char[]> data, std::size_t len) { return response_parse_(data.get(), len); }
+    MOCK_CONST_METHOD2( response_parse_, ResponseParseResult(const char[], std::size_t) );
 };
 HttpParserMock* HttpParserMock::instance_uri_parse;
 HttpParserMock* HttpParserMock::instance_response_parse;
