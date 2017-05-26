@@ -7,5 +7,5 @@ class FactoryMock : public Factory
 {
 public:
     MOCK_METHOD1( create, std::shared_ptr<Downloader>(const Task&) );
-    MOCK_METHOD1( set_OnTick, void(std::function<void(std::shared_ptr<Downloader>)>) );
+    MOCK_METHOD1( set_OnTick, void(std::shared_ptr<OnTick>) );
 };

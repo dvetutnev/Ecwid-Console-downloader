@@ -41,6 +41,7 @@ struct AIO_UVW
     using EndEvent = uvw::EndEvent;
     using WriteEvent = uvw::WriteEvent;
     using ShutdownEvent = uvw::ShutdownEvent;
+    using TcpHandle = uvw::TcpHandle;
     using TCPSocketWrapper = uvw::TCPSocketWrapper;
     using TCPSocketWrapperSimple = uvw::TCPSocketWrapperSimple<AIO_UVW>;
 

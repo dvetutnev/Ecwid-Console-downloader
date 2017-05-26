@@ -34,14 +34,17 @@ find_package(UV REQUIRED)
 find_package(UVW REQUIRED)
 find_package(http-parser REQUIRED)
 find_package(GoogleTest)
+find_package(Threads)
 
 include_directories(${UVW_INCLUDE_DIR})
 
 set(SRC_LIST
     main.cpp
+    src/task_simple.cpp
+    src/http.cpp
 )
 add_executable(${PROJECT_NAME} ${SRC_LIST})
-target_link_libraries(${PROJECT_NAME} uv)
+target_link_libraries(${PROJECT_NAME} uv http-parser ${CMAKE_THREAD_LIBS_INIT})
 
 message(STATUS "CMAKE_CURRENT_BINARY_DIR => ${CMAKE_CURRENT_BINARY_DIR}")
 message(STATUS "CMAKE_INSTALL_PREFIX => ${CMAKE_INSTALL_PREFIX}")

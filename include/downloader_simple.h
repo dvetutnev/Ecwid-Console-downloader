@@ -420,7 +420,7 @@ void DownloaderSimple<AIO, Parser>::on_write()
             }
         } );
     assert( chunk.length <= std::numeric_limits<unsigned int>::max() );
-    file->write(chunk.get() + chunk.offset, chunk.length - chunk.offset, offset_file);
+    file->write(const_cast<char*>(chunk.get() + chunk.offset), chunk.length - chunk.offset, offset_file);
 }
 
 template< typename AIO, typename Parser >

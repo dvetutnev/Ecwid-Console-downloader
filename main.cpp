@@ -1,70 +1,39 @@
-#include <iostream>
-#include <functional>
-#include <memory>
+#include "task_simple.h"
+#include "factory_simple.h"
+#include "on_tick_simple.h"
+
+#include <fstream>
 
 using namespace std;
 
-#include "task.h"
-#include <sstream>
-
-class Functor
-{
-public:
-  Functor() = default;
-  Functor(const Functor&) = delete;
-  Functor& operator= (const Functor) = delete;
-  void operator() (const char* a)
-  {
-    cout << "Functor called, arg: " << a << endl;
-  }
-};
-
 int main(int argc, char *argv[])
 {
-  cout << "Hello World!" << endl;
+    const string task_fname = "task_list.txt";
+    const size_t concurrency = 2;
 
-  std::function<void()> a = []()
-  {
-      cout << "functor a called" << endl;
-  };
+    ifstream task_stream{task_fname};
+    TaskListSimple task_list{task_stream, "./"};
+    JobList job_list;
 
-  auto b = a;
+    auto loop = AIO_UVW::Loop::getDefault();
+    auto factory = make_shared<FactorySimple>(loop);
+    auto on_tick = make_shared< OnTickSimple<JobList> >(job_list, factory, task_list);
+    factory->set_OnTick(on_tick);
 
-  b();
-  a();
+    for (size_t i = 1; i <= concurrency; i++)
+    {
+        auto task = task_list.get();
+        if (!task)
+            break;
 
-  std::shared_ptr<Functor> fp = std::make_shared<Functor>();
-  fp->operator()("from shared_ptr");
-  std::function<void(const char*)> ff = [fp](const char* a) mutable { fp->operator()(a); };
-  fp = nullptr;
-  ff("first std::function");
-  //auto ff2 = std::move(ff);
-  auto ff2(ff);
-  ff2("copy std::function");
-  ff("second std::function");
+        auto downloader = factory->create(*task);
+        if (!downloader)
+            continue;
 
+        job_list.emplace_back(task, downloader);
+    }
 
-  std::string s1{"Ahhh, my kraft!"};
-  std::string s2{"Second string"};
-  std::string s3;
+    loop->run();
 
-  Task t1{s1, s2};
-
-  cout << "t1: " << t1.uri << " " << t1.fname << endl;
-
-  Task t2{ std::move(s1), std::move(s2) };
-
-  cout << "t2: " << t2.uri << " " << t2.fname << endl;
-  cout << "s1: " << s1 << " s2: " << s2 << endl;
-
-  std::stringstream ss;
-  ss << "xxxx" << " " << "yyyy" << '\n' << "zzz";
-
-  std::getline(ss, s1);
-  std::getline(ss, s2);
-  cout << s1 << std::endl;
-  cout << s2 << std::endl;
-
-
-  return 0;
+    return 0;
 }
