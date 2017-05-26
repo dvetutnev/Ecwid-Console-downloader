@@ -1,6 +1,144 @@
 #include "http.h"
 
+#include <cassert>
+#include <limits>
+#include <algorithm>
+
 using namespace std;
+
+/* response parser */
+
+using State = HttpParser::ResponseParseResult::State;
+
+const HttpParser::ResponseParseResult HttpParser::response_parse(unique_ptr<char[]> data, size_t length)
+{
+    http_parser_execute(&parser, &parser_settings, data.get(), length);
+
+    if ( !(parser.http_errno == HPE_OK || parser.http_errno == HPE_PAUSED) )
+    {
+        result.state = State::Error;
+        result.err_str = http_errno_description( static_cast<enum http_errno>(parser.http_errno) );
+    }
+
+    return  result;
+}
+
+int HttpParser::on_status(http_parser* parser, const char* data, size_t length)
+{
+    auto self = static_cast<HttpParser*>(parser->data);
+
+    switch (parser->status_code)
+    {
+    case 200:
+    case 202:
+    case 203:
+        break;
+
+    case 301:
+    case 302:
+    case 303:
+        self->redirect = true;
+        break;
+
+    default:
+        self->result.err_str = to_string(parser->status_code) + " " + string{data, length};
+        self->stop(State::Error);
+        break;
+    }
+
+    return 0;
+}
+
+int HttpParser::on_header_field(http_parser* parser, const char* data, size_t length)
+{
+    auto self = static_cast<HttpParser*>(parser->data);
+
+    switch (self->mode_header)
+    {
+    case ModeHeader::Field:
+        self->field_header.append(data, length);
+        break;
+
+    case ModeHeader::Value:
+        self->headers.emplace( std::move(self->field_header), std::move(self->value_header) );
+        self->field_header = string{data, length};
+        self->mode_header = ModeHeader::Field;
+        break;
+    }
+
+    return 0;
+}
+
+int HttpParser::on_header_value(http_parser* parser, const char* data, size_t length)
+{
+    auto self = static_cast<HttpParser*>(parser->data);
+
+    switch (self->mode_header)
+    {
+    case ModeHeader::Value:
+        self->value_header.append(data, length);
+        break;
+
+    case ModeHeader::Field:
+        self->value_header = string{data, length};
+        self->mode_header = ModeHeader::Value;
+        break;
+    }
+
+    return 0;
+}
+
+int HttpParser::on_headers_complete(http_parser* parser)
+{
+    auto self = static_cast<HttpParser*>(parser->data);
+
+    if ( !(self->field_header.empty()) )
+        self->headers.emplace( std::move(self->field_header), std::move(self->value_header) );
+
+    if (self->redirect)
+    {
+        auto it = self->headers.find("Location");
+        if ( it != std::end(self->headers) )
+        {
+            self->result.redirect_uri = std::move( self->headers["Location"] );
+            self->stop(State::Redirect);
+        } else
+        {
+            self->result.err_str = "Invalid redirect, missing Location header";
+            self->stop(State::Error);
+        }
+    } else
+    {
+        assert( parser->content_length <= numeric_limits<std::size_t>::max() );
+        self->result.content_length = parser->content_length;
+    }
+
+    return 0;
+}
+
+int HttpParser::on_body(http_parser* parser, const char* data, size_t length)
+{
+    auto buffer = make_unique<char[]>(length);
+    std::copy_n( data, length, buffer.get() );
+
+    auto self = static_cast<HttpParser*>(parser->data);
+    self->cb_on_data(std::move(buffer), length);
+
+    return 0;
+}
+
+int HttpParser::on_message_complete(http_parser* parser)
+{
+    auto self = static_cast<HttpParser*>(parser->data);
+    self->stop(State::Done);
+    return 0;
+}
+
+void HttpParser::stop(State state)
+{
+    result.state = state;
+    http_parser_pause(&parser, 1u);
+}
 
 /* uri parser */
 
