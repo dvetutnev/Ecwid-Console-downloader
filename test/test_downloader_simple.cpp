@@ -84,7 +84,7 @@ HttpParserMock* HttpParserMock::instance_response_parse;
 struct DownloaderSimpleF : public ::testing::Test
 {
     DownloaderSimpleF()
-        : loop{},
+        : loop{ make_shared<LoopMock>() },
           on_tick{ make_shared<OnTickMock>() },
           instance_uri_parse{ make_unique<HttpParserMock>() },
 
@@ -97,10 +97,11 @@ struct DownloaderSimpleF : public ::testing::Test
     virtual ~DownloaderSimpleF()
     {
         EXPECT_TRUE( downloader.unique() );
+        EXPECT_LE(loop.use_count(), 2);
         EXPECT_LE(on_tick.use_count(), 2);
     }
 
-    LoopMock loop;
+    shared_ptr<LoopMock> loop;
     shared_ptr<OnTickMock> on_tick;
     unique_ptr<HttpParserMock> instance_uri_parse;
 
@@ -141,7 +142,7 @@ struct DownloaderSimpleResolve : public DownloaderSimpleF
         EXPECT_CALL( *instance_uri_parse, uri_parse_(task.uri) )
                 .WillOnce( Return( ByMove( std::move(uri_parsed) ) ) );
 
-        EXPECT_CALL( loop, resource_GetAddrInfoReqMock() )
+        EXPECT_CALL( *loop, resource_GetAddrInfoReqMock() )
                 .WillOnce( Return(resolver) );
     }
 
@@ -168,7 +169,7 @@ TEST_F(DownloaderSimpleResolve, host_resolve_failed)
 
     ASSERT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
     Mock::VerifyAndClearExpectations(instance_uri_parse.get());
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(resolver.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
@@ -177,6 +178,7 @@ TEST_F(DownloaderSimpleResolve, host_resolve_failed)
 
     resolver->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EAI_NONAME) } );
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 }
 
@@ -189,12 +191,13 @@ TEST_F(DownloaderSimpleResolve, stop)
             .Times(1);
     ASSERT_TRUE( downloader->run(task) );
     ASSERT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
 
     EXPECT_CALL( *resolver, cancel() )
             .WillOnce( Return(true) );
     downloader->stop();
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(loop.get());
 }
 
 TEST_F(DownloaderSimpleResolve, dont_invoke_tick_if_resolver_failed_run)
@@ -210,7 +213,7 @@ TEST_F(DownloaderSimpleResolve, dont_invoke_tick_if_resolver_failed_run)
     ASSERT_EQ(status.state, StatusDownloader::State::Failed);
     cout << "status.state_str => " << status.state_str << endl;
     Mock::VerifyAndClearExpectations(instance_uri_parse.get());
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(resolver.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 }
@@ -256,7 +259,7 @@ struct DownloaderSimpleConnect_CreateHandles : public DownloaderSimpleResolve
 
         EXPECT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
         Mock::VerifyAndClearExpectations(instance_uri_parse.get());
-        Mock::VerifyAndClearExpectations(&loop);
+        Mock::VerifyAndClearExpectations(loop.get());
         Mock::VerifyAndClearExpectations(resolver.get());
         Mock::VerifyAndClearExpectations(on_tick.get());
     }
@@ -264,9 +267,9 @@ struct DownloaderSimpleConnect_CreateHandles : public DownloaderSimpleResolve
 
 TEST_F(DownloaderSimpleConnect_CreateHandles, socket_create_failed)
 {
-    EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
+    EXPECT_CALL( *loop, resource_TCPSocketWrapperMock() )
             .WillRepeatedly( Return(nullptr) );
-    EXPECT_CALL( loop, resource_TimerHandleMock() )
+    EXPECT_CALL( *loop, resource_TimerHandleMock() )
             .WillRepeatedly( Return(nullptr) );
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .Times(1)
@@ -275,16 +278,16 @@ TEST_F(DownloaderSimpleConnect_CreateHandles, socket_create_failed)
     resolver->publish( create_addr_info_event("127.0.0.1") );
 
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 }
 
 TEST_F(DownloaderSimpleConnect_CreateHandles, timer_create_failed)
 {
     auto socket = make_shared<TCPSocketWrapperMock>();
-    EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
+    EXPECT_CALL( *loop, resource_TCPSocketWrapperMock() )
             .WillOnce( Return(socket) );
-    EXPECT_CALL( loop, resource_TimerHandleMock() )
+    EXPECT_CALL( *loop, resource_TimerHandleMock() )
             .WillOnce( Return(nullptr) );
     EXPECT_CALL( *socket, close_() )
             .Times(1);
@@ -294,7 +297,7 @@ TEST_F(DownloaderSimpleConnect_CreateHandles, timer_create_failed)
     resolver->publish( create_addr_info_event("127.0.0.1") );
 
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
     ASSERT_EQ(socket.use_count(), 2);
@@ -306,9 +309,9 @@ struct DownloaderSimpleConnect : DownloaderSimpleConnect_CreateHandles
         : socket{ make_shared<TCPSocketWrapperMock>() },
           timer{ make_shared<TimerHandleMock>() }
     {
-        EXPECT_CALL( loop, resource_TCPSocketWrapperMock() )
+        EXPECT_CALL( *loop, resource_TCPSocketWrapperMock() )
                 .WillOnce( Return(socket) );
-        EXPECT_CALL( loop, resource_TimerHandleMock() )
+        EXPECT_CALL( *loop, resource_TimerHandleMock() )
                 .WillOnce( Return(timer) );
     }
 
@@ -335,7 +338,7 @@ TEST_F(DownloaderSimpleConnect, connect_failed)
     resolver->publish( create_addr_info_event(ip) );
 
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
@@ -370,7 +373,7 @@ TEST_F(DownloaderSimpleConnect, connect6_failed)
     resolver->publish( create_addr_info_event_ipv6(ip) );
 
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
@@ -406,7 +409,7 @@ TEST_F(DownloaderSimpleConnect, connect_timeout)
     resolver->publish( create_addr_info_event("127.0.0.1") );
 
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
@@ -450,7 +453,7 @@ TEST_F(DownloaderSimpleConnect, timer_failed_on_run)
     resolver->publish( create_addr_info_event("127.0.0.1") );
 
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
@@ -477,7 +480,7 @@ struct DownloaderSimpleHttpRequest : public DownloaderSimpleConnect
         resolver->publish( create_addr_info_event(ip) );
 
         EXPECT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
-        Mock::VerifyAndClearExpectations(&loop);
+        Mock::VerifyAndClearExpectations(loop.get());
         Mock::VerifyAndClearExpectations(socket.get());
         Mock::VerifyAndClearExpectations(timer.get());
         Mock::VerifyAndClearExpectations(on_tick.get());
@@ -791,7 +794,7 @@ struct DownloaderSimpleFileOpen : public DownloaderSimpleResponseParse
     DownloaderSimpleFileOpen()
         : file{ make_shared<FileReqMock>() }
     {
-        EXPECT_CALL( loop, resource_FileReqMock() )
+        EXPECT_CALL( *loop, resource_FileReqMock() )
                 .WillOnce( Return(file) );
     }
 
@@ -823,7 +826,7 @@ TEST_F(DownloaderSimpleFileOpen, file_open_error)
     socket->publish( AIO_UVW::DataEvent{ unique_ptr<char[]>{}, 0 } );
 
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(http_parser);
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
@@ -871,7 +874,7 @@ TEST_F(DownloaderSimpleFileOpen, file_open_error_invoke)
     socket->publish( AIO_UVW::DataEvent{ unique_ptr<char[]>{}, 0 } );
 
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(http_parser);
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
@@ -904,7 +907,7 @@ struct DownloaderSimpleFileWrite : public DownloaderSimpleFileOpen
         socket->publish( AIO_UVW::DataEvent{ unique_ptr<char[]>{data_parser}, length_parser} );
 
         EXPECT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
-        Mock::VerifyAndClearExpectations(&loop);
+        Mock::VerifyAndClearExpectations(loop.get());
         Mock::VerifyAndClearExpectations(http_parser);
         Mock::VerifyAndClearExpectations(socket.get());
         Mock::VerifyAndClearExpectations(timer.get());
@@ -948,7 +951,7 @@ TEST_F(DownloaderSimpleFileWrite, read_error)
         InSequence s;
         EXPECT_CALL( *file, cancel() )
                 .WillOnce( Return(true) );
-        EXPECT_CALL( loop, resource_FsReqMock() )
+        EXPECT_CALL( *loop, resource_FsReqMock() )
                 .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
@@ -963,7 +966,7 @@ TEST_F(DownloaderSimpleFileWrite, read_error)
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(file.get());
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
     file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
@@ -991,7 +994,7 @@ TEST_F(DownloaderSimpleFileWrite, unexpected_EOF)
         InSequence s;
         EXPECT_CALL( *file, cancel() )
                 .WillOnce( Return(true) );
-        EXPECT_CALL( loop, resource_FsReqMock() )
+        EXPECT_CALL( *loop, resource_FsReqMock() )
                 .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
@@ -1006,7 +1009,7 @@ TEST_F(DownloaderSimpleFileWrite, unexpected_EOF)
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(file.get());
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
     file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
@@ -1036,7 +1039,7 @@ TEST_F(DownloaderSimpleFileWrite, parser_error)
         InSequence s;
         EXPECT_CALL( *file, cancel() )
                 .WillOnce( Return(true) );
-        EXPECT_CALL( loop, resource_FsReqMock() )
+        EXPECT_CALL( *loop, resource_FsReqMock() )
                 .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
@@ -1051,7 +1054,7 @@ TEST_F(DownloaderSimpleFileWrite, parser_error)
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(file.get());
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
     file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
@@ -1104,7 +1107,7 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error)
         InSequence s;
         EXPECT_CALL( *file, cancel() )
                 .Times(0);
-        EXPECT_CALL( loop, resource_FsReqMock() )
+        EXPECT_CALL( *loop, resource_FsReqMock() )
                 .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
@@ -1118,7 +1121,7 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error)
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(file.get());
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
     EXPECT_CALL( *fs, unlink(task.fname) )
@@ -1159,7 +1162,7 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error_invoke)
                 .WillOnce( InvokeWithoutArgs( [this]() { file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } ); } ) );
         EXPECT_CALL( *file, cancel() )
                 .Times(0);
-        EXPECT_CALL( loop, resource_FsReqMock() )
+        EXPECT_CALL( *loop, resource_FsReqMock() )
                 .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
@@ -1177,7 +1180,7 @@ TEST_F(DownloaderSimpleFileWrite, file_write_error_invoke)
     Mock::VerifyAndClearExpectations(file.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
     EXPECT_CALL( *fs, unlink(task.fname) )
@@ -1299,14 +1302,14 @@ TEST_F(DownloaderSimpleQueue, partial_file_write)
             .Times(0);
     {
         InSequence s;
-        EXPECT_CALL( loop, resource_FsReqMock() )
+        EXPECT_CALL( *loop, resource_FsReqMock() )
                 .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
     }
     downloader->stop();
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(file.get());
@@ -1363,7 +1366,7 @@ TEST_F(DownloaderSimpleBacklog, socket_stop_on_queue_overflow)
             .Times(1);
     downloader->stop();
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(file.get());
@@ -1411,14 +1414,14 @@ TEST_F(DownloaderSimpleBacklog, socket_read_on_queue_empty)
             .Times(0);
     {
         InSequence s;
-        EXPECT_CALL( loop, resource_FsReqMock() )
+        EXPECT_CALL( *loop, resource_FsReqMock() )
                 .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
     }
     downloader->stop();
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(file.get());
@@ -1469,14 +1472,14 @@ TEST_F(DownloaderSimpleBacklog, dont_call_read_if_socket_active)
             .Times(0);
     {
         InSequence s;
-        EXPECT_CALL( loop, resource_FsReqMock() )
+        EXPECT_CALL( *loop, resource_FsReqMock() )
                 .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
     }
     downloader->stop();
     ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(&loop);
+    Mock::VerifyAndClearExpectations(loop.get());
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(file.get());
@@ -1547,14 +1550,14 @@ struct DownloaderSimpleComplete : public DownloaderSimpleBacklog
         // done, close file
         EXPECT_CALL( *file, close() )
                 .Times(1);
-        EXPECT_CALL( loop, resource_FsReqMock() ) // dont delete file
+        EXPECT_CALL( *loop, resource_FsReqMock() ) // dont delete file
                 .Times(0);
         EXPECT_CALL( *socket, read() )
                 .Times(0);
         for (size_t i = 1; i <= backlog; i++)
             file->publish( AIO_UVW::FileWriteEvent{task.fname.c_str(), written_length} );
         Mock::VerifyAndClearExpectations(file.get());
-        Mock::VerifyAndClearExpectations(&loop);
+        Mock::VerifyAndClearExpectations(loop.get());
         Mock::VerifyAndClearExpectations(socket.get());
         EXPECT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
         // close handles

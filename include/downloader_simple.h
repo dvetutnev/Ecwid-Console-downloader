@@ -41,7 +41,7 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using FsReq = typename AIO::FsReq;
 
 public:
-    DownloaderSimple(Loop& loop_, std::shared_ptr<OnTick> on_tick_, std::size_t backlog_ = 10)
+    DownloaderSimple(std::shared_ptr<Loop> loop_, std::shared_ptr<OnTick> on_tick_, std::size_t backlog_ = 10)
         : loop{loop_},
           on_tick{on_tick_},
           backlog{backlog_}
@@ -55,7 +55,7 @@ public:
     virtual const StatusDownloader& status() const override final { return m_status; }
 
 private:
-    Loop& loop;
+    std::shared_ptr<Loop> loop;
     std::shared_ptr<OnTick> on_tick;
     const std::size_t backlog;
 
@@ -168,7 +168,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
     if (!uri_parsed)
         return false;
 
-    resolver = loop.template resource<GetAddrInfoReq>();
+    resolver = loop->template resource<GetAddrInfoReq>();
     auto self = this->template shared_from_this();
 
     resolver->template once<ErrorEvent>( [self](const auto& err, const auto&)
@@ -199,14 +199,14 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 {
-    socket = loop.template resource<TCPSocketSimple>();
+    socket = loop->template resource<TCPSocketSimple>();
     if (!socket)
     {
         on_error("Socket can`t create!");
         return;
     }
 
-    net_timer = loop.template resource<Timer>();
+    net_timer = loop->template resource<Timer>();
     if (!net_timer)
     {
         on_error("Net_timer can`t create!");
@@ -338,7 +338,7 @@ void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::s
 
     if (!file)
     {
-        file = loop.template resource<FileReq>();
+        file = loop->template resource<FileReq>();
         auto self = this->template shared_from_this();
         file->template once<ErrorEvent>( [self](const auto& err, const auto&)
         {
@@ -449,7 +449,7 @@ void DownloaderSimple<AIO, Parser>::terminate_handles()
 
         if (file_openned)
         {
-            file->template once<FileCloseEvent>( [fs = loop.template resource<FsReq>(), fname = task.fname ](const auto&, const auto&) { fs->unlink(fname); } );
+            file->template once<FileCloseEvent>( [fs = loop->template resource<FsReq>(), fname = task.fname ](const auto&, const auto&) { fs->unlink(fname); } );
             file->close();
         }
     }
