@@ -15,8 +15,8 @@ public:
     {}
 
     Job( std::shared_ptr<Task> t, std::shared_ptr<Downloader> d, std::size_t redirect_count_ = 0 )
-        : task{t},
-          downloader{d},
+        : task{ std::move(t) },
+          downloader{ std::move(d) },
           redirect_count{redirect_count_}
     {}
 
