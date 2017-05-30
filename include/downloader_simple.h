@@ -22,8 +22,8 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using AddrInfoEvent = typename AIO::AddrInfoEvent;
     using GetAddrInfoReq = typename AIO::GetAddrInfoReq;
 
-    using TCPSocket = typename AIO::TCPSocketWrapper;
-    using TCPSocketSimple = typename AIO::TCPSocketWrapperSimple;
+    using TCPSocket = typename AIO::TCPSocket;
+    using TCPSocketSimple = typename AIO::TCPSocketSimple;
     using ConnectEvent = typename AIO::ConnectEvent;
     using WriteEvent = typename AIO::WriteEvent;
     using DataEvent = typename AIO::DataEvent;

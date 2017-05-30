@@ -3,7 +3,7 @@
 #include <gmock/gmock.h>
 #include "aio_uvw_tcp.h"
 
-struct TCPSocketWrapperMock : public uvw::TCPSocketWrapper
+struct TCPSocketMock : public uvw::TCPSocket
 {
     MOCK_METHOD2( connect, void(const std::string&, unsigned short) );
     MOCK_METHOD2( connect6, void(const std::string&, unsigned short) );
@@ -18,5 +18,5 @@ struct TCPSocketWrapperMock : public uvw::TCPSocketWrapper
     MOCK_METHOD0( close_, void() );
 
     template< typename Event >
-    void publish(Event&& event) { uvw::TCPSocketWrapper::publish( std::forward<Event>(event) ); }
+    void publish(Event&& event) { uvw::TCPSocket::publish( std::forward<Event>(event) ); }
 };

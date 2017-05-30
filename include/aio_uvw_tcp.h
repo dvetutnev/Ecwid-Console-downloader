@@ -7,7 +7,7 @@
 
 namespace uvw {
 
-class TCPSocketWrapper : public Emitter<TCPSocketWrapper>
+class TCPSocket : public Emitter<TCPSocket>
 {
 public:
     virtual void connect(const std::string& ip, unsigned short port) = 0;
@@ -18,13 +18,13 @@ public:
     virtual void shutdown() = 0;
     virtual bool active() const noexcept= 0;
     virtual void close() noexcept = 0;
-    virtual ~TCPSocketWrapper() = default;
+    virtual ~TCPSocket() = default;
 protected:
     struct ConstructorAccess { explicit ConstructorAccess(int) {} };
 };
 
 template< typename AIO >
-class TCPSocketWrapperSimple final : public TCPSocketWrapper, public std::enable_shared_from_this< TCPSocketWrapperSimple<AIO> >
+class TCPSocketSimple final : public TCPSocket, public std::enable_shared_from_this< TCPSocketSimple<AIO> >
 {
     using Loop = typename AIO::Loop;
     using TcpHandle = typename AIO::TcpHandle;
@@ -37,10 +37,10 @@ class TCPSocketWrapperSimple final : public TCPSocketWrapper, public std::enable
     using ShutdownEvent = typename AIO::ShutdownEvent;
 
 public:
-    TCPSocketWrapperSimple(ConstructorAccess, std::shared_ptr<Loop> loop_)
+    TCPSocketSimple(ConstructorAccess, std::shared_ptr<Loop> loop_)
         : loop{ std::move(loop_) }
     {}
-    static std::shared_ptr<TCPSocketWrapperSimple> create(std::shared_ptr<Loop>);
+    static std::shared_ptr<TCPSocketSimple> create(std::shared_ptr<Loop>);
 
     virtual void connect(const std::string& ip, unsigned short port) override final { tcp_handle->template connect<uvw::IPv4>(ip, port); }
     virtual void connect6(const std::string& ip, unsigned short port) override final { tcp_handle->template connect<uvw::IPv6>(ip, port); }
@@ -78,17 +78,17 @@ private:
     }
 
     template < typename Event >
-    static std::function<void(Event&, const TcpHandle&)> bind(std::shared_ptr<TCPSocketWrapperSimple> self)
+    static std::function<void(Event&, const TcpHandle&)> bind(std::shared_ptr<TCPSocketSimple> self)
     {
         using namespace std::placeholders;
-        return std::bind(&TCPSocketWrapperSimple::on_event<Event>, std::move(self), _1, _2);
+        return std::bind(&TCPSocketSimple::on_event<Event>, std::move(self), _1, _2);
     }
 };
 
 template< typename AIO >
-std::shared_ptr< TCPSocketWrapperSimple<AIO> > TCPSocketWrapperSimple<AIO>::create(std::shared_ptr<Loop> loop)
+std::shared_ptr< TCPSocketSimple<AIO> > TCPSocketSimple<AIO>::create(std::shared_ptr<Loop> loop)
 {
-    auto self = std::make_shared<TCPSocketWrapperSimple>( ConstructorAccess{42}, std::move(loop) );
+    auto self = std::make_shared<TCPSocketSimple>( ConstructorAccess{42}, std::move(loop) );
     auto tcp_handle = self->loop->template resource<TcpHandle>();
     if ( !tcp_handle )
         return nullptr;

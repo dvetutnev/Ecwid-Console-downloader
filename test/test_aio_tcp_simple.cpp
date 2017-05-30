@@ -27,7 +27,7 @@ struct AIO_Mock
     using CloseEvent = AIO_UVW::CloseEvent;
 };
 
-TEST(TCPSocketWrapperSimple, create_and_close)
+TEST(TCPSocketSimple, create_and_close)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
@@ -38,7 +38,7 @@ TEST(TCPSocketWrapperSimple, create_and_close)
                 .Times(1);
     }
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     resource->close();
     tcp_handle->publish( AIO_UVW::CloseEvent{} );
@@ -56,7 +56,7 @@ TEST(TCPSocketWrapperSimple, TcpHandle_is_null)
     auto loop = make_shared<LoopMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(nullptr) );
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_FALSE(resource);
     ASSERT_TRUE( loop.unique() );
 }
@@ -68,7 +68,7 @@ TEST(TCPSocketWrapperSimple, connect_failed)
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -78,7 +78,7 @@ TEST(TCPSocketWrapperSimple, connect_failed)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -118,7 +118,7 @@ TEST(TCPSocketWrapperSimple, connect6_failed)
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -128,7 +128,7 @@ TEST(TCPSocketWrapperSimple, connect6_failed)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -161,14 +161,14 @@ TEST(TCPSocketWrapperSimple, connect6_failed)
     ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, connect_shutdown_close_normal)
+TEST(TCPSocketSimple, connect_shutdown_close_normal)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -176,7 +176,7 @@ TEST(TCPSocketWrapperSimple, connect_shutdown_close_normal)
     resource->once<AIO_UVW::ConnectEvent>( [&cb_connect_called, &resource](const auto&, auto& handle)
     {
         cb_connect_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -185,7 +185,7 @@ TEST(TCPSocketWrapperSimple, connect_shutdown_close_normal)
     resource->once<AIO_UVW::ShutdownEvent>( [&cb_shutdown_called, &resource](const auto&, auto& handle)
     {
         cb_shutdown_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -194,7 +194,7 @@ TEST(TCPSocketWrapperSimple, connect_shutdown_close_normal)
     resource->once<AIO_UVW::CloseEvent>( [&cb_close_called, &resource](const auto&, auto& handle)
     {
         cb_close_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -234,14 +234,14 @@ TEST(TCPSocketWrapperSimple, connect_shutdown_close_normal)
     ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, read_failed)
+TEST(TCPSocketSimple, read_failed)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -251,7 +251,7 @@ TEST(TCPSocketWrapperSimple, read_failed)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -281,14 +281,14 @@ TEST(TCPSocketWrapperSimple, read_failed)
     ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, read_EOF)
+TEST(TCPSocketSimple, read_EOF)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -296,7 +296,7 @@ TEST(TCPSocketWrapperSimple, read_EOF)
     resource->once<AIO_UVW::EndEvent>( [&cb_called, &resource](const auto&, auto& handle)
     {
         cb_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -329,14 +329,14 @@ TEST(TCPSocketWrapperSimple, read_EOF)
     ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, read_normal)
+TEST(TCPSocketSimple, read_normal)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -349,7 +349,7 @@ TEST(TCPSocketWrapperSimple, read_normal)
         ASSERT_EQ(event.data.get(), raw_data_ptr);
         ASSERT_EQ(event.length, len);
 
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -380,14 +380,14 @@ TEST(TCPSocketWrapperSimple, read_normal)
     ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, read_stop)
+TEST(TCPSocketSimple, read_stop)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -418,14 +418,14 @@ TEST(TCPSocketWrapperSimple, read_stop)
     ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, write_failed_and_close_on_event)
+TEST(TCPSocketSimple, write_failed_and_close_on_event)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -435,7 +435,7 @@ TEST(TCPSocketWrapperSimple, write_failed_and_close_on_event)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -468,14 +468,14 @@ TEST(TCPSocketWrapperSimple, write_failed_and_close_on_event)
     ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, write_normal)
+TEST(TCPSocketSimple, write_normal)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -483,7 +483,7 @@ TEST(TCPSocketWrapperSimple, write_normal)
     resource->once<AIO_UVW::WriteEvent>( [&cb_called, &resource](const auto&, auto& handle)
     {
         cb_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -515,14 +515,14 @@ TEST(TCPSocketWrapperSimple, write_normal)
     ASSERT_LE(tcp_handle.use_count(), 2);
 }
 
-TEST(TCPSocketWrapperSimple, read_EOF_and_close_on_event)
+TEST(TCPSocketSimple, read_EOF_and_close_on_event)
 {
     auto loop = make_shared<LoopMock>();
     auto tcp_handle = make_shared<TcpHandleMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(tcp_handle) );
 
-    auto resource = uvw::TCPSocketWrapperSimple<AIO_Mock>::create(loop);
+    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_TRUE(resource);
     Mock::VerifyAndClearExpectations(loop.get());
 
@@ -530,7 +530,7 @@ TEST(TCPSocketWrapperSimple, read_EOF_and_close_on_event)
     resource->once<AIO_UVW::EndEvent>( [&cb_called, &resource](const auto&, auto& handle)
     {
         cb_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketWrapperSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
