@@ -2361,7 +2361,7 @@ Value</y:AttributeLabel>
       <data key="d5"/>
       <data key="d6">
         <y:UMLClassNode>
-          <y:Geometry height="319.85699414471776" width="637.9049906846337" x="4082.5273515145586" y="2163.8057827708126"/>
+          <y:Geometry height="299.556919367417" width="637.9049906846337" x="4082.527351514558" y="2163.8057827708126"/>
           <y:Fill color="#FFCC00" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.1328125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="171.6923828125" x="233.10630393606687" y="25.96875">uvw::TCPSocketSimple<y:LabelModel>
@@ -2386,7 +2386,6 @@ Value</y:AttributeLabel>
 +active()
 +close()
 
--is_closed() : bool
 -template&lt;Event&gt; on_event(event : Event&amp;, const AIO::TcpHandle)
 -template&lt;Event&gt; bind(self : shared_ptr&lt;TCPSocket&gt;) : function&lt;void(Event&amp;, const Tcphandle)&gt;</y:MethodLabel>
           </y:UML>

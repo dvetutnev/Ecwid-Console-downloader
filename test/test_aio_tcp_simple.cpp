@@ -4,7 +4,7 @@
 #include "aio_loop_mock.h"
 #include "aio_tcp_handle_mock.h"
 #include "aio_uvw.h"
-#include "aio_uvw_tcp.h"
+#include "aio_uvw_tcp_simple.h"
 
 using namespace std;
 
