@@ -3,6 +3,7 @@
 #include "on_tick_simple.h"
 
 #include <fstream>
+#include <iostream>
 
 using namespace std;
 
@@ -12,6 +13,11 @@ int main(int argc, char *argv[])
     const size_t concurrency = 2;
 
     ifstream task_stream{task_fname};
+    if ( !task_stream.is_open() )
+    {
+        cout << "Can`t open <" << task_fname << ">, break." << endl;
+        return 1;
+    }
     TaskListSimple task_list{task_stream, "./"};
     JobList job_list;
 
