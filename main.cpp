@@ -19,11 +19,11 @@ int main(int argc, char *argv[])
         return 1;
     }
     TaskListSimple task_list{task_stream, "./"};
-    JobList job_list;
 
     auto loop = AIO_UVW::Loop::getDefault();
     auto factory = make_shared<FactorySimple>(loop);
-    auto on_tick = make_shared< OnTickSimple<JobList> >(job_list, factory, task_list);
+    std::list<Job> job_list;
+    auto on_tick = make_shared<OnTickSimple>(job_list, factory, task_list);
     factory->set_OnTick(on_tick);
 
     for (size_t i = 1; i <= concurrency; i++)

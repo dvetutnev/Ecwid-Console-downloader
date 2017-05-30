@@ -19,8 +19,6 @@ public:
     std::size_t redirect_count;
 };
 
-using JobList = std::list<Job>;
-
 inline bool operator== (const Job& a, const Job& b)
 {
     return a.task == b.task && a.downloader == b.downloader && a.redirect_count == b.redirect_count;

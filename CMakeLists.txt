@@ -41,6 +41,7 @@ include_directories(${UVW_INCLUDE_DIR})
 set(SRC_LIST
     main.cpp
     src/task_simple.cpp
+    src/on_tick_simple.cpp
     src/http.cpp
 )
 add_executable(${PROJECT_NAME} ${SRC_LIST})
