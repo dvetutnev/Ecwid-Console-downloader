@@ -7,8 +7,7 @@
 class Task
 {
 public:
-    Task()
-    {}
+    Task() = default;
 
     template< typename StringUri,  typename StringFname,
               typename = std::enable_if_t< std::is_convertible<StringUri, std::string>::value, StringUri>,
@@ -18,17 +17,8 @@ public:
           fname{ std::forward<StringFname>(fname_) }
     {}
 
-    Task(const Task& other)
-        : uri{other.uri},
-          fname{other.fname}
-    {}
-
-    Task& operator= (const Task& other)
-    {
-        uri = other.uri;
-        fname = other.fname;
-        return *this;
-    }
+    Task(const Task&) = default;
+    Task& operator= (const Task&) = default;
 
     std::string uri;
     std::string fname;
