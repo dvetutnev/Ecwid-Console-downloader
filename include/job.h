@@ -8,12 +8,6 @@
 class Job
 {
 public:
-    Job()
-        : task{},
-          downloader{},
-          redirect_count{0}
-    {}
-
     Job( std::shared_ptr<Task> t, std::shared_ptr<Downloader> d, std::size_t redirect_count_ = 0 )
         : task{ std::move(t) },
           downloader{ std::move(d) },

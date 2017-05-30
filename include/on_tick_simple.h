@@ -65,17 +65,19 @@ void OnTickSimple<T>::next_task(const typename T::iterator job_it)
     if ( !factory )
         return;
 
-    Job next_job;
-    do
+    for (;;)
     {
-        next_job.task = task_list.get();
-        if ( !next_job.task )
+        auto task = task_list.get();
+        if (!task)
             return;
 
-        next_job.downloader = factory->create(*next_job.task);
-    } while( !next_job.downloader );
+        auto downloader = factory->create(*task);
+        if (!downloader)
+            continue;
 
-    job_container.insert( std::end(job_container), next_job );
+        job_container.emplace_back(task, downloader);
+        break;
+    }
 }
 
 template<typename T>
