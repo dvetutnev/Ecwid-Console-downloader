@@ -1,13 +1,14 @@
 #pragma once
 
+#include "downloader.h"
+#include "on_tick.h"
+#include "data_chunk.h"
+
 #include <chrono>
 #include <queue>
 #include <fcntl.h>
 #include <cassert>
 #include <limits>
-
-#include "downloader.h"
-#include "on_tick.h"
 
 template< typename AIO, typename Parser >
 class DownloaderSimple : public Downloader, public std::enable_shared_from_this< DownloaderSimple<AIO, Parser> >
@@ -71,43 +72,8 @@ private:
     bool receive_done = false;
     bool socket_connected = false;
 
-    struct Chunk
-    {
-        Chunk(std::unique_ptr<char[]> data_ = nullptr, std::size_t length_ = 0, std::size_t offset_ = 0) noexcept
-            : data{ std::move(data_) },
-              length{length_},
-              offset{offset_}
-        {}
-
-        Chunk(Chunk&& other) noexcept
-            : data{ std::move(other.data) },
-              length{other.length},
-              offset{other.offset}
-        {}
-
-        Chunk& operator= (Chunk&& other) noexcept
-        {
-            data = std::move(other.data);
-            length = other.length;
-            offset = other.offset;
-            return *this;
-        }
-
-        Chunk(const Chunk&) = delete;
-        Chunk& operator= (const Chunk&) = delete;
-        ~Chunk() = default;
-
-        operator bool() const noexcept { return data != nullptr; }
-        void reset() noexcept { data.reset(); }
-        const char* get() const noexcept { return data.get(); }
-
-        std::unique_ptr<char[]> data;
-        std::size_t length;
-        std::size_t offset;
-    };
-
-    Chunk chunk;
-    std::queue<Chunk> queue;
+    DataChunk chunk;
+    std::queue<DataChunk> queue;
     bool file_openned = false;
     bool file_operation_started = false;
     std::size_t offset_file = 0;
