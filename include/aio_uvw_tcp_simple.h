@@ -21,9 +21,7 @@ class TCPSocketSimple final : public TCPSocket, public std::enable_shared_from_t
     using ShutdownEvent = typename AIO::ShutdownEvent;
 
 public:
-    TCPSocketSimple(ConstructorAccess, std::shared_ptr<Loop> loop_)
-        : loop{ std::move(loop_) }
-    {}
+    TCPSocketSimple(ConstructorAccess) {}
     static std::shared_ptr<TCPSocketSimple> create(std::shared_ptr<Loop>);
 
     virtual void connect(const std::string& ip, unsigned short port) override final { tcp_handle->template connect<uvw::IPv4>(ip, port); }
@@ -73,8 +71,8 @@ private:
 template< typename AIO >
 std::shared_ptr< TCPSocketSimple<AIO> > TCPSocketSimple<AIO>::create(std::shared_ptr<Loop> loop)
 {
-    auto self = std::make_shared<TCPSocketSimple>( ConstructorAccess{42}, std::move(loop) );
-    auto tcp_handle = self->loop->template resource<TcpHandle>();
+    auto self = std::make_shared<TCPSocketSimple>( ConstructorAccess{42} );
+    auto tcp_handle = loop->template resource<TcpHandle>();
     if ( !tcp_handle )
         return nullptr;
 
