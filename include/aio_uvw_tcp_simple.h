@@ -24,18 +24,18 @@ public:
     TCPSocketSimple(ConstructorAccess) {}
     static std::shared_ptr<TCPSocketSimple> create(std::shared_ptr<Loop>);
 
-    virtual void connect(const std::string& ip, unsigned short port) override final { tcp_handle->template connect<uvw::IPv4>(ip, port); }
-    virtual void connect6(const std::string& ip, unsigned short port) override final { tcp_handle->template connect<uvw::IPv6>(ip, port); }
-    virtual void read() override final { tcp_handle->read(); }
-    virtual void stop() noexcept override final { tcp_handle->stop(); }
-    virtual void write(std::unique_ptr<char[]> data, std::size_t length) override final
+    virtual void connect(const std::string& ip, unsigned short port) override { tcp_handle->template connect<uvw::IPv4>(ip, port); }
+    virtual void connect6(const std::string& ip, unsigned short port) override { tcp_handle->template connect<uvw::IPv6>(ip, port); }
+    virtual void read() override { tcp_handle->read(); }
+    virtual void stop() noexcept override { tcp_handle->stop(); }
+    virtual void write(std::unique_ptr<char[]> data, std::size_t length) override
     {
         assert(length <= std::numeric_limits<unsigned int>::max());
         tcp_handle->write(std::move(data), length);
     }
-    virtual void shutdown() override final { tcp_handle->shutdown(); }
-    virtual bool active() const noexcept override final { return tcp_handle->active(); }
-    virtual void close() noexcept override final
+    virtual void shutdown() override { tcp_handle->shutdown(); }
+    virtual bool active() const noexcept override { return tcp_handle->active(); }
+    virtual void close() noexcept override
     {
         if (!closed)
         {
