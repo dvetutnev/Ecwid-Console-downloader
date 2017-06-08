@@ -137,18 +137,3 @@ function< void(DataEvent&, const TCPSocket&) > TCPSocketBandwidth::bind_on_data(
 {
     return [self = move(self)] (DataEvent& event, const auto&) { self->on_data(move(event.data), event.length); };
 }
-
-template < typename Event >
-void TCPSocketBandwidth::on_event(Event& event, const TCPSocket&)
-{
-    publish( std::move(event) );
-    if (!closed)
-        socket->template once<Event>( bind_on_event<Event>( shared_from_this()) );
-}
-
-template < typename Event >
-function< void(Event&, const TCPSocket&) > TCPSocketBandwidth::bind_on_event(shared_ptr<TCPSocketBandwidth> self)
-{
-    using namespace std::placeholders;
-    return std::bind(&TCPSocketBandwidth::on_event<Event>, std::move(self), _1, _2);
-}
