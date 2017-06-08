@@ -10,20 +10,8 @@ struct DataChunk
           offset{offset_}
     {}
 
-    DataChunk(DataChunk&& other) noexcept
-        : data{ std::move(other.data) },
-          length{other.length},
-          offset{other.offset}
-    {}
-
-    DataChunk& operator= (DataChunk&& other) noexcept
-    {
-        data = std::move(other.data);
-        length = other.length;
-        offset = other.offset;
-        return *this;
-    }
-
+    DataChunk(DataChunk&& other) noexcept = default;
+    DataChunk& operator= (DataChunk&& other) noexcept = default;
     DataChunk(const DataChunk&) = delete;
     DataChunk& operator= (const DataChunk&) = delete;
     ~DataChunk() = default;
