@@ -249,24 +249,7 @@ AIO_UVW::AddrInfoEvent create_addr_info_event_ipv6(const string& ip)
     return AIO_UVW::AddrInfoEvent{ std::move(addrinfo_ptr) };
 }
 
-struct DownloaderSimpleConnect_CreateHandles : public DownloaderSimpleResolve
-{
-    DownloaderSimpleConnect_CreateHandles()
-    {
-        EXPECT_CALL( *on_tick, invoke_(_) )
-                .Times(0);
-        EXPECT_CALL( *resolver, getNodeAddrInfo(host) )
-                .Times(1);
-
-        EXPECT_TRUE( downloader->run(task) );
-
-        EXPECT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
-        Mock::VerifyAndClearExpectations(instance_uri_parse.get());
-        Mock::VerifyAndClearExpectations(loop.get());
-        Mock::VerifyAndClearExpectations(resolver.get());
-        Mock::VerifyAndClearExpectations(on_tick.get());
-    }
-};
+struct DownloaderSimpleConnect_CreateHandles : public DownloaderSimpleResolve_normalRun {};
 
 TEST_F(DownloaderSimpleConnect_CreateHandles, socket_create_failed)
 {
@@ -274,9 +257,6 @@ TEST_F(DownloaderSimpleConnect_CreateHandles, socket_create_failed)
             .WillRepeatedly( Return(nullptr) );
     EXPECT_CALL( *loop, resource_TimerHandleMock() )
             .WillRepeatedly( Return(nullptr) );
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .Times(1)
-            .WillRepeatedly( Invoke(on_tick_handler) );
 
     resolver->publish( create_addr_info_event("127.0.0.1") );
 
@@ -294,8 +274,6 @@ TEST_F(DownloaderSimpleConnect_CreateHandles, timer_create_failed)
             .WillOnce( Return(nullptr) );
     EXPECT_CALL( *socket, close_() )
             .Times(1);
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .WillOnce( Invoke(on_tick_handler) );
 
     resolver->publish( create_addr_info_event("127.0.0.1") );
 
@@ -335,8 +313,6 @@ TEST_F(DownloaderSimpleConnect, connect_failed)
             .Times(1);
     EXPECT_CALL( *timer, start(_,_) )
             .Times(1);
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .WillOnce( Invoke(on_tick_handler) );
 
     resolver->publish( create_addr_info_event(ip) );
 
@@ -370,8 +346,6 @@ TEST_F(DownloaderSimpleConnect, connect6_failed)
             .Times(1);
     EXPECT_CALL( *timer, start(_,_) )
             .Times(1);
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .WillOnce( Invoke(on_tick_handler) );
 
     resolver->publish( create_addr_info_event_ipv6(ip) );
 
@@ -406,8 +380,6 @@ TEST_F(DownloaderSimpleConnect, connect_timeout)
     TimerHandleMock::Time timeout{5000};
     EXPECT_CALL( *timer, start(timeout, repeat) )
             .Times(1);
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .WillOnce( Invoke(on_tick_handler) );
 
     resolver->publish( create_addr_info_event("127.0.0.1") );
 
@@ -450,8 +422,6 @@ TEST_F(DownloaderSimpleConnect, timer_failed_on_run)
         EXPECT_CALL( *timer, close_() )
                 .Times(1);
     }
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .WillOnce( Invoke(on_tick_handler) );
 
     resolver->publish( create_addr_info_event("127.0.0.1") );
 
@@ -477,8 +447,6 @@ struct DownloaderSimpleHttpRequest : public DownloaderSimpleConnect
                 .Times(1);
         EXPECT_CALL( *timer, start(timeout, repeat) )
                 .Times(1);
-        EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-                .WillOnce( Invoke(on_tick_handler) );
 
         resolver->publish( create_addr_info_event(ip) );
 
