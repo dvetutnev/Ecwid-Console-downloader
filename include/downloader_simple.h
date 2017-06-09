@@ -10,6 +10,8 @@
 #include <cassert>
 #include <limits>
 
+#include <iostream>
+
 template< typename AIO, typename Parser >
 class DownloaderSimple : public Downloader, public std::enable_shared_from_this< DownloaderSimple<AIO, Parser> >
 {
@@ -72,8 +74,7 @@ private:
     bool receive_done = false;
     bool socket_connected = false;
 
-    DataChunk chunk;
-    std::queue<DataChunk> queue;
+    std::queue<DataChunk> buffer;
     bool file_openned = false;
     bool file_operation_started = false;
     std::size_t offset_file = 0;
@@ -298,8 +299,8 @@ template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::size_t length)
 {
     m_status.downloaded += length;
-    queue.emplace(std::move(data), length);
-    if ( queue.size() >= backlog )
+    buffer.emplace(std::move(data), length);
+    if ( buffer.size() >= backlog && socket->active() )
         socket->stop();
 
     if (!file)
@@ -336,7 +337,7 @@ void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::s
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_write()
 {
-    if ( queue.empty() && !chunk)
+    if ( buffer.empty() )
     {
         if (receive_done)
         {
@@ -366,27 +367,28 @@ void DownloaderSimple<AIO, Parser>::on_write()
         return;
     }
 
-    if (!chunk)
-    {
-        chunk = std::move( queue.front() );
-        queue.pop();
-    }
-
     std::weak_ptr<DownloaderSimple> weak{ this->template shared_from_this() };
     file->template once<FileWriteEvent>( [weak](const auto& event, const auto&)
+    {
+        auto self = weak.lock();
+        if (self)
         {
-            auto self = weak.lock();
-            if (self)
-            {
-                self->offset_file += event.size;
-                self->chunk.offset += event.size;
-                if (self->chunk.offset == self->chunk.length)
-                    self->chunk.reset();
-                self->on_write();
-            }
-        } );
-    assert( chunk.length <= std::numeric_limits<unsigned int>::max() );
-    file->write(const_cast<char*>(chunk.get() + chunk.offset), chunk.length - chunk.offset, offset_file);
+            self->offset_file += event.size;
+
+            DataChunk& chunk = self->buffer.front();
+            chunk.offset += event.size;
+            if (chunk.offset == chunk.length)
+                self->buffer.pop();
+
+            self->on_write();
+        }
+    } );
+
+    DataChunk& chunk = buffer.front();
+    std::size_t chunk_available = chunk.length - chunk.offset;
+    char* chunk_ptr = chunk.data.get() + chunk.offset;
+    assert( chunk_available <= std::numeric_limits<unsigned int>::max() );
+    file->write(chunk_ptr, chunk_available, offset_file);
 }
 
 template< typename AIO, typename Parser >

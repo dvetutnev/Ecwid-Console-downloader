@@ -21,6 +21,6 @@ struct DataChunk
     const char* get() const noexcept { return data.get(); }
 
     std::unique_ptr<char[]> data;
-    std::size_t length;
+    const std::size_t length;
     std::size_t offset;
 };
