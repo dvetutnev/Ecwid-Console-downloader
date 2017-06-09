@@ -63,7 +63,6 @@ private:
         return [self = std::move(self)](Event& event, const TCPSocket&) { self->on_event<Event>(event); };
     }
 
-
     void on_data(std::unique_ptr<char[]>, std::size_t);
     static std::function< void(uvw::DataEvent&, const TCPSocket&) > bind_on_data(std::shared_ptr<TCPSocketBandwidth>);
     std::unique_ptr<char[]> pop_buffer(std::size_t);
