@@ -457,6 +457,24 @@ struct DownloaderSimpleHttpRequest : public DownloaderSimpleConnect
         Mock::VerifyAndClearExpectations(on_tick.get());
     }
 
+    void prepare_close_socket_and_timer()
+    {
+        EXPECT_CALL( *socket, close_() )
+                .Times(1);
+        EXPECT_CALL( *timer, close_() )
+                .Times(1);
+        EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+                .WillOnce( Invoke(on_tick_handler) );
+    }
+
+    void check_close_socket_and_timer()
+    {
+        EXPECT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+        Mock::VerifyAndClearExpectations(socket.get());
+        Mock::VerifyAndClearExpectations(timer.get());
+        Mock::VerifyAndClearExpectations(on_tick.get());
+    }
+
     const string ip;
     TimerHandleMock::Time timeout;
     TimerHandleMock::Time repeat;
@@ -466,7 +484,8 @@ TEST_F(DownloaderSimpleHttpRequest, write_failed__and_check_request_data)
 {
     string request;
     EXPECT_CALL( *socket, write_(_,_) )
-            .WillOnce( Invoke( [&request](const char data[], unsigned int len) { request = string{data, len}; } ) );
+            .Times( AtLeast(1) )
+            .WillRepeatedly( Invoke( [&request](const char data[], unsigned int len) { request.append(data, len); } ) );
     {
         InSequence s;
         EXPECT_CALL( *timer, stop() )
@@ -479,7 +498,7 @@ TEST_F(DownloaderSimpleHttpRequest, write_failed__and_check_request_data)
 
     socket->publish( AIO_UVW::ConnectEvent{} );
 
-    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    EXPECT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
     const string pattern_request_line = "^GET\\s" + query + "\\sHTTP/1.1\\r\\n";
     std::regex re_request_line{pattern_request_line};
     if ( !std::regex_search(request, re_request_line) )
@@ -499,19 +518,9 @@ TEST_F(DownloaderSimpleHttpRequest, write_failed__and_check_request_data)
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
-    EXPECT_CALL( *socket, close_() )
-            .Times(1);
-    EXPECT_CALL( *timer, close_() )
-            .Times(1);
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .WillOnce( Invoke(on_tick_handler) );
-
+    prepare_close_socket_and_timer();
     socket->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } );
-
-    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(socket.get());
-    Mock::VerifyAndClearExpectations(timer.get());
-    Mock::VerifyAndClearExpectations(on_tick.get());
+    check_close_socket_and_timer();
 }
 
 TEST_F(DownloaderSimpleHttpRequest, write_timeout)
@@ -530,24 +539,14 @@ TEST_F(DownloaderSimpleHttpRequest, write_timeout)
 
     socket->publish( AIO_UVW::ConnectEvent{} );
 
-    ASSERT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
+    EXPECT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
     Mock::VerifyAndClearExpectations(socket.get());
     Mock::VerifyAndClearExpectations(timer.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 
-    EXPECT_CALL( *socket, close_() )
-            .Times(1);
-    EXPECT_CALL( *timer, close_() )
-            .Times(1);
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .WillOnce( Invoke(on_tick_handler) );
-
+    prepare_close_socket_and_timer();
     timer->publish( AIO_UVW::TimerEvent{} );
-
-    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(socket.get());
-    Mock::VerifyAndClearExpectations(timer.get());
-    Mock::VerifyAndClearExpectations(on_tick.get());
+    check_close_socket_and_timer();
 }
 
 TEST_F(DownloaderSimpleHttpRequest, timer_failed_on_run)
@@ -572,11 +571,7 @@ TEST_F(DownloaderSimpleHttpRequest, timer_failed_on_run)
             .WillOnce( Invoke(on_tick_handler) );
 
     socket->publish( AIO_UVW::ConnectEvent{} );
-
-    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(socket.get());
-    Mock::VerifyAndClearExpectations(timer.get());
-    Mock::VerifyAndClearExpectations(on_tick.get());
+    check_close_socket_and_timer();
 }
 
 /*------- read start -------*/
