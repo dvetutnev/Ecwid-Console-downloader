@@ -107,6 +107,7 @@ struct DownloaderSimpleF : public ::testing::Test
     unique_ptr<HttpParserMock> instance_uri_parse;
 
     const std::size_t backlog;
+
     shared_ptr<Downloader> downloader;
 };
 
@@ -156,50 +157,9 @@ struct DownloaderSimpleResolve : public DownloaderSimpleF
     const unsigned short port;
     const string query;
     const Task task;
+
     shared_ptr<GetAddrInfoReqMock> resolver;
 };
-
-TEST_F(DownloaderSimpleResolve, host_resolve_failed)
-{
-    EXPECT_CALL( *on_tick, invoke_(_) )
-            .Times(0);
-    EXPECT_CALL( *resolver, getNodeAddrInfo(host) )
-            .Times(1);
-
-    ASSERT_TRUE( downloader->run(task) );
-
-    ASSERT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
-    Mock::VerifyAndClearExpectations(instance_uri_parse.get());
-    Mock::VerifyAndClearExpectations(loop.get());
-    Mock::VerifyAndClearExpectations(resolver.get());
-    Mock::VerifyAndClearExpectations(on_tick.get());
-
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .WillOnce( Invoke(on_tick_handler) );
-
-    resolver->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EAI_NONAME) } );
-    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(loop.get());
-    Mock::VerifyAndClearExpectations(on_tick.get());
-}
-
-TEST_F(DownloaderSimpleResolve, stop)
-{
-    EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
-            .Times( AtLeast(1) )
-            .WillRepeatedly( Invoke(on_tick_handler) );
-    EXPECT_CALL( *resolver, getNodeAddrInfo(host) )
-            .Times(1);
-    ASSERT_TRUE( downloader->run(task) );
-    ASSERT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
-    Mock::VerifyAndClearExpectations(loop.get());
-
-    EXPECT_CALL( *resolver, cancel() )
-            .WillOnce( Return(true) );
-    downloader->stop();
-    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(loop.get());
-}
 
 TEST_F(DownloaderSimpleResolve, dont_invoke_tick_if_resolver_failed_run)
 {
@@ -215,6 +175,48 @@ TEST_F(DownloaderSimpleResolve, dont_invoke_tick_if_resolver_failed_run)
     cout << "status.state_str => " << status.state_str << endl;
     Mock::VerifyAndClearExpectations(instance_uri_parse.get());
     Mock::VerifyAndClearExpectations(loop.get());
+    Mock::VerifyAndClearExpectations(resolver.get());
+    Mock::VerifyAndClearExpectations(on_tick.get());
+}
+
+struct DownloaderSimpleResolve_normalRun : public DownloaderSimpleResolve
+{
+    DownloaderSimpleResolve_normalRun()
+    {
+        EXPECT_CALL( *on_tick, invoke_(_) )
+                .Times(0);
+        EXPECT_CALL( *resolver, getNodeAddrInfo(host) )
+                .Times(1);
+
+        EXPECT_TRUE( downloader->run(task) );
+
+        EXPECT_EQ( downloader->status().state, StatusDownloader::State::OnTheGo );
+        Mock::VerifyAndClearExpectations(instance_uri_parse.get());
+        Mock::VerifyAndClearExpectations(loop.get());
+        Mock::VerifyAndClearExpectations(resolver.get());
+        Mock::VerifyAndClearExpectations(on_tick.get());
+
+        EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
+                .WillOnce( Invoke(on_tick_handler) );
+    }
+};
+
+TEST_F(DownloaderSimpleResolve_normalRun, host_resolve_failed)
+{
+    resolver->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EAI_NONAME) } );
+
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+    Mock::VerifyAndClearExpectations(on_tick.get());
+}
+
+TEST_F(DownloaderSimpleResolve_normalRun, stop)
+{
+    EXPECT_CALL( *resolver, cancel() )
+            .WillOnce( Return(true) );
+
+    downloader->stop();
+
+    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
     Mock::VerifyAndClearExpectations(resolver.get());
     Mock::VerifyAndClearExpectations(on_tick.get());
 }
