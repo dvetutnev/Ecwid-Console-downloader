@@ -1056,59 +1056,37 @@ struct DownloaderSimpleQueue : public DownloaderSimpleFileOpen
     {
         EXPECT_CALL( *timer, again() )
                 .Times( AtLeast(1) );
+        EXPECT_CALL( *file, open(task.fname, file_flags, file_mode) )
+                .Times(1);
         EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
                 .Times( AtLeast(1) )
                 .WillRepeatedly( Invoke(on_tick_handler) );
-        EXPECT_CALL( *file, open(task.fname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP) )
-                .Times(1);
     }
 };
 
 TEST_F(DownloaderSimpleQueue, partial_file_write)
 {
-    const size_t chunk_size = 1000;
-    using Chunk = std::pair< unique_ptr<char[]>, std::size_t >;
-    auto generate_chunk = [chunk_size]()
-    {
-        char* ptr = new char[chunk_size];
-        std::random_device rd{};
-        std::uniform_int_distribution<unsigned int> dist{0, 255};
-        std::generate_n( ptr, chunk_size, [&dist, &rd]() { return static_cast<char>( dist(rd) ); } );
-        return Chunk{unique_ptr<char[]>{ptr}, chunk_size};
-    };
-    vector<Chunk> chunks{backlog};
-    std::generate(std::begin(chunks), std::end(chunks), generate_chunk);
-    string buffer;
-    for (const auto& item : chunks)
-        buffer.append(item.first.get(), item.second);
-
-    std::size_t it = 0;
-    auto on_data = [this, &it, &chunks]()
-    {
-        Chunk chunk = std::move( chunks[it++] );
-        handler_on_data(std::move(chunk.first), chunk.second);
-    };
-    HttpParser::ResponseParseResult result;
-    result.state = HttpParser::ResponseParseResult::State::InProgress;
-    EXPECT_CALL( *http_parser, response_parse_(_,_) )
-            .Times( AtLeast(1) )
-            .WillRepeatedly( DoAll( InvokeWithoutArgs(on_data),
-                                    Return(result) ) );
     bool socket_active = true;
     EXPECT_CALL( *socket, stop() )
             .WillOnce( Invoke( [&socket_active]() { socket_active = false; } ) );
     EXPECT_CALL( *socket, active_() )
             .WillRepeatedly( ReturnPointee(&socket_active) );
-
-    for (size_t i = 1; i <= backlog; i++)
-        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{}, 0} );
     EXPECT_CALL( *socket, read() )
             .Times(0);
+
+    const size_t chunk_size = 1000;
+    string input_data;
+    for (size_t i = 1; i <= backlog; i++)
+    {
+        char* data = generate_data(chunk_size);
+        input_data.append(data, chunk_size);
+        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{data}, chunk_size} );
+    }
 
     string buff(chunk_size * backlog, '\0');
     auto buff_replace = [&buff](const char* data, size_t length, size_t offset) { buff.replace(offset, length, data, length); };
 
-    ASSERT_EQ(backlog, 4);
+    EXPECT_EQ(backlog, 4);
 
     {
         InSequence s;
@@ -1151,38 +1129,36 @@ TEST_F(DownloaderSimpleQueue, partial_file_write)
 
     Mock::VerifyAndClearExpectations(socket.get());
     EXPECT_EQ(downloader->status().state, StatusDownloader::State::OnTheGo);
-    EXPECT_TRUE(buffer == buff);
+    EXPECT_TRUE(input_data == buff);
 
     // Cancel download
-    EXPECT_CALL( *socket, close_() )
-            .Times(1);
-    EXPECT_CALL( *timer, close_() )
-            .Times(1);
-    EXPECT_CALL( *file, cancel() )
-            .Times(0);
+    Mock::VerifyAndClearExpectations(on_tick.get());
+    prepare_close_socket_and_timer();
+
     auto fs = make_shared<FsReqMock>();
-    EXPECT_CALL( *fs, unlink(_) )
+    EXPECT_CALL( *loop, resource_FsReqMock() )
+            .WillOnce( Return(fs) );
+    EXPECT_CALL( *file, cancel() )
             .Times(0);
     {
         InSequence s;
-        EXPECT_CALL( *loop, resource_FsReqMock() )
-                .WillOnce( Return(fs) );
         EXPECT_CALL( *file, close() )
                 .Times(1);
+        EXPECT_CALL( *fs, unlink( task.fname.c_str() ) )
+                .Times(1);
     }
+
     downloader->stop();
-    ASSERT_EQ(downloader->status().state, StatusDownloader::State::Failed);
-    Mock::VerifyAndClearExpectations(loop.get());
-    Mock::VerifyAndClearExpectations(socket.get());
-    Mock::VerifyAndClearExpectations(timer.get());
-    Mock::VerifyAndClearExpectations(file.get());
-    // Delete file
-    EXPECT_CALL( *fs, unlink(_) )
-            .Times(1);
+    EXPECT_EQ(downloader->status().state, StatusDownloader::State::Failed);
+
     file->publish( AIO_UVW::FileCloseEvent{task.fname.c_str()} );
 
+    check_close_socket_and_timer();
+
+    Mock::VerifyAndClearExpectations(file.get());
     Mock::VerifyAndClearExpectations(fs.get());
-    ASSERT_LE(fs.use_count(), 2);
+    Mock::VerifyAndClearExpectations(loop.get());
+    EXPECT_LE(fs.use_count(), 2);
 }
 
 struct DownloaderSimpleBacklog : public DownloaderSimpleQueue
