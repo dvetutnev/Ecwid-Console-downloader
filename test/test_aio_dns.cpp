@@ -57,7 +57,7 @@ TEST(aio_uvw__GetAddrInfoReq, loopback)
         cout << "event.data->ai_protocol => " << event.data->ai_protocol << endl;
     }
                 );
-    resolver->getNodeAddrInfo(host);
+    resolver->nodeAddrInfo(host);
     loop->run();
     ASSERT_TRUE(resolved);
 }
@@ -76,7 +76,7 @@ TEST(aio_uvw__GetAddrInfoReq, bad_uri)
                 );
     resolver->on<AIO_UVW::AddrInfoEvent>( [](const auto&, auto&) { FAIL(); }
                 );
-    resolver->getNodeAddrInfo("bad_uri");
+    resolver->nodeAddrInfo("bad_uri");
     loop->run();
     ASSERT_TRUE(failed);
 }

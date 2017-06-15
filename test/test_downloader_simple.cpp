@@ -165,7 +165,7 @@ TEST_F(DownloaderSimpleResolve, dont_invoke_tick_if_resolver_failed_run)
 {
     EXPECT_CALL( *on_tick, invoke_(_) )
             .Times(0);
-    EXPECT_CALL( *resolver, getNodeAddrInfo(host) )
+    EXPECT_CALL( *resolver, nodeAddrInfo(host) )
             .WillOnce( Invoke( [h = resolver.get()](string) { h->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
 
     ASSERT_FALSE( downloader->run(task) );
@@ -185,7 +185,7 @@ struct DownloaderSimpleResolve_normalRun : public DownloaderSimpleResolve
     {
         EXPECT_CALL( *on_tick, invoke_(_) )
                 .Times(0);
-        EXPECT_CALL( *resolver, getNodeAddrInfo(host) )
+        EXPECT_CALL( *resolver, nodeAddrInfo(host) )
                 .Times(1);
 
         EXPECT_TRUE( downloader->run(task) );

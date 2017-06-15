@@ -153,7 +153,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
         self->on_resolve(event);
     } );
 
-    resolver->getNodeAddrInfo(uri_parsed->host);
+    resolver->nodeAddrInfo(uri_parsed->host);
 
     if ( m_status.state == State::Init )
     {
