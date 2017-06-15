@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <chrono>
 
 namespace bandwidth {
 
@@ -11,6 +12,13 @@ public:
     virtual std::size_t available() const noexcept = 0;
     virtual void transfer(std::size_t) = 0;
     virtual ~Stream() = default;
+};
+
+class Time
+{
+public:
+    virtual std::chrono::milliseconds elapsed() noexcept = 0;
+    virtual ~Time() = default;
 };
 
 class Controller
