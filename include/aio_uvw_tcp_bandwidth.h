@@ -4,8 +4,6 @@
 #include "bandwidth.h"
 #include "data_chunk.h"
 
-#include <cassert>
-#include <numeric>
 #include <queue>
 
 namespace uvw {
@@ -21,21 +19,17 @@ public:
     {}
     static std::shared_ptr<TCPSocketBandwidth> create(std::shared_ptr<void>, std::shared_ptr<Controller>, std::shared_ptr<TCPSocket>);
 
-    virtual void connect(const std::string& ip, unsigned short port) override { socket->connect(ip, port); }
-    virtual void connect6(const std::string& ip, unsigned short port) override { socket->connect6(ip, port); }
+    virtual void connect(const std::string&, unsigned short) override;
+    virtual void connect6(const std::string&, unsigned short) override;
     virtual void read() override;
     virtual void stop() noexcept override;
-    virtual void write(std::unique_ptr<char[]> data, std::size_t length) override
-    {
-        assert(length <= std::numeric_limits<unsigned int>::max());
-        socket->write(std::move(data), length);
-    }
-    virtual void shutdown() override { socket->shutdown(); }
+    virtual void write(std::unique_ptr<char[]>, std::size_t) override;
+    virtual void shutdown() override;
     virtual bool active() const noexcept override;
     virtual void close() noexcept override;
 
-    virtual void set_buffer(std::size_t length) noexcept override { buffer_max_length = length; }
-    virtual std::size_t available() const noexcept override { return buffer_used; }
+    virtual void set_buffer(std::size_t) noexcept override;
+    virtual std::size_t available() const noexcept override;
     virtual void transfer(std::size_t) override;
 
     TCPSocketBandwidth() = delete;
@@ -50,18 +44,9 @@ private:
     bool closed = false;
 
     template < typename Event >
-    void on_event(Event& event)
-    {
-        publish( std::move(event) );
-        if (!closed)
-            socket->template once<Event>( bind_on_event<Event>( shared_from_this()) );
-    }
-
+    void on_event(Event&);
     template < typename Event >
-    static std::function< void(Event&, const TCPSocket&) > bind_on_event(std::shared_ptr<TCPSocketBandwidth> self)
-    {
-        return [self = std::move(self)](Event& event, const TCPSocket&) { self->on_event<Event>(event); };
-    }
+    static std::function< void(Event&, const TCPSocket&) > bind_on_event(std::shared_ptr<TCPSocketBandwidth>);
 
     void on_data(std::unique_ptr<char[]>, std::size_t);
     static std::function< void(uvw::DataEvent&, const TCPSocket&) > bind_on_data(std::shared_ptr<TCPSocketBandwidth>);

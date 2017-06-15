@@ -1,6 +1,8 @@
 #include "aio_uvw_tcp_bandwidth.h"
 
 #include <algorithm>
+#include <cassert>
+#include <numeric>
 
 using std::size_t;
 using std::shared_ptr;
@@ -21,6 +23,9 @@ using uvw::DataEvent;
 using uvw::EndEvent;
 using uvw::ShutdownEvent;
 
+
+/* TCPSocket implementation */
+
 shared_ptr<TCPSocketBandwidth> TCPSocketBandwidth::create(shared_ptr<void>, shared_ptr<Controller> controller, shared_ptr<TCPSocket> socket)
 {
     auto self = make_shared<TCPSocketBandwidth>( ConstructorAccess{42}, controller, move(socket) );
@@ -37,6 +42,16 @@ shared_ptr<TCPSocketBandwidth> TCPSocketBandwidth::create(shared_ptr<void>, shar
     return self;
 }
 
+void TCPSocketBandwidth::connect(const std::string& ip, unsigned short port)
+{
+    socket->connect(ip, port);
+}
+
+void TCPSocketBandwidth::connect6(const std::string& ip, unsigned short port)
+{
+    socket->connect6(ip, port);
+}
+
 void TCPSocketBandwidth::read()
 {
     stopped = false;
@@ -49,6 +64,17 @@ void TCPSocketBandwidth::stop() noexcept
     stopped = true;
     if (!paused)
         socket->stop();
+}
+
+void TCPSocketBandwidth::write(std::unique_ptr<char[]> data, std::size_t length)
+{
+    assert(length <= std::numeric_limits<unsigned int>::max());
+    socket->write(std::move(data), length);
+}
+
+void TCPSocketBandwidth::shutdown()
+{
+    socket->shutdown();
 }
 
 bool TCPSocketBandwidth::active() const noexcept
@@ -66,6 +92,19 @@ void TCPSocketBandwidth::close() noexcept
         socket->once<CloseEvent>( [self = shared_from_this()](auto& event, const auto&) { self->publish( move(event) ); } );
         socket->close();
     }
+}
+
+
+/* Stream implementation */
+
+void TCPSocketBandwidth::set_buffer(std::size_t length) noexcept
+{
+    buffer_max_length = length;
+}
+
+size_t TCPSocketBandwidth::available() const noexcept
+{
+    return buffer_used;
 }
 
 void TCPSocketBandwidth::transfer(size_t length)
@@ -87,6 +126,23 @@ void TCPSocketBandwidth::transfer(size_t length)
         paused = false;
         socket->read();
     }
+}
+
+
+/* private implementation */
+
+template < typename Event >
+void TCPSocketBandwidth::on_event(Event& event)
+{
+    publish( std::move(event) );
+    if (!closed)
+        socket->template once<Event>( bind_on_event<Event>( shared_from_this()) );
+}
+
+template < typename Event >
+function< void(Event&, const TCPSocket&) > TCPSocketBandwidth::bind_on_event(std::shared_ptr<TCPSocketBandwidth> self)
+{
+    return [self = std::move(self)](Event& event, const TCPSocket&) { self->on_event<Event>(event); };
 }
 
 unique_ptr<char[]> TCPSocketBandwidth::pop_buffer(size_t length)
