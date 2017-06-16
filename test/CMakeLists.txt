@@ -15,4 +15,5 @@ add_test_simple(test_http_parser_response ${CMAKE_SOURCE_DIR}/${PROJECT_SRC_DIR}
 add_test_simple(test_aio_dns)
 add_test_simple(test_aio_tcp_simple)
 add_test_simple(test_aio_tcp_bandwidth ${CMAKE_SOURCE_DIR}/${PROJECT_SRC_DIR}/aio_uvw_tcp_bandwidth.cpp)
+add_test_simple(test_bandwidth_controller ${CMAKE_SOURCE_DIR}/${PROJECT_SRC_DIR}/bandwidth_controller.cpp)
 add_test_simple(test_downloader_simple)
