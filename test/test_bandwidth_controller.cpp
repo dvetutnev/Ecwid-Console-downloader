@@ -4,10 +4,14 @@
 
 #include "bandwidth_stream_mock.h"
 #include "bandwidth_time_mock.h"
+#include "aio_loop_mock.h"
+#include "aio_timer_mock.h"
+#include "aio_uvw.h"
 
 using ::bandwidth::Stream;
 using ::bandwidth::StreamMock;
 using ::bandwidth::TimeMock;
+using ::bandwidth::Controller;
 using ::bandwidth::ControllerSimple;
 
 using ::std::size_t;
@@ -24,22 +28,59 @@ using ::testing::Mock;
 using ::testing::ReturnPointee;
 using ::testing::Invoke;
 
+struct AIO_Mock
+{
+    using Loop = LoopMock;
+    using TimerHandle = TimerHandleMock;
+
+    using ErrorEvent = AIO_UVW::ErrorEvent;
+    using TimerEvent = AIO_UVW::TimerEvent;
+};
+
+TEST(bandwidth_ControllerSimple, timer_cant_create)
+{
+    auto loop = make_shared<LoopMock>();
+    EXPECT_CALL( *loop, resource_TimerHandleMock() )
+            .WillOnce( Return(nullptr) );
+
+    ASSERT_THROW(make_shared< ControllerSimple<AIO_Mock> >( loop, 4242, make_unique<TimeMock>() ), std::runtime_error);
+    Mock::VerifyAndClearExpectations( loop.get() );
+}
+
 struct bandwidth_ControllerSimpleF : public ::testing::Test
 {
     bandwidth_ControllerSimpleF()
         : limit{9000},
-          buffer_reserve{ limit * 4 }
+          buffer_reserve{ limit * 4 },
+          loop{ make_shared<LoopMock>() },
+          timer{ make_shared<TimerHandleMock>() }
     {
+        EXPECT_CALL( *loop, resource_TimerHandleMock() )
+                .WillOnce( Return(timer) );
+
         auto t = make_unique<TimeMock>();
         time = t.get();
-        controller = make_shared<ControllerSimple>( limit, move(t) );
+
+        controller = make_shared< ControllerSimple<AIO_Mock> >( loop, limit, move(t) );
+
+        Mock::VerifyAndClearExpectations( loop.get() );
+    }
+
+    virtual ~bandwidth_ControllerSimpleF()
+    {
+        EXPECT_LE( loop.use_count(), 2);
+        EXPECT_LE( timer.use_count(), 2);
+        EXPECT_TRUE( controller.unique() );
     }
 
     const size_t limit;
     const size_t buffer_reserve;
 
+    shared_ptr<LoopMock> loop;
+    shared_ptr<TimerHandleMock> timer;
     TimeMock* time;
-    shared_ptr<ControllerSimple> controller;
+
+    shared_ptr<Controller> controller;
 };
 
 TEST_F(bandwidth_ControllerSimpleF, set_buffer_in_stream)
