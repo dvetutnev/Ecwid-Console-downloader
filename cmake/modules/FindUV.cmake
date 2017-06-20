@@ -9,8 +9,6 @@ if (NOT UV_DIR)
     message(FATAL_ERROR "libuv not found!")
 endif()
 
-message(STATUS "CMAKE_C_COMPILER => ${CMAKE_C_COMPILER}")
-
 set(UV_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/vendor/libuv")
 include(ExternalProject)
 ExternalProject_Add(
@@ -23,7 +21,7 @@ ExternalProject_Add(
     LIST_SEPARATOR " "
     BUILD_IN_SOURCE 1
 
-    CONFIGURE_COMMAND ${UV_DIR}/autogen.sh COMMAND ${UV_DIR}/configure --prefix=${UV_INSTALL_DIR} --enable-static --disable-shared CFLAGS=-fPIC CC=${CMAKE_C_COMPILER}
+    CONFIGURE_COMMAND ${UV_DIR}/autogen.sh COMMAND make clean COMMAND ${UV_DIR}/configure --prefix=${UV_INSTALL_DIR} --enable-static --disable-shared CFLAGS=-fPIC CC=${CMAKE_C_COMPILER}
     BUILD_COMMAND make --trace
     INSTALL_COMMAND make install
 
