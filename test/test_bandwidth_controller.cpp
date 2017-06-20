@@ -21,12 +21,14 @@ using ::std::unique_ptr;
 using ::std::make_unique;
 using ::std::move;
 using ::std::chrono::milliseconds;
+using ::std::chrono::duration_cast;
 
 using ::testing::_;
 using ::testing::Return;
 using ::testing::Mock;
 using ::testing::ReturnPointee;
 using ::testing::Invoke;
+using ::testing::AtLeast;
 
 struct AIO_Mock
 {
@@ -101,7 +103,7 @@ TEST_F(bandwidth_ControllerSimpleF, ignore_nullptr)
     ASSERT_NO_THROW( controller->add_stream(null_ptr) );
 
     EXPECT_CALL( *time, elapsed_() )
-            .WillRepeatedly( Return( milliseconds{1000} ) );
+            .WillRepeatedly( Return( milliseconds{100} ) );
     ASSERT_NO_THROW( controller->shedule_transfer() );
 }
 
@@ -240,9 +242,145 @@ TEST_F(bandwidth_ControllerSimpleStreams, redistribution_unused_bandwidth)
 
     controller->shedule_transfer();
 
-    EXPECT_EQ(available_1, 0);
-    EXPECT_EQ(available_2, 0);
-    EXPECT_EQ(available_3, 0);
+    EXPECT_EQ(available_1, 0u);
+    EXPECT_EQ(available_2, 0u);
+    EXPECT_EQ(available_3, 0u);
 
     std::cout << "Count invoke transfer: stream_1 = " << count_1 << ", stream_2 = " << count_2 << ", stream_3 = " << count_3 << std::endl;
+}
+
+TEST_F(bandwidth_ControllerSimpleStreams, planing_on_zero_to_transfer)
+{
+    size_t available_1, available_2, available_3;
+    available_1 = available_2 = available_3 = 150;
+
+    EXPECT_CALL( *time, elapsed_() )
+            .WillOnce( Return( milliseconds{0} ) )
+            .WillRepeatedly( Return( milliseconds{50} ) );
+
+    EXPECT_CALL( *stream_1, transfer(_) )
+            .Times(0);
+    EXPECT_CALL( *stream_2, transfer(_) )
+            .Times(0);
+    EXPECT_CALL( *stream_3, transfer(_) )
+            .Times(0);
+
+    EXPECT_CALL( *timer, start( TimerHandleMock::Time{50}, TimerHandleMock::Time{0} ) )
+            .Times( AtLeast(1) );
+
+    controller->shedule_transfer();
+
+    EXPECT_CALL( *stream_1, available_() )
+            .WillRepeatedly( ReturnPointee(&available_1) );
+    EXPECT_CALL( *stream_1, transfer(_) )
+            .WillRepeatedly( Invoke( [&available_1](size_t size)
+    {
+        EXPECT_GE(available_1, size);
+        available_1 -= size;
+    } ) );
+
+    EXPECT_CALL( *stream_2, available_() )
+            .WillRepeatedly( ReturnPointee(&available_2) );
+    EXPECT_CALL( *stream_2, transfer(_) )
+            .WillRepeatedly( Invoke( [&available_2](size_t size)
+    {
+        EXPECT_GE(available_2, size);
+        available_2 -= size;
+    } ) );
+
+    EXPECT_CALL( *stream_3, available_() )
+            .WillRepeatedly( ReturnPointee(&available_3) );
+    EXPECT_CALL( *stream_3, transfer(_) )
+            .WillRepeatedly( Invoke( [&available_3](size_t size)
+    {
+        EXPECT_GE(available_3, size);
+        available_3 -= size;
+    } ) );
+
+    timer->publish( AIO_UVW::TimerEvent{} );
+
+    EXPECT_EQ(available_1, 0u);
+    EXPECT_EQ(available_2, 0u);
+    EXPECT_EQ(available_3, 0u);
+}
+
+struct bandwidth_ControllerSimple_planing : public bandwidth_ControllerSimpleStreams
+{
+    bandwidth_ControllerSimple_planing()
+    {
+        available_1 = available_2 = available_3 = 300;
+
+        EXPECT_CALL( *stream_1, available_() )
+                .WillRepeatedly( ReturnPointee(&available_1) );
+        EXPECT_CALL( *stream_1, transfer(_) )
+                .WillRepeatedly( Invoke( [this](size_t size)
+        {
+            EXPECT_GE(available_1, size);
+            available_1 -= size;
+        } ) );
+
+        EXPECT_CALL( *stream_2, available_() )
+                .WillRepeatedly( ReturnPointee(&available_2) );
+        EXPECT_CALL( *stream_2, transfer(_) )
+                .WillRepeatedly( Invoke( [this](size_t size)
+        {
+            EXPECT_GE(available_2, size);
+            available_2 -= size;
+        } ) );
+
+        EXPECT_CALL( *stream_3, available_() )
+                .WillRepeatedly( ReturnPointee(&available_3) );
+        EXPECT_CALL( *stream_3, transfer(_) )
+                .WillRepeatedly( Invoke( [this](size_t size)
+        {
+            EXPECT_GE(available_3, size);
+            available_3 -= size;
+        } ) );
+
+        EXPECT_CALL( *timer, start( TimerHandleMock::Time{50}, TimerHandleMock::Time{0} ) )
+                .Times( AtLeast(1) );
+    }
+
+    size_t available_1, available_2, available_3;
+};
+
+TEST_F(bandwidth_ControllerSimple_planing, ignore_other_shedule)
+{
+    EXPECT_CALL( *time, elapsed_() )
+            .WillRepeatedly( Return( milliseconds{50} ) );
+
+    controller->shedule_transfer();
+
+    check_streams();
+    Mock::VerifyAndClearExpectations( timer.get() );
+
+    EXPECT_CALL( *stream_1, transfer(_) )
+            .Times(0);
+    EXPECT_CALL( *stream_2, transfer(_) )
+            .Times(0);
+    EXPECT_CALL( *stream_3, transfer(_) )
+            .Times(0);
+    EXPECT_CALL( *timer, start(_,_) )
+            .Times(0);
+    EXPECT_CALL( *timer, again() )
+            .Times(0);
+
+    controller->shedule_transfer();
+
+    check_streams();
+    Mock::VerifyAndClearExpectations( timer.get() );
+    timer->clear();
+}
+
+TEST_F(bandwidth_ControllerSimple_planing, normal)
+{
+    EXPECT_CALL( *time, elapsed_() )
+            .WillRepeatedly( Return( milliseconds{50} ) );
+
+    controller->shedule_transfer();
+    timer->publish( AIO_UVW::TimerEvent{} );
+
+    EXPECT_EQ(available_1, 0u);
+    EXPECT_EQ(available_2, 0u);
+    EXPECT_EQ(available_3, 0u);
 }

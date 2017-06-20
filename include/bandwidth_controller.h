@@ -40,6 +40,10 @@ private:
     std::shared_ptr<TimerHandle> timer;
 
     std::list< std::weak_ptr<Stream> > streams;
+    bool sheduled  = false;
+
+    void transfer();
+    void defer_transfer();
 };
 
 /* Implementation */
@@ -64,13 +68,27 @@ void ControllerSimple<AIO>::remove_stream(std::weak_ptr<Stream>)
 template< typename AIO >
 void ControllerSimple<AIO>::shedule_transfer()
 {
-    const auto elapsed = time->elapsed().count();
-    assert(elapsed >= 0);
-    std::size_t total_to_transfer = ( limit * static_cast<size_t>(elapsed) ) / 1000;
+    if (sheduled)
+        return;
+    transfer();
+}
 
+template< typename AIO >
+void ControllerSimple<AIO>::transfer()
+{
+    sheduled = false;
     std::size_t pending_streams = streams.size();
     if (pending_streams == 0)
         return;
+
+    const auto elapsed = time->elapsed().count();
+    assert(elapsed >= 0);
+    std::size_t total_to_transfer = ( limit * static_cast<size_t>(elapsed) ) / 1000;
+    if (total_to_transfer == 0)
+    {
+        defer_transfer();
+        return;
+    }
 
     do {
         std::size_t chunk = std::max( total_to_transfer / pending_streams, 1ul );
@@ -89,6 +107,17 @@ void ControllerSimple<AIO>::shedule_transfer()
                 pending_streams++;
         }
     } while (total_to_transfer > 0 && pending_streams > 0);
+
+    if (pending_streams > 0)
+        defer_transfer();
+}
+
+template< typename AIO >
+void ControllerSimple<AIO>::defer_transfer()
+{
+    sheduled = true;
+    timer->template once<TimerEvent>( [self = this->template shared_from_this()](const auto&, const auto&) { self->transfer(); } );
+    timer->start( std::chrono::milliseconds{50}, std::chrono::milliseconds{0} );
 }
 
 } // namespace bandwidth
