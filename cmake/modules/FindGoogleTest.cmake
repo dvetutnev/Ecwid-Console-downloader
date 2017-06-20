@@ -12,6 +12,10 @@ endif()
 add_subdirectory(${GoogleTest_DIR})
 target_include_directories(gmock_main
   INTERFACE $<TARGET_PROPERTY:gtest_main,INTERFACE_INCLUDE_DIRECTORIES>)
+set(GoogleTest_INCLUDE_DIRS
+    $<TARGET_PROPERTY:gtest_main,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:gmock_main,INTERFACE_INCLUDE_DIRECTORIES>
+    )
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(

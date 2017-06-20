@@ -7,6 +7,8 @@
 
 #include "aio_uvw_tcp_bandwidth.h"
 
+#include <random>
+
 using namespace std;
 using namespace bandwidth;
 
@@ -351,38 +353,38 @@ TEST_F(TCPSocketBandwidth_read, pause)
             .Times(1);
     socket->publish( uvw::DataEvent{move(segments[4].first), segments[4].second} );
     EXPECT_TRUE(resource->active());
-    EXPECT_EQ(resource->available(), 5000);
+    EXPECT_EQ(resource->available(), 5000u);
     Mock::VerifyAndClearExpectations(controller.get());
     Mock::VerifyAndClearExpectations(socket.get());
     // transfer
     bool cb_called = false;
     resource->clear<uvw::DataEvent>();
-    resource->once<uvw::DataEvent>( [&cb_called](const uvw::DataEvent& event, const auto&) { cb_called = true; EXPECT_EQ(event.length, 500); } );
+    resource->once<uvw::DataEvent>( [&cb_called](const uvw::DataEvent& event, const auto&) { cb_called = true; EXPECT_EQ(event.length, 500u); } );
     EXPECT_CALL( *socket, read() )
             .Times(0);
     resource->transfer(500);
     EXPECT_TRUE(cb_called);
-    EXPECT_EQ(resource->available(), 4500);
+    EXPECT_EQ(resource->available(), 4500u);
     EXPECT_TRUE(resource->active());
     Mock::VerifyAndClearExpectations(socket.get());
     // continue read
     cb_called = false;
-    resource->once<uvw::DataEvent>( [&cb_called](const uvw::DataEvent& event, const auto&) { cb_called = true; EXPECT_EQ(event.length, 500); } );
+    resource->once<uvw::DataEvent>( [&cb_called](const uvw::DataEvent& event, const auto&) { cb_called = true; EXPECT_EQ(event.length, 500u); } );
     EXPECT_CALL( *socket, read() )
             .Times(1);
     resource->transfer(500);
     EXPECT_TRUE(cb_called);
-    EXPECT_EQ(resource->available(), 4000);
+    EXPECT_EQ(resource->available(), 4000u);
     EXPECT_TRUE(resource->active());
     Mock::VerifyAndClearExpectations(socket.get());
     // dont repet read, transfer only available length
     cb_called = false;
-    resource->once<uvw::DataEvent>( [&cb_called](const uvw::DataEvent& event, const auto&) { cb_called = true; EXPECT_EQ(event.length, 4000); } );
+    resource->once<uvw::DataEvent>( [&cb_called](const uvw::DataEvent& event, const auto&) { cb_called = true; EXPECT_EQ(event.length, 4000u); } );
     EXPECT_CALL( *socket, read() )
             .Times(0);
     resource->transfer(4042);
     EXPECT_TRUE(cb_called);
-    EXPECT_EQ(resource->available(), 0);
+    EXPECT_EQ(resource->available(), 0u);
     EXPECT_TRUE(resource->active());
     Mock::VerifyAndClearExpectations(socket.get());
 
@@ -402,7 +404,7 @@ TEST_F(TCPSocketBandwidth_read, ignore_trasfer_if_stopped)
     resource->once<uvw::DataEvent>( [&cb_called](const auto&, const auto&) { cb_called = true; } );
     resource->transfer(500);
     EXPECT_TRUE(cb_called);
-    EXPECT_EQ(resource->available(), 500);
+    EXPECT_EQ(resource->available(), 500u);
     EXPECT_TRUE(resource->active());
     Mock::VerifyAndClearExpectations(controller.get());
     // ignore transfer if stoped
@@ -413,7 +415,7 @@ TEST_F(TCPSocketBandwidth_read, ignore_trasfer_if_stopped)
     resource->once<uvw::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
     resource->stop();
     resource->transfer(500);
-    EXPECT_EQ(resource->available(), 500);
+    EXPECT_EQ(resource->available(), 500u);
     EXPECT_FALSE(resource->active());
     Mock::VerifyAndClearExpectations(socket.get());
 
@@ -486,7 +488,7 @@ TEST_F(TCPSocketBandwidth_read, trasfer_EOF)
     EXPECT_TRUE(cb_data_called);
     EXPECT_TRUE(cb_eof_called);
     EXPECT_TRUE(eof_after_data);
-    EXPECT_EQ(resource->available(), 0);
+    EXPECT_EQ(resource->available(), 0u);
     EXPECT_FALSE(resource->active());
     Mock::VerifyAndClearExpectations(socket.get());
 
@@ -526,7 +528,7 @@ TEST_F(TCPSocketBandwidth_read, paused_EOF)
     EXPECT_TRUE(cb_data_called);
     EXPECT_TRUE(cb_eof_called);
     EXPECT_TRUE(eof_after_data);
-    EXPECT_EQ(resource->available(), 0);
+    EXPECT_EQ(resource->available(), 0u);
     EXPECT_FALSE(resource->active());
     Mock::VerifyAndClearExpectations(socket.get());
 

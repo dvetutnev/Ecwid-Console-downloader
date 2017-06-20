@@ -11,6 +11,7 @@ endif()
 
 add_library(http-parser STATIC ${http-parser_DIR}/http_parser.c)
 target_include_directories(http-parser PUBLIC ${http-parser_DIR})
+set(http-parser_INCLUDE_DIR ${http-parser_DIR})
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(

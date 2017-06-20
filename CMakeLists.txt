@@ -4,11 +4,12 @@ endif()
 
 project(Ecwid-Console-downloader CXX C)
 cmake_minimum_required(VERSION 3.4)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 endif(NOT WIN32)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DRELEASE")
@@ -18,9 +19,6 @@ set(PROJECT_VENDOR_DIR vendor)
 set(PROJECT_INCLUDE_DIR include)
 set(PROJECT_SRC_DIR src)
 set(PROJECT_TEST_DIR test)
-
-#set(PROJECT_RUNTIME_OUTPUT_DIRECTORY bin)
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_RUNTIME_OUTPUT_DIRECTORY})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_INCLUDE_DIR})
 
@@ -36,7 +34,12 @@ find_package(http-parser REQUIRED)
 find_package(GoogleTest)
 find_package(Threads)
 
-include_directories(${UVW_INCLUDE_DIR})
+include_directories(
+    ${UV_INCLUDE_DIR}
+    ${UVW_INCLUDE_DIR}
+    ${http-parser_INCLUDE_DIR}
+    ${GoogleTest_INCLUDE_DIRS}
+    )
 
 set(SRC_LIST
     main.cpp
@@ -68,3 +71,4 @@ add_custom_target(
     COMMENT "Feel free to ignore this target, but please do not remove it."
     SOURCES ${PROJECT_FILES}
 )
+

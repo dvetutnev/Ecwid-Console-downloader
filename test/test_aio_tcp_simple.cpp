@@ -347,7 +347,7 @@ TEST_F(TCPSocketSimpleF, write_failed_and_close_on_event)
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
 
-        resource_close();
+        this->resource_close();
     } );
     resource->once<AIO_UVW::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
     resource->once<AIO_UVW::DataEvent>( [](auto&, auto&) { FAIL(); } );
@@ -408,7 +408,7 @@ TEST_F(TCPSocketSimpleF, read_EOF_and_close_on_event)
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
 
-        resource_close();
+        this->resource_close();
     } );
     resource->once<AIO_UVW::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
     resource->once<AIO_UVW::ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );

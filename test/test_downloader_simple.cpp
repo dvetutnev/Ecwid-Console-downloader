@@ -1089,7 +1089,7 @@ TEST_F(DownloaderSimpleQueue, partial_file_write)
     string buff(chunk_size * backlog, '\0');
     auto buff_replace = [&buff](const char* data, size_t length, size_t offset) { buff.replace(offset, length, data, length); };
 
-    EXPECT_EQ(backlog, 4);
+    EXPECT_EQ(backlog, 4u);
 
     {
         InSequence s;
