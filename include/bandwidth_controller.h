@@ -94,11 +94,16 @@ void ControllerSimple<AIO>::transfer()
     do {
         std::size_t chunk = std::max( total_to_transfer / pending_streams, 1ul );
         pending_streams = 0;
-        for (auto it = begin(streams); it != end(streams); ++it)
+
+        auto it = std::begin(streams);
+        const auto it_end = std::cend(streams);
+        while (it != it_end)
         {
             auto stream = it->lock();
             if (stream)
             {
+                ++it;
+
                 std::size_t available = stream->available();
                 std::size_t to_transfer = std::min(available, chunk);
                 if (to_transfer == 0)
@@ -108,6 +113,11 @@ void ControllerSimple<AIO>::transfer()
                 total_to_transfer -= to_transfer;
                 if (available - to_transfer > 0)
                     pending_streams++;
+
+            } else
+            {
+                auto rm_it = it++;
+                streams.erase(rm_it);
             }
         }
     } while (total_to_transfer > 0 && pending_streams > 0);
