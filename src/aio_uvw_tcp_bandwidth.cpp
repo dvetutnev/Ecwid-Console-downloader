@@ -29,7 +29,7 @@ using uvw::ShutdownEvent;
 shared_ptr<TCPSocketBandwidth> TCPSocketBandwidth::create(shared_ptr<void>, shared_ptr<Controller> controller, shared_ptr<TCPSocket> socket)
 {
     auto self = make_shared<TCPSocketBandwidth>( ConstructorAccess{42}, controller, move(socket) );
-    controller->add_stream(self);
+    self->conn = controller->add_stream(self);
 
     self->socket->once<ErrorEvent>( bind_on_event<ErrorEvent>(self) );
     self->socket->once<ConnectEvent>( bind_on_event<ConnectEvent>(self) );
@@ -87,7 +87,7 @@ void TCPSocketBandwidth::close() noexcept
     if (!closed)
     {
         closed = stopped = true;
-        controller->remove_stream( shared_from_this() );
+        controller->remove_stream(conn);
         socket->clear();
         socket->once<CloseEvent>( [self = shared_from_this()](auto& event, const auto&) { self->publish( move(event) ); } );
         socket->close();

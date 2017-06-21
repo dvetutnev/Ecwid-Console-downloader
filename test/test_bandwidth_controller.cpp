@@ -28,6 +28,7 @@ using ::testing::Return;
 using ::testing::Mock;
 using ::testing::ReturnPointee;
 using ::testing::Invoke;
+using ::testing::InvokeWithoutArgs;
 using ::testing::AtLeast;
 
 struct AIO_Mock
@@ -91,7 +92,8 @@ TEST_F(bandwidth_ControllerSimpleF, set_buffer_in_stream)
     EXPECT_CALL( *stream, set_buffer_(buffer_reserve) )
             .Times(1);
 
-    controller->add_stream(stream);
+    auto conn = controller->add_stream(stream);
+    controller->remove_stream(conn);
 
     Mock::VerifyAndClearExpectations( stream.get() );
     ASSERT_TRUE( stream.unique() );
@@ -122,9 +124,9 @@ struct bandwidth_ControllerSimpleStreams : public bandwidth_ControllerSimpleF
         EXPECT_CALL( *stream_3, set_buffer_(buffer_reserve) )
                 .Times(1);
 
-        controller->add_stream(stream_1);
-        controller->add_stream(stream_2);
-        controller->add_stream(stream_3);
+        conn_1 = controller->add_stream(stream_1);
+        conn_2 = controller->add_stream(stream_2);
+        conn_3 = controller->add_stream(stream_3);
 
         Mock::VerifyAndClearExpectations( stream_1.get() );
         Mock::VerifyAndClearExpectations( stream_2.get() );
@@ -145,9 +147,8 @@ struct bandwidth_ControllerSimpleStreams : public bandwidth_ControllerSimpleF
         EXPECT_TRUE( stream_3.unique() );
     }
 
-    shared_ptr<StreamMock> stream_1;
-    shared_ptr<StreamMock> stream_2;
-    shared_ptr<StreamMock> stream_3;
+    shared_ptr<StreamMock> stream_1, stream_2, stream_3;
+    Controller::StreamConnection conn_1, conn_2, conn_3;
 };
 
 TEST_F(bandwidth_ControllerSimpleStreams, simple_test)
@@ -383,4 +384,88 @@ TEST_F(bandwidth_ControllerSimple_planing, normal)
     EXPECT_EQ(available_1, 0u);
     EXPECT_EQ(available_2, 0u);
     EXPECT_EQ(available_3, 0u);
+}
+
+TEST_F(bandwidth_ControllerSimple_planing, remove_stream)
+{
+    EXPECT_CALL( *time, elapsed_() )
+            .WillRepeatedly( Return( milliseconds{50} ) );
+
+    controller->shedule_transfer();
+
+    Mock::VerifyAndClearExpectations( stream_2.get() );
+    EXPECT_CALL( *stream_2, available_() )
+            .Times(0);
+    EXPECT_CALL( *stream_2, transfer(_) )
+            .Times(0);
+    controller->remove_stream(conn_2);
+
+    timer->publish( AIO_UVW::TimerEvent{} );
+
+    Mock::VerifyAndClearExpectations( stream_2.get() );
+    EXPECT_EQ(available_1, 0u);
+    EXPECT_EQ(available_3, 0u);
+}
+
+TEST_F(bandwidth_ControllerSimple_planing, remove_current_stream)
+{
+    EXPECT_CALL( *time, elapsed_() )
+            .WillRepeatedly( Return( milliseconds{50} ) );
+
+    Mock::VerifyAndClearExpectations( stream_2.get() );
+    EXPECT_CALL( *stream_2, available_() )
+            .WillRepeatedly( ReturnPointee(&available_2) );
+    EXPECT_CALL( *stream_2, transfer(_) )
+            .WillRepeatedly( InvokeWithoutArgs( [this]() { controller->remove_stream(conn_2); } ) );
+
+    controller->shedule_transfer();
+
+    Mock::VerifyAndClearExpectations( stream_2.get() );
+    EXPECT_CALL( *stream_2, available_() )
+            .Times(0);
+    EXPECT_CALL( *stream_2, transfer(_) )
+            .Times(0);
+
+    timer->publish( AIO_UVW::TimerEvent{} );
+
+    Mock::VerifyAndClearExpectations( stream_2.get() );
+    EXPECT_EQ(available_1, 0u);
+    EXPECT_EQ(available_3, 0u);
+}
+
+TEST_F(bandwidth_ControllerSimple_planing, remove_other_stream)
+{
+    EXPECT_CALL( *time, elapsed_() )
+            .WillRepeatedly( Return( milliseconds{50} ) );
+
+    Mock::VerifyAndClearExpectations( stream_2.get() );
+    EXPECT_CALL( *stream_2, available_() )
+            .WillRepeatedly( ReturnPointee(&available_2) );
+    EXPECT_CALL( *stream_2, transfer(_) )
+            .WillOnce( Invoke( [this](size_t size)
+    {
+        EXPECT_GE(available_2, size);
+        available_2 -= size;
+
+        controller->remove_stream(conn_3);
+    } ) )
+            .WillRepeatedly( Invoke( [this](size_t size)
+    {
+        EXPECT_GE(available_2, size);
+        available_2 -= size;
+    } ) );
+
+    controller->shedule_transfer();
+
+    Mock::VerifyAndClearExpectations( stream_3.get() );
+    EXPECT_CALL( *stream_3, available_() )
+            .Times(0);
+    EXPECT_CALL( *stream_3, transfer(_) )
+            .Times(0);
+
+    timer->publish( AIO_UVW::TimerEvent{} );
+
+    Mock::VerifyAndClearExpectations( stream_2.get() );
+    EXPECT_EQ(available_1, 0u);
+    EXPECT_EQ(available_2, 0u);
 }

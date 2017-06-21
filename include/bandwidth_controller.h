@@ -25,8 +25,8 @@ public:
             throw std::runtime_error{"ControllerSimple<AIO>: AIO::TimerHandle can`t create!"};
     }
 
-    virtual void add_stream(std::weak_ptr<Stream>) override;
-    virtual void remove_stream(std::weak_ptr<Stream>) override;
+    virtual StreamConnection add_stream(std::weak_ptr<Stream>) override;
+    virtual void remove_stream(StreamConnection) override;
     virtual void shedule_transfer() override;
 
     ControllerSimple() = delete;
@@ -39,7 +39,7 @@ private:
     std::unique_ptr<Time> time;
     std::shared_ptr<TimerHandle> timer;
 
-    std::list< std::weak_ptr<Stream> > streams;
+    StreamsList streams;
     bool sheduled  = false;
 
     void transfer();
@@ -49,20 +49,21 @@ private:
 /* Implementation */
 
 template< typename AIO >
-void ControllerSimple<AIO>::add_stream(std::weak_ptr<Stream> weak)
+Controller::StreamConnection ControllerSimple<AIO>::add_stream(std::weak_ptr<Stream> weak)
 {
     auto stream = weak.lock();
-    if (stream)
-    {
-        stream->set_buffer( limit * 4 );
-        streams.push_back(weak);
-    }
+    if (!stream)
+        return std::end(streams);
+
+    stream->set_buffer( limit * 4 );
+    return streams.insert(std::end(streams), weak);
 }
 
 template< typename AIO >
-void ControllerSimple<AIO>::remove_stream(std::weak_ptr<Stream>)
+void ControllerSimple<AIO>::remove_stream(StreamConnection conn)
 {
-
+    std::weak_ptr<Stream> null_ptr{};
+    std::swap(*conn, null_ptr);
 }
 
 template< typename AIO >
@@ -96,15 +97,18 @@ void ControllerSimple<AIO>::transfer()
         for (auto it = begin(streams); it != end(streams); ++it)
         {
             auto stream = it->lock();
-            std::size_t available = stream->available();
-            std::size_t to_transfer = std::min(available, chunk);
-            if (to_transfer == 0)
-                continue;
+            if (stream)
+            {
+                std::size_t available = stream->available();
+                std::size_t to_transfer = std::min(available, chunk);
+                if (to_transfer == 0)
+                    continue;
 
-            stream->transfer(to_transfer);
-            total_to_transfer -= to_transfer;
-            if (available - to_transfer > 0)
-                pending_streams++;
+                stream->transfer(to_transfer);
+                total_to_transfer -= to_transfer;
+                if (available - to_transfer > 0)
+                    pending_streams++;
+            }
         }
     } while (total_to_transfer > 0 && pending_streams > 0);
 

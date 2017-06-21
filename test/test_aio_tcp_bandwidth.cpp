@@ -28,17 +28,20 @@ struct TCPSocketBandwidthF : public ::testing::Test
           socket{ make_shared<TCPSocketMock>() },
           buffer_length{ 4 * 1024 }
     {
-        weak_ptr<Stream> stream;
         EXPECT_CALL( *controller, add_stream(_) )
-                .WillOnce( DoAll( SaveArg<0>(&stream),
-                                  Invoke( [this](weak_ptr<Stream> w) { auto s = w.lock(); ASSERT_TRUE(s); s->set_buffer(buffer_length); } )
-                                  ) );
+                .WillOnce( Invoke( [this](weak_ptr<Stream> w) -> Controller::StreamConnection
+        {
+            auto s = w.lock();
+            EXPECT_TRUE(s);
+            s->set_buffer(buffer_length);
+            stream_conn = streams.insert(end(streams), w);
+            return stream_conn;
+        } ) );
 
         resource = loop->resource<uvw::TCPSocketBandwidth>(controller, socket);
         EXPECT_TRUE(resource);
 
         Mock::VerifyAndClearExpectations(controller.get());
-        EXPECT_EQ(stream.lock(), resource);
     }
 
     void resource_close()
@@ -59,9 +62,8 @@ struct TCPSocketBandwidthF : public ::testing::Test
         } );
         resource->once<uvw::ErrorEvent>( [](const auto&, const auto&) { FAIL(); } );
 
-        weak_ptr<Stream> stream;
-        EXPECT_CALL( *controller, remove_stream(_) )
-                .WillOnce( SaveArg<0>(&stream) );
+        EXPECT_CALL( *controller, remove_stream(stream_conn) )
+                .Times(1);
         EXPECT_CALL( *socket, close_() )
                 .Times(1);
 
@@ -70,8 +72,6 @@ struct TCPSocketBandwidthF : public ::testing::Test
 
         Mock::VerifyAndClearExpectations(controller.get());
         Mock::VerifyAndClearExpectations(socket.get());
-        ASSERT_EQ(stream.lock(), resource);
-        ASSERT_TRUE(cb_called);
     }
 
     virtual ~TCPSocketBandwidthF()
@@ -90,6 +90,9 @@ struct TCPSocketBandwidthF : public ::testing::Test
     shared_ptr<::uvw::TCPSocketBandwidth> resource;
 
     const size_t buffer_length;
+
+    Controller::StreamsList streams;
+    Controller::StreamConnection stream_conn;
 };
 
 TEST_F(TCPSocketBandwidthF, create_and_close)

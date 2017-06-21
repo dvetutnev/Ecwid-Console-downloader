@@ -41,6 +41,8 @@ private:
     std::shared_ptr<Controller> controller;
     std::shared_ptr<TCPSocket> socket;
 
+    Controller::StreamConnection conn;
+
     bool closed = false;
 
     template < typename Event >
