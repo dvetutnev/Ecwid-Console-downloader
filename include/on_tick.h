@@ -1,7 +1,8 @@
 #pragma once
 
-#include "downloader.h"
+#include <memory>
 
+class Downloader;
 class OnTick
 {
 public:

@@ -37,6 +37,8 @@ public:
     struct UriParseResult;
     static std::unique_ptr<UriParseResult> uri_parse(const std::string&);
 
+    ~HttpParser() = default;
+
 private:
 
     template < typename T >
@@ -83,7 +85,9 @@ private:
 public:
     HttpParser() = delete;
     HttpParser(const HttpParser&) = delete;
+    HttpParser(HttpParser&&) = delete;
     HttpParser& operator= (const HttpParser&) = delete;
+    HttpParser& operator= (HttpParser&&) = delete;
 };
 
 struct HttpParser::UriParseResult

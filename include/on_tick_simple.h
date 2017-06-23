@@ -23,7 +23,9 @@ public:
 
     OnTickSimple() = delete;
     OnTickSimple(const OnTickSimple&) = delete;
-    OnTickSimple& operator= (const OnTickSimple) = delete;
+    OnTickSimple(OnTickSimple&&) = delete;
+    OnTickSimple& operator= (const OnTickSimple&) = delete;
+    OnTickSimple& operator= (OnTickSimple&&) = delete;
     virtual ~OnTickSimple() = default;
 
 private:

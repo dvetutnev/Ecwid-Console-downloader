@@ -31,7 +31,9 @@ public:
 
     ControllerSimple() = delete;
     ControllerSimple(const ControllerSimple&) = delete;
-    ControllerSimple& operator= (const ControllerSimple) = delete;
+    ControllerSimple(ControllerSimple&&) = delete;
+    ControllerSimple& operator= (const ControllerSimple&) = delete;
+    ControllerSimple& operator= (ControllerSimple&&) = delete;
     virtual ~ControllerSimple() = default;
 
 private:

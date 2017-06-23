@@ -34,7 +34,9 @@ public:
 
     TCPSocketBandwidth() = delete;
     TCPSocketBandwidth(const TCPSocketBandwidth&) = delete;
+    TCPSocketBandwidth(TCPSocketBandwidth&&) = delete;
     TCPSocketBandwidth& operator= (const TCPSocketBandwidth&) = delete;
+    TCPSocketBandwidth& operator= (TCPSocketBandwidth&&) = delete;
     virtual ~TCPSocketBandwidth() = default;
 
 private:

@@ -10,8 +10,16 @@
 class DashboardSimple : public Dashboard
 {
     using State = StatusDownloader::State;
+
 public:
+    DashboardSimple() = default;
     virtual void update(std::shared_ptr<const Task>, const StatusDownloader&) override;
+
+    DashboardSimple(const DashboardSimple&) = delete;
+    DashboardSimple(DashboardSimple&&) = delete;
+    DashboardSimple& operator= (const DashboardSimple&) = delete;
+    DashboardSimple& operator= (DashboardSimple&&) = delete;
+    virtual ~DashboardSimple() = default;
 };
 
 void DashboardSimple::update(std::shared_ptr<const Task> task, const StatusDownloader& status)

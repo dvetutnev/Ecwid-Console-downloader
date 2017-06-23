@@ -55,6 +55,13 @@ public:
     }
     virtual const StatusDownloader& status() const override final { return m_status; }
 
+    DownloaderSimple() = delete;
+    DownloaderSimple(const DownloaderSimple&) = delete;
+    DownloaderSimple(DownloaderSimple&&) = delete;
+    DownloaderSimple& operator= (const DownloaderSimple&) = delete;
+    DownloaderSimple& operator= (DownloaderSimple&&) = delete;
+    virtual ~DownloaderSimple() = default;
+
 protected:
     virtual std::shared_ptr<TCPSocket> create_socket(const std::string&) { return loop->template resource<TCPSocketSimple>(); }
 
@@ -167,6 +174,8 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 {
+    using namespace ::std::chrono_literals;
+
     socket = create_socket(uri_parsed->proto);
     if (!socket)
     {
@@ -193,7 +202,7 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 
     net_timer->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("Net_timer run failed! " + ErrorEvent2str(err) ); } );
     net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to host <" + addr.ip + ">"); } );
-    net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
+    net_timer->start(5s, 0s);
 
     if (m_status.state != State::Failed)
         update_status(State::OnTheGo, "Host Resolved. Connect to <" + addr.ip + ">");
@@ -202,6 +211,8 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_connect()
 {
+    using namespace ::std::chrono_literals;
+
     socket_connected = true;
     socket->clear();
     net_timer->template clear<TimerEvent>();
@@ -215,7 +226,7 @@ void DownloaderSimple<AIO, Parser>::on_connect()
     socket->write( std::move(request.first), request.second );
 
     net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout write request"); } );
-    net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
+    net_timer->start(5s, 0s);
 
     if (m_status.state != State::Failed)
         update_status(State::OnTheGo, "Connected, write request.");
@@ -224,6 +235,8 @@ void DownloaderSimple<AIO, Parser>::on_connect()
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_write_http_request()
 {
+    using namespace ::std::chrono_literals;
+
     socket->clear();
     net_timer->template clear<TimerEvent>();
     net_timer->stop();
@@ -246,7 +259,7 @@ void DownloaderSimple<AIO, Parser>::on_write_http_request()
     socket->read();
 
     net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout read response"); } );
-    net_timer->start( std::chrono::seconds{5}, std::chrono::seconds{0} );
+    net_timer->start(5s, 0s);
 
     if (m_status.state != State::Failed)
         update_status(State::OnTheGo, "Write request done. Wait response.");

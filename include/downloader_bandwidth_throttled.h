@@ -19,6 +19,13 @@ public:
           controller{ std::move(controller_) }
     {}
 
+    DownloaderBandwidthThrottled() = delete;
+    DownloaderBandwidthThrottled(const DownloaderBandwidthThrottled&) = delete;
+    DownloaderBandwidthThrottled(DownloaderBandwidthThrottled&&) = delete;
+    DownloaderBandwidthThrottled& operator= (const DownloaderBandwidthThrottled&) = delete;
+    DownloaderBandwidthThrottled& operator= (DownloaderBandwidthThrottled&&) = delete;
+    virtual ~DownloaderBandwidthThrottled() = default;
+
 protected:
     virtual std::shared_ptr<TCPSocket> create_socket(const std::string&) override;
 

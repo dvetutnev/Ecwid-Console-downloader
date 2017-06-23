@@ -24,7 +24,9 @@ public:
 
     FactoryBandwidthThrottled() = delete;
     FactoryBandwidthThrottled(const FactoryBandwidthThrottled&) = delete;
+    FactoryBandwidthThrottled(FactoryBandwidthThrottled&&) = delete;
     FactoryBandwidthThrottled& operator= (const FactoryBandwidthThrottled&) = delete;
+    FactoryBandwidthThrottled& operator= (FactoryBandwidthThrottled&&) = delete;
     virtual ~FactoryBandwidthThrottled() = default;
 
 private:

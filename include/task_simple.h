@@ -18,7 +18,9 @@ public:
 
     TaskListSimple() = delete;
     TaskListSimple(const TaskListSimple&) = delete;
+    TaskListSimple(TaskListSimple&&) = delete;
     TaskListSimple& operator= (const TaskListSimple&) = delete;
+    TaskListSimple& operator= (TaskListSimple&&) = delete;
     ~TaskListSimple() = default;
 
 private:

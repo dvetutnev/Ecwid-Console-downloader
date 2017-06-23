@@ -21,7 +21,9 @@ public:
 
     FactorySimple() = delete;
     FactorySimple(const FactorySimple&) = delete;
+    FactorySimple(FactorySimple&&) = delete;
     FactorySimple& operator= (const FactorySimple&) = delete;
+    FactorySimple& operator= (FactorySimple&&) = delete;
     virtual ~FactorySimple() = default;
 
 private:
