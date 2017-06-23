@@ -13,6 +13,7 @@ add_test_simple(test_on_tick_simple ${CMAKE_SOURCE_DIR}/${PROJECT_SRC_DIR}/on_ti
 add_test_simple(test_http_parser_uri ${CMAKE_SOURCE_DIR}/${PROJECT_SRC_DIR}/http.cpp)
 add_test_simple(test_http_parser_response ${CMAKE_SOURCE_DIR}/${PROJECT_SRC_DIR}/http.cpp)
 add_test_simple(test_aio_dns)
+add_test_simple(test_aio_timer)
 add_test_simple(test_aio_tcp_simple)
 add_test_simple(test_aio_tcp_bandwidth ${CMAKE_SOURCE_DIR}/${PROJECT_SRC_DIR}/aio_uvw_tcp_bandwidth.cpp)
 add_test_simple(test_bandwidth_controller)

@@ -6,6 +6,7 @@
 #include <uvw/fs.hpp>
 
 #include "aio_uvw_tcp_simple.h"
+#include "aio_uvw_tcp_bandwidth.h"
 
 struct AIO_UVW
 {
@@ -42,8 +43,10 @@ struct AIO_UVW
     using WriteEvent = uvw::WriteEvent;
     using ShutdownEvent = uvw::ShutdownEvent;
     using TcpHandle = uvw::TcpHandle;
+
     using TCPSocket = uvw::TCPSocket;
     using TCPSocketSimple = uvw::TCPSocketSimple<AIO_UVW>;
+    using TCPSocketBandwidth = uvw::TCPSocketBandwidth;
 
     using TimerHandle = uvw::TimerHandle;
     using TimerEvent = uvw::TimerEvent;

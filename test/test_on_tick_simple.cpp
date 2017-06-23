@@ -4,6 +4,7 @@
 #include "downloader_mock.h"
 #include "factory_mock.h"
 #include "task_mock.h"
+#include "dashboard_mock.h"
 
 #include "on_tick_simple.h"
 
@@ -47,7 +48,11 @@ TEST(OnTickSimple, Downloader_is_OnTheGo)
     EXPECT_CALL( *factory, create(_) )
             .Times(0);
 
-    OnTickSimple on_tick{job_list, factory, task_list};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times( AtLeast(1) );
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_job.downloader);
 
     JobList::const_iterator it;
@@ -94,7 +99,11 @@ void Downloader_normal_completion(StatusDownloader::State state)
     EXPECT_CALL( *factory, create(next_task) )
             .WillOnce( Return(next_downloader) );
 
-    OnTickSimple on_tick{job_list, factory, task_list};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times( AtLeast(1) );
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
@@ -160,7 +169,11 @@ void Downloader_completion_Factory_is_null(StatusDownloader::State state)
 
     auto factory = std::make_shared<FactoryMock>();
 
-    OnTickSimple on_tick{job_list, factory, task_list};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times( AtLeast(1) );
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
 
     factory.reset();
     on_tick.invoke(used_downloader);
@@ -224,7 +237,11 @@ void Downloader_completion_no_Task(StatusDownloader::State state)
     EXPECT_CALL( *factory, create(_) )
             .Times(0);
 
-    OnTickSimple on_tick{job_list, factory, task_list};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times( AtLeast(1) );
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
@@ -294,7 +311,11 @@ void Downloader_completion_Factory_returning_null_no_Task(StatusDownloader::Stat
             .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(nullptr) ) )
             .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(nullptr) ) );
 
-    OnTickSimple on_tick{job_list, factory, task_list};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times( AtLeast(1) );
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
 
     ASSERT_EQ( first_call_factory_task, first_bad_task );
@@ -362,7 +383,11 @@ TEST(OnTickSimple, Downloader_is_Redirect)
     EXPECT_CALL( *factory, create(redirect_task) )
             .WillOnce( Return(redirect_downloader) );
 
-    OnTickSimple on_tick{job_list, factory, task_list};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times( AtLeast(1) );
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
@@ -410,7 +435,11 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_is_null)
 
     auto factory = make_shared<FactoryMock>();
 
-    OnTickSimple on_tick{job_list, factory, task_list};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times( AtLeast(1) );
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
 
     factory.reset();
     on_tick.invoke(used_downloader);
@@ -464,7 +493,11 @@ TEST(OnTickSimple, Downloader_is_Redirect_max_redirect)
     EXPECT_CALL( *factory, create(next_task) )
             .WillOnce( Return(next_downloader) );
 
-    OnTickSimple on_tick{job_list, factory, task_list, max_redirect};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times( AtLeast(1) );
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
 
     JobList::const_iterator it;
@@ -522,7 +555,11 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_returning_null)
             .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(nullptr) ) )
             .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(next_downloader) ) );
 
-    OnTickSimple on_tick{job_list, factory, task_list};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times( AtLeast(1) );
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
 
     const Task redirect_task{status.redirect_uri, used_task.fname};
@@ -564,7 +601,11 @@ void invalid_Downloader(shared_ptr<Downloader> downloader)
     EXPECT_CALL( task_list, get() )
             .Times(0);
 
-    OnTickSimple on_tick{job_list, factory, task_list};
+    DashboardMock dashboard{};
+    EXPECT_CALL( dashboard, update(_,_) )
+            .Times(0);
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     ASSERT_THROW( on_tick.invoke(downloader), std::runtime_error );
 }
 

@@ -17,9 +17,26 @@ public:
 
 class Time
 {
+    using Clock = std::chrono::steady_clock;
+    using Duration = std::chrono::milliseconds;
+
 public:
-    virtual std::chrono::milliseconds elapsed() noexcept = 0;
+    Time()
+        : last{ Clock::now() }
+    {}
+
+    virtual Duration elapsed() noexcept
+    {
+        auto current = Clock::now();
+        auto diff = std::chrono::duration_cast<Duration>(current - last);
+        last = current;
+        return diff;
+    }
+
     virtual ~Time() = default;
+
+private:
+    Clock::time_point last;
 };
 
 class Controller

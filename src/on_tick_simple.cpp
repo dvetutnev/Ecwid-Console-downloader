@@ -8,7 +8,11 @@ using namespace std;
 void OnTickSimple::invoke(shared_ptr<Downloader> downloader)
 {
     auto job_it = find_job( downloader.get() );
-    switch ( downloader->status().state )
+    const auto status = downloader->status();
+
+    dashboard.update(job_it->task, status);
+
+    switch (status.state)
     {
     case StatusDownloader::State::Done:
     case StatusDownloader::State::Failed:

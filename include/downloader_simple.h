@@ -10,8 +10,6 @@
 #include <cassert>
 #include <limits>
 
-#include <iostream>
-
 template< typename AIO, typename Parser >
 class DownloaderSimple : public Downloader, public std::enable_shared_from_this< DownloaderSimple<AIO, Parser> >
 {
@@ -45,8 +43,8 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
 
 public:
     DownloaderSimple(std::shared_ptr<Loop> loop_, std::shared_ptr<OnTick> on_tick_, std::size_t backlog_ = 10)
-        : loop{loop_},
-          on_tick{on_tick_},
+        : loop{ std::move(loop_) },
+          on_tick{ std::move(on_tick_) },
           backlog{backlog_}
     {}
 
@@ -56,6 +54,9 @@ public:
         on_error("Abort.");
     }
     virtual const StatusDownloader& status() const override final { return m_status; }
+
+protected:
+    virtual std::shared_ptr<TCPSocket> create_socket(const std::string&) { return loop->template resource<TCPSocketSimple>(); }
 
 private:
     std::shared_ptr<Loop> loop;
@@ -166,7 +167,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 {
-    socket = loop->template resource<TCPSocketSimple>();
+    socket = create_socket(uri_parsed->proto);
     if (!socket)
     {
         on_error("Socket can`t create!");
@@ -255,6 +256,7 @@ template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::size_t length)
 {
     using Result = typename Parser::ResponseParseResult::State;
+    using namespace ::std::chrono_literals;
 
     auto result = http_parser->response_parse(std::move(data), length);
     if ( m_status.state == State::Failed )
@@ -268,7 +270,8 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
     {
     case Result::InProgress:
         socket->template once<DataEvent>( [self](auto& event, const auto&) { self->on_read(std::move(event.data), event.length); } );
-        net_timer->again();
+        net_timer->stop();
+        net_timer->start(5s, 0s);
         update_status(State::OnTheGo, "Data received.");
         break;
 

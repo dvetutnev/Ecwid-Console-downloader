@@ -777,8 +777,13 @@ TEST_F(DownloaderSimpleFileOpen, file_open_error)
 {
     EXPECT_CALL( *file, open(task.fname, file_flags, file_mode) )
             .Times(1);
-    EXPECT_CALL( *timer, again() )
-            .Times(1);
+    {
+        InSequence s;
+        EXPECT_CALL( *timer, stop() )
+                .Times(1);
+        EXPECT_CALL( *timer, start(_,_) )
+                .Times(1);
+    }
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
@@ -837,8 +842,13 @@ struct DownloaderSimpleFileWrite : public DownloaderSimpleFileOpen
     {
         EXPECT_CALL( *file, open(task.fname, file_flags, file_mode) )
                 .Times(1);
-        EXPECT_CALL( *timer, again() )
-                .Times(1);
+        {
+            InSequence s;
+            EXPECT_CALL( *timer, stop() )
+                    .Times(1);
+            EXPECT_CALL( *timer, start(_,_) )
+                    .Times(1);
+        }
         EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
                 .WillOnce( Invoke(on_tick_handler) );
 
@@ -973,8 +983,13 @@ struct DownloaderSimpleFileWrite_FileError : public DownloaderSimpleFileWrite
 {
     DownloaderSimpleFileWrite_FileError()
     {
-        EXPECT_CALL( *timer, again() )
-                .Times(1);
+        {
+            InSequence s;
+            EXPECT_CALL( *timer, stop() )
+                    .Times(1);
+            EXPECT_CALL( *timer, start(_,_) )
+                    .Times(1);
+        }
         EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
                 .WillOnce( Invoke(on_tick_handler) );
 
@@ -1057,7 +1072,9 @@ struct DownloaderSimpleQueue : public DownloaderSimpleFileOpen
 {
     DownloaderSimpleQueue()
     {
-        EXPECT_CALL( *timer, again() )
+        EXPECT_CALL( *timer, stop() )
+                .Times( AtLeast(1) );
+        EXPECT_CALL( *timer, start(_,_) )
                 .Times( AtLeast(1) );
         EXPECT_CALL( *file, open(task.fname, file_flags, file_mode) )
                 .Times(1);
