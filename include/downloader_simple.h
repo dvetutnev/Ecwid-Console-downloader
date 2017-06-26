@@ -49,10 +49,7 @@ public:
     {}
 
     virtual bool run(const Task&) override final;
-    virtual void stop() override final
-    {
-        on_error("Abort.");
-    }
+    virtual void stop() override final { on_error("Abort."); }
     virtual const StatusDownloader& status() const override final { return m_status; }
 
     DownloaderSimple() = delete;
@@ -87,8 +84,10 @@ private:
     bool file_operation_started = false;
     std::size_t offset_file = 0;
 
+    std::pair<bool, std::string> create_handles();
     void terminate_handles();
     void close_handles(std::function<void()>);
+    void open_file(const std::string&fname);
 
     template< typename String >
     std::enable_if_t< std::is_convertible<String, std::string>::value, void>
@@ -139,11 +138,23 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
 {
     task = task_;
     m_status.state = State::Init;
+
     uri_parsed = Parser::uri_parse(task.uri);
     if (!uri_parsed)
+    {
+        m_status.state = State::Failed;
+        m_status.state_str = "URI can`t parse";
         return false;
+    }
 
-    resolver = loop->template resource<GetAddrInfoReq>();
+    auto result = create_handles();
+    if (!result.first)
+    {
+        m_status.state = State::Failed;
+        m_status.state_str = std::move(result.second);
+        return false;
+    }
+
     auto self = this->template shared_from_this();
 
     resolver->template once<ErrorEvent>( [self](const auto& err, const auto&)
@@ -166,6 +177,7 @@ bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
     if ( m_status.state == State::Init )
     {
         m_status.state = State::OnTheGo;
+        m_status.state_str = "Resolve host <" + uri_parsed->host + ">...";
         return true;
     }
     return false;
@@ -176,36 +188,21 @@ void DownloaderSimple<AIO, Parser>::on_resolve(const AddrInfoEvent& event)
 {
     using namespace ::std::chrono_literals;
 
-    socket = create_socket(uri_parsed->proto);
-    if (!socket)
-    {
-        on_error("Socket can`t create!");
-        return;
-    }
-
-    net_timer = loop->template resource<Timer>();
-    if (!net_timer)
-    {
-        on_error("Net_timer can`t create!");
-        return;
-    }
-
     const auto addr = AIO::addrinfo2IPAddress( event.data.get() );
-    auto self = this->template shared_from_this();
+    update_status(State::OnTheGo, "Host Resolved. Connect to <" + addr.ip + ">");
 
+    auto self = this->template shared_from_this();
     socket->template once<ErrorEvent>( [self, addr](const auto& err, const auto&) { self->on_error("Host <" + addr.ip + "> can`t available. " + ErrorEvent2str(err) ); } );
     socket->template once<ConnectEvent>( [self](const auto&, const auto&) { self->on_connect(); } );
+    net_timer->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("Net_timer run failed! " + ErrorEvent2str(err) ); } );
+    net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to host <" + addr.ip + ">"); } );
+
     if (addr.v6)
         socket->connect6(addr.ip, uri_parsed->port);
     else
         socket->connect(addr.ip, uri_parsed->port);
-
-    net_timer->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("Net_timer run failed! " + ErrorEvent2str(err) ); } );
-    net_timer->template once<TimerEvent>( [self, addr](const auto&, const auto&) { self->on_error("Timeout connect to host <" + addr.ip + ">"); } );
-    net_timer->start(5s, 0s);
-
-    if (m_status.state != State::Failed)
-        update_status(State::OnTheGo, "Host Resolved. Connect to <" + addr.ip + ">");
+    if ( m_status.state != State::Failed )
+        net_timer->start(5s, 0s);
 }
 
 template< typename AIO, typename Parser >
@@ -218,31 +215,32 @@ void DownloaderSimple<AIO, Parser>::on_connect()
     net_timer->template clear<TimerEvent>();
     net_timer->stop();
 
-    auto self = this->template shared_from_this();
+    update_status(State::OnTheGo, "Connected, write request.");
 
+    auto self = this->template shared_from_this();
     socket->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error( "Request failed. " + ErrorEvent2str(err) ); } );
     socket->template once<WriteEvent>( [self](const auto&, const auto&) { self->on_write_http_request(); } );
+    net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout write request"); } );
+
     auto request = make_request();
     socket->write( std::move(request.first), request.second );
-
-    net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout write request"); } );
-    net_timer->start(5s, 0s);
-
-    if (m_status.state != State::Failed)
-        update_status(State::OnTheGo, "Connected, write request.");
+    if ( m_status.state != State::Failed )
+        net_timer->start(5s, 0s);
 }
 
 template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::on_write_http_request()
 {
+    using namespace ::std::placeholders;
     using namespace ::std::chrono_literals;
 
     socket->clear();
     net_timer->template clear<TimerEvent>();
     net_timer->stop();
 
-    auto self = this->template shared_from_this();
+    update_status(State::OnTheGo, "Write request done. Wait response.");
 
+    auto self = this->template shared_from_this();
     socket->template once<ErrorEvent>( [self](const auto& err, const auto&) { self->on_error("Response read failed. " + ErrorEvent2str(err) ); } );
     socket->template once<EndEvent>( [self](const auto&, const auto&) { self->on_error("Connection it`s unexpecdly closed."); } );
     socket->template once<DataEvent>( [self](auto& event, const auto&)
@@ -250,19 +248,16 @@ void DownloaderSimple<AIO, Parser>::on_write_http_request()
         self->socket->template clear<EndEvent>();
         self->socket->template once<EndEvent>( [self](const auto&, const auto&) { self->on_read(nullptr, 0); } );
 
-        using namespace std::placeholders;
         auto on_data = std::bind(&DownloaderSimple<AIO, Parser>::on_data, self, _1, _2);
         self->http_parser = Parser::create( std::move(on_data) );
 
         self->on_read( std::move(event.data), event.length );
     } );
-    socket->read();
-
     net_timer->template once<TimerEvent>( [self](const auto&, const auto&) { self->on_error("Timeout read response"); } );
-    net_timer->start(5s, 0s);
 
-    if (m_status.state != State::Failed)
-        update_status(State::OnTheGo, "Write request done. Wait response.");
+    socket->read();
+    if ( m_status.state != State::Failed )
+        net_timer->start(5s, 0s);
 }
 
 template< typename AIO, typename Parser >
@@ -271,6 +266,7 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
     using Result = typename Parser::ResponseParseResult::State;
     using namespace ::std::chrono_literals;
 
+    net_timer->stop();
     auto result = http_parser->response_parse(std::move(data), length);
     if ( m_status.state == State::Failed )
         return;
@@ -283,13 +279,13 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
     {
     case Result::InProgress:
         socket->template once<DataEvent>( [self](auto& event, const auto&) { self->on_read(std::move(event.data), event.length); } );
-        net_timer->stop();
         net_timer->start(5s, 0s);
         update_status(State::OnTheGo, "Data received.");
         break;
 
     case Result::Redirect:
         m_status.redirect_uri = std::move(result.redirect_uri);
+        socket->stop();
         close_handles( [self]()
         {
             self->update_status(State::Redirect, "Redirect to <" + self->m_status.redirect_uri + ">");
@@ -298,6 +294,7 @@ void DownloaderSimple<AIO, Parser>::on_read(std::unique_ptr<char[]> data, std::s
 
     case Result::Done:
         receive_done = true;
+        socket->stop();
         close_handles( [self]()
         {
             if ( !(self->file_openned) )
@@ -320,28 +317,7 @@ void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::s
         socket->stop();
 
     if (!file)
-    {
-        file = loop->template resource<FileReq>();
-        auto self = this->template shared_from_this();
-        file->template once<ErrorEvent>( [self](const auto& err, const auto&)
-        {
-            self->file_operation_started = false;
-            self->on_error("File <" + self->task.fname + "> can`t open! " + ErrorEvent2str(err) );
-        } );
-        file->template once<FileOpenEvent>( [self](const auto&, const auto&)
-        {
-            self->file_openned = true;
-            self->file->template clear<ErrorEvent>();
-            self->file->template once<ErrorEvent>( [self](const auto& err, const auto&)
-            {
-                self->file_operation_started = false;
-                self->on_error("File <" + self->task.fname + "> write error! " + ErrorEvent2str(err) );
-            } );
-            self->on_write();
-        } );
-        file_operation_started = true;
-        file->open(task.fname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
-    }
+        open_file(task.fname);
 
     if (file_openned && !file_operation_started)
     {
@@ -408,6 +384,31 @@ void DownloaderSimple<AIO, Parser>::on_write()
 }
 
 template< typename AIO, typename Parser >
+std::pair<bool, std::string> DownloaderSimple<AIO, Parser>::create_handles()
+{
+    socket = create_socket(uri_parsed->proto);
+    if (!socket)
+        return std::pair<bool, std::string>{false, "Socket can`t create"};
+
+    net_timer = loop->template resource<Timer>();
+    if (!net_timer)
+    {
+        socket->close();
+        return std::pair<bool, std::string>{false, "Net timer can`t create"};
+    }
+
+    resolver = loop->template resource<GetAddrInfoReq>();
+    if (!resolver)
+    {
+        socket->close();
+        net_timer->close();
+        return std::pair<bool, std::string>{false, "Resolver can`t create"};
+    }
+
+    return std::pair<bool, std::string>{true, ""};
+}
+
+template< typename AIO, typename Parser >
 void DownloaderSimple<AIO, Parser>::terminate_handles()
 {
     if (resolver)
@@ -448,13 +449,14 @@ void DownloaderSimple<AIO, Parser>::close_handles(std::function<void()> cb)
     {
         self->socket_connected = false;
         self->socket->close();
+        self->socket.reset();
         cb();
     } );
     socket->shutdown();
 
     net_timer->clear();
-    net_timer->stop();
     net_timer->close();
+    net_timer.reset();
 }
 
 template< typename AIO, typename Parser >
@@ -467,4 +469,32 @@ std::pair<std::unique_ptr<char[]>, std::size_t> DownloaderSimple<AIO, Parser>::m
     auto raw_ptr = new char[ query.size() ];
     std::copy( std::begin(query), std::end(query), raw_ptr );
     return std::make_pair( std::unique_ptr<char[]>{raw_ptr}, query.size() );
+}
+
+template< typename AIO, typename Parser >
+void DownloaderSimple<AIO, Parser>::open_file(const std::string& fname)
+{
+    file = loop->template resource<FileReq>();
+    auto self = this->template shared_from_this();
+
+    file->template once<ErrorEvent>( [self](const auto& err, const auto&)
+    {
+        self->file_operation_started = false;
+        self->on_error("File <" + self->task.fname + "> can`t open! " + ErrorEvent2str(err) );
+    } );
+
+    file->template once<FileOpenEvent>( [self](const auto&, const auto&)
+    {
+        self->file_openned = true;
+        self->file->template clear<ErrorEvent>();
+        self->file->template once<ErrorEvent>( [self](const auto& err, const auto&)
+        {
+            self->file_operation_started = false;
+            self->on_error("File <" + self->task.fname + "> write error! " + ErrorEvent2str(err) );
+        } );
+        self->on_write();
+    } );
+
+    file_operation_started = true;
+    file->open(fname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
 }
