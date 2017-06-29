@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
         if (!task)
             break;
 
-        auto downloader = factory->create(*task);
+        auto downloader = factory->create(task->uri, task->fname);
         if (!downloader)
             continue;
 

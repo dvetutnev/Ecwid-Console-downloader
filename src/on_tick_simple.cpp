@@ -39,7 +39,7 @@ void OnTickSimple::next_task(const JobContainer::iterator job_it)
         if (!task)
             return;
 
-        auto downloader = factory->create(*task);
+        auto downloader = factory->create(task->uri, task->fname);
         if (!downloader)
             continue;
 
@@ -62,7 +62,7 @@ void OnTickSimple::redirect(JobContainer::iterator job_it)
         auto uri = job_it->downloader->status().redirect_uri;
         auto fname = job_it->task->fname;
         Task task{ std::move(uri), std::move(fname) };
-        auto downloader = factory->create(task);
+        auto downloader = factory->create(task.uri, task.fname);
         if (downloader)
         {
             job_it->task->uri = task.uri;

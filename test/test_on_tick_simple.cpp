@@ -45,7 +45,7 @@ TEST(OnTickSimple, Downloader_is_OnTheGo)
             .Times(0);
 
     auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_) )
+    EXPECT_CALL( *factory, create(_,_) )
             .Times(0);
 
     DashboardMock dashboard{};
@@ -96,7 +96,7 @@ void Downloader_normal_completion(StatusDownloader::State state)
 
     auto next_downloader = make_shared<DownloaderMock>();
     auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(next_task) )
+    EXPECT_CALL( *factory, create(next_task.uri, next_task.fname) )
             .WillOnce( Return(next_downloader) );
 
     DashboardMock dashboard{};
@@ -234,7 +234,7 @@ void Downloader_completion_no_Task(StatusDownloader::State state)
             .WillOnce( Return(nullptr) );
 
     auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_) )
+    EXPECT_CALL( *factory, create(_,_) )
             .Times(0);
 
     DashboardMock dashboard{};
@@ -307,9 +307,9 @@ void Downloader_completion_Factory_returning_null_no_Task(StatusDownloader::Stat
 
     Task first_call_factory_task, second_call_factory_task;
     auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_) )
-            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(nullptr) ) )
-            .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(nullptr) ) );
+    EXPECT_CALL( *factory, create(_,_) )
+            .WillOnce( DoAll( SaveArg<0>(&(first_call_factory_task.uri)), SaveArg<1>(&(first_call_factory_task.fname)), Return(nullptr) ) )
+            .WillOnce( DoAll( SaveArg<0>(&(second_call_factory_task.uri)), SaveArg<1>(&(second_call_factory_task.fname)), Return(nullptr) ) );
 
     DashboardMock dashboard{};
     EXPECT_CALL( dashboard, update(_,_) )
@@ -380,7 +380,7 @@ TEST(OnTickSimple, Downloader_is_Redirect)
     const Task redirect_task{status.redirect_uri, used_job.task->fname};
     auto redirect_downloader = make_shared<DownloaderMock>();
     auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(redirect_task) )
+    EXPECT_CALL( *factory, create(redirect_task.uri, redirect_task.fname) )
             .WillOnce( Return(redirect_downloader) );
 
     DashboardMock dashboard{};
@@ -490,7 +490,7 @@ TEST(OnTickSimple, Downloader_is_Redirect_max_redirect)
 
     auto next_downloader = make_shared<DownloaderMock>();
     auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(next_task) )
+    EXPECT_CALL( *factory, create(next_task.uri, next_task.fname) )
             .WillOnce( Return(next_downloader) );
 
     DashboardMock dashboard{};
@@ -551,9 +551,9 @@ TEST(OnTickSimple, Downloader_is_Redirect_Factory_returning_null)
     Task first_call_factory_task, second_call_factory_task;
     auto next_downloader = make_shared<DownloaderMock>();
     auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_) )
-            .WillOnce( DoAll( SaveArg<0>(&first_call_factory_task), Return(nullptr) ) )
-            .WillOnce( DoAll( SaveArg<0>(&second_call_factory_task), Return(next_downloader) ) );
+    EXPECT_CALL( *factory, create(_,_) )
+            .WillOnce( DoAll( SaveArg<0>(&(first_call_factory_task.uri)), SaveArg<1>(&(first_call_factory_task.fname)), Return(nullptr) ) )
+            .WillOnce( DoAll( SaveArg<0>(&(second_call_factory_task.uri)), SaveArg<1>(&(second_call_factory_task.fname)), Return(next_downloader) ) );
 
     DashboardMock dashboard{};
     EXPECT_CALL( dashboard, update(_,_) )
@@ -594,7 +594,7 @@ void invalid_Downloader(shared_ptr<Downloader> downloader)
     JobList job_list;
 
     auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_) )
+    EXPECT_CALL( *factory, create(_,_) )
             .Times(0);
 
     TaskListMock task_list;
