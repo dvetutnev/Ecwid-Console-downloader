@@ -18,7 +18,7 @@ public:
     virtual std::shared_ptr<Downloader> create(const Task& task) override
     {
         auto downloader = std::make_shared< DownloaderBandwidthThrottled<AIO_UVW, HttpParser> >(loop, on_tick, controller);
-        return ( downloader->run(task) ) ? downloader : nullptr;
+        return ( downloader->run(task.uri, task.fname) ) ? downloader : nullptr;
     }
     virtual void set_OnTick(std::shared_ptr<OnTick> on_tick_) override { on_tick = std::move(on_tick_); }
 

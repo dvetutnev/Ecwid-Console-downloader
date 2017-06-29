@@ -48,7 +48,7 @@ public:
           backlog{backlog_}
     {}
 
-    virtual bool run(const Task&) override final;
+    virtual bool run(const std::string&, const std::string&) override final;
     virtual void stop() override final { on_error("Abort."); }
     virtual const StatusDownloader& status() const override final { return m_status; }
 
@@ -67,7 +67,7 @@ private:
     std::shared_ptr<OnTick> on_tick;
     const std::size_t backlog;
 
-    Task task;
+    std::string fname;
     StatusDownloader m_status;
     std::unique_ptr<UriParseResult> uri_parsed;
     std::shared_ptr<GetAddrInfoReq> resolver;
@@ -134,12 +134,12 @@ inline std::string ErrorEvent2str(const ErrorEvent& err)
 }
 
 template< typename AIO, typename Parser >
-bool DownloaderSimple<AIO, Parser>::run(const Task& task_)
+bool DownloaderSimple<AIO, Parser>::run(const std::string& uri, const std::string& fname_)
 {
-    task = task_;
+    fname = fname_;
     m_status.state = State::Init;
 
-    uri_parsed = Parser::uri_parse(task.uri);
+    uri_parsed = Parser::uri_parse(uri);
     if (!uri_parsed)
     {
         m_status.state = State::Failed;
@@ -317,7 +317,7 @@ void DownloaderSimple<AIO, Parser>::on_data(std::unique_ptr<char[]> data, std::s
         socket->stop();
 
     if (!file)
-        open_file(task.fname);
+        open_file(fname);
 
     if (file_openned && !file_operation_started)
     {
@@ -339,7 +339,7 @@ void DownloaderSimple<AIO, Parser>::on_write()
             {
                 self->file_operation_started = false;
                 self->file.reset();
-                self->on_error("File <" + self->task.fname + "> close error! " + ErrorEvent2str(err) );
+                self->on_error("File <" + self->fname + "> close error! " + ErrorEvent2str(err) );
             } );
             file->template once<FileCloseEvent>( [self](const auto&, const auto&)
             {
@@ -434,7 +434,7 @@ void DownloaderSimple<AIO, Parser>::terminate_handles()
 
         if (file_openned)
         {
-            file->template once<FileCloseEvent>( [fs = loop->template resource<FsReq>(), fname = task.fname ](const auto&, const auto&) { fs->unlink(fname); } );
+            file->template once<FileCloseEvent>( [fs = loop->template resource<FsReq>(), fname = fname](const auto&, const auto&) { fs->unlink(fname); } );
             file->close();
         }
     }
@@ -480,7 +480,7 @@ void DownloaderSimple<AIO, Parser>::open_file(const std::string& fname)
     file->template once<ErrorEvent>( [self](const auto& err, const auto&)
     {
         self->file_operation_started = false;
-        self->on_error("File <" + self->task.fname + "> can`t open! " + ErrorEvent2str(err) );
+        self->on_error("File <" + self->fname + "> can`t open! " + ErrorEvent2str(err) );
     } );
 
     file->template once<FileOpenEvent>( [self](const auto&, const auto&)
@@ -490,7 +490,7 @@ void DownloaderSimple<AIO, Parser>::open_file(const std::string& fname)
         self->file->template once<ErrorEvent>( [self](const auto& err, const auto&)
         {
             self->file_operation_started = false;
-            self->on_error("File <" + self->task.fname + "> write error! " + ErrorEvent2str(err) );
+            self->on_error("File <" + self->fname + "> write error! " + ErrorEvent2str(err) );
         } );
         self->on_write();
     } );

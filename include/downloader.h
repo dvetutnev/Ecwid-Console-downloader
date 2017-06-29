@@ -1,6 +1,6 @@
 #pragma once
 
-#include "task.h"
+#include <string>
 
 class StatusDownloader
 {
@@ -24,7 +24,7 @@ public:
 class Downloader
 {
 public:
-    virtual bool run(const Task&) = 0;
+    virtual bool run(const std::string& uri, const std::string& fname) = 0;
     virtual void stop() = 0;
     virtual const StatusDownloader& status() const = 0;
     virtual ~Downloader() = default;

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "downloader.h"
+#include "task.h"
+
+#include <memory>
 
 class OnTick;
 class Factory
