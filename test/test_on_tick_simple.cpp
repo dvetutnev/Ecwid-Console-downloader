@@ -28,7 +28,6 @@ using ::testing::Invoke;
 using ::testing::AtLeast;
 using ::testing::_;
 using ::testing::DoAll;
-using ::testing::SaveArg;
 
 using JobList = std::list<Job>;
 
@@ -540,13 +539,18 @@ TEST_F(OnTickSimpleF, Downloader_is_Redirect_max_redirect)
     EXPECT_CALL( task_list, get() )
             .WillOnce( Return( ByMove( make_unique<Task>(next_uri, next_fname) ) ) );
 
-    EXPECT_CALL( dashboard, update(_,_) )
-            .Times(3);
+    EXPECT_CALL( dashboard, update(used_job_id, _) )
+            .Times(2);
 
     OnTickSimple on_tick{job_list, factory, task_list, dashboard, max_redirect};
 
     on_tick.invoke(used_downloader);
     on_tick.invoke(first_redirect_downloader);
+
+    EXPECT_CALL( dashboard, update(used_job_id, _) )
+            .WillOnce( Return() )
+            .WillOnce( Invoke( [](size_t, const StatusDownloader& status) { ASSERT_EQ( status.state, StatusDownloader::State::Failed); } ) );
+
     on_tick.invoke(second_redirect_downloader);
 
     // Insert next Job

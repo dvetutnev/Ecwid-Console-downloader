@@ -2332,10 +2332,10 @@ Value</y:AttributeLabel>
     <node id="n67">
       <data key="d6">
         <y:ShapeNode>
-          <y:Geometry height="335.5388719531811" width="10.752521692633309" x="2004.9927354642182" y="4162.15466847985"/>
+          <y:Geometry height="370.5412390300389" width="10.752521692633309" x="2004.9927354642182" y="4162.15466847985"/>
           <y:Fill color="#C0C0C0" transparent="false"/>
           <y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="3.3762608463166544" y="165.7694359765901">
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="3.3762608463166544" y="183.27061951501946">
             <y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
@@ -2371,7 +2371,7 @@ Value</y:AttributeLabel>
     <node id="n69">
       <data key="d6">
         <y:ShapeNode>
-          <y:Geometry height="74.33092322560333" width="10.752521692633309" x="2408.4591131545358" y="4255.0318930544745"/>
+          <y:Geometry height="74.33092322560333" width="10.752521692633309" x="2408.4591131545358" y="4345.93593848596"/>
           <y:Fill color="#C0C0C0" transparent="false"/>
           <y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="3.3762608463166544" y="35.165461612801664">
@@ -2530,10 +2530,10 @@ Value</y:AttributeLabel>
     <node id="n76">
       <data key="d6">
         <y:ShapeNode>
-          <y:Geometry height="387.0172214153454" width="10.752521692633309" x="2995.440202324053" y="4162.15466847985"/>
+          <y:Geometry height="447.8112731582805" width="10.752521692633309" x="2995.440202324053" y="4162.15466847985"/>
           <y:Fill color="#C0C0C0" transparent="false"/>
           <y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="3.3762608463166544" y="191.50861070767314">
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="3.3762608463166544" y="221.90563657914026">
             <y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
@@ -2619,7 +2619,7 @@ Value</y:AttributeLabel>
               <y:BorderInsets bottom="2" bottomF="2.081899720378715" left="0" leftF="0.0" right="323" rightF="323.4424324111651" top="124" topF="124.24974299886435"/>
             </y:GenericGroupNode>
             <y:GenericGroupNode configuration="DemoGroup">
-              <y:Geometry height="50.0" width="50.0" x="2956.2159332270853" y="4313.813295978326"/>
+              <y:Geometry height="50.0" width="50.0" x="2963.1259090598696" y="4313.813295978326"/>
               <y:Fill color="#68B0E3" color2="#3C679B" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" borderDistance="0.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="11.634765625" x="0.0" y="0.0">5</y:NodeLabel>
@@ -2664,10 +2664,10 @@ Value</y:AttributeLabel>
       <data key="d4"/>
       <data key="d6">
         <y:UMLNoteNode>
-          <y:Geometry height="167.6473315128742" width="375.04296875" x="2128.083613961287" y="3821.184141043892"/>
+          <y:Geometry height="176.6996678258547" width="375.04296875" x="2128.083613961287" y="3821.184141043892"/>
           <y:Fill color="#FFCC00" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="left" autoSizePolicy="node_size" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="167.6473315128742" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="375.04296875" x="0.0" y="0.0">Основной сценарий:
+          <y:NodeLabel alignment="left" autoSizePolicy="node_size" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="176.6996678258547" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="375.04296875" x="0.0" y="0.0">Основной сценарий:
 1. Поле job.redirect_count увеличено на единицу
 2. Создан экземпляр next_downloader класса Downloader
 3. Полю job.downloader присвоен next_downloader
@@ -2677,7 +2677,8 @@ Value</y:AttributeLabel>
 2. Вызван метод next_task с параметром job
 
 Превышено число редиректов:
-1. Вызван метод next_task с параметром job<y:LabelModel>
+1. Вызван Dashboar с параметром job.id
+2. Вызван метод next_task с параметром job<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -2959,16 +2960,16 @@ Value</y:AttributeLabel>
         <y:ProxyAutoBoundsNode>
           <y:Realizers active="0">
             <y:GenericGroupNode configuration="DemoGroup">
-              <y:Geometry height="88.38469425858148" width="463.1071080172537" x="1961.244909958404" y="4370.071225830496"/>
+              <y:Geometry height="92.00562878377423" width="229.93559994993575" x="1980.3689963105348" y="4416.502167502493"/>
               <y:Fill color="#68B0E3" color2="#3C679B" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" borderDistance="0.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="344.62890625" x="0.0" y="0.0">If job.downloader == Null or job.redirect &gt; max_redirect</y:NodeLabel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" borderDistance="0.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="159.015625" x="0.0" y="0.0">If job.downloader == Null</y:NodeLabel>
               <y:State autoResize="true" closed="false" closedHeight="50.0" closedWidth="50.0"/>
               <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
               <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
             </y:GenericGroupNode>
             <y:GenericGroupNode configuration="DemoGroup">
-              <y:Geometry height="50.0" width="50.0" x="1961.244909958404" y="4370.071225830496"/>
+              <y:Geometry height="50.0" width="50.0" x="1980.3689963105348" y="4416.502167502493"/>
               <y:Fill color="#68B0E3" color2="#3C679B" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" borderDistance="0.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="11.634765625" x="0.0" y="0.0">5</y:NodeLabel>
@@ -3141,33 +3142,6 @@ Value</y:AttributeLabel>
       </data>
     </node>
     <node id="n103" yfiles.foldertype="group">
-      <data key="d6">
-        <y:ProxyAutoBoundsNode>
-          <y:Realizers active="0">
-            <y:GenericGroupNode configuration="DemoGroup">
-              <y:Geometry height="142.1159358486011" width="571.5853097845079" x="1961.244909958404" y="4214.30026985437"/>
-              <y:Fill color="#68B0E3" color2="#3C679B" transparent="false"/>
-              <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" borderDistance="0.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="231.197265625" x="0.0" y="0.0">If job.redirect_count &lt;= max_redirect</y:NodeLabel>
-              <y:State autoResize="true" closed="false" closedHeight="50.0" closedWidth="50.0"/>
-              <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
-              <y:BorderInsets bottom="30" bottomF="29.685238666957957" left="0" leftF="0.0" right="492" rightF="491.5853097845079" top="129" topF="128.6552560848695"/>
-            </y:GenericGroupNode>
-            <y:GenericGroupNode configuration="DemoGroup">
-              <y:Geometry height="50.0" width="50.0" x="1961.244909958404" y="4214.30026985437"/>
-              <y:Fill color="#68B0E3" color2="#3C679B" transparent="false"/>
-              <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" borderDistance="0.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="11.634765625" x="0.0" y="0.0">5</y:NodeLabel>
-              <y:State autoResize="true" closed="true" closedHeight="50.0" closedWidth="50.0"/>
-              <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
-              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
-            </y:GenericGroupNode>
-          </y:Realizers>
-        </y:ProxyAutoBoundsNode>
-      </data>
-      <graph edgedefault="directed" id="n103:"/>
-    </node>
-    <node id="n104" yfiles.foldertype="group">
       <data key="d4"/>
       <data key="d5"/>
       <data key="d6">
@@ -3196,8 +3170,8 @@ Value</y:AttributeLabel>
           </y:Realizers>
         </y:ProxyAutoBoundsNode>
       </data>
-      <graph edgedefault="directed" id="n104:">
-        <node id="n104::n0">
+      <graph edgedefault="directed" id="n103:">
+        <node id="n103::n0">
           <data key="d4"/>
           <data key="d6">
             <y:UMLClassNode>
@@ -3222,7 +3196,7 @@ Value</y:AttributeLabel>
         </node>
       </graph>
     </node>
-    <node id="n105" yfiles.foldertype="group">
+    <node id="n104" yfiles.foldertype="group">
       <data key="d4"/>
       <data key="d5"/>
       <data key="d6">
@@ -3251,8 +3225,8 @@ Value</y:AttributeLabel>
           </y:Realizers>
         </y:ProxyAutoBoundsNode>
       </data>
-      <graph edgedefault="directed" id="n105:">
-        <node id="n105::n0">
+      <graph edgedefault="directed" id="n104:">
+        <node id="n104::n0">
           <data key="d4"/>
           <data key="d6">
             <y:UMLClassNode>
@@ -3279,7 +3253,7 @@ Value</y:AttributeLabel>
         </node>
       </graph>
     </node>
-    <node id="n106">
+    <node id="n105">
       <data key="d4"/>
       <data key="d6">
         <y:UMLNoteNode>
@@ -3310,11 +3284,114 @@ Value</y:AttributeLabel>
         </y:UMLNoteNode>
       </data>
     </node>
-    <node id="n107">
+    <node id="n106">
       <data key="d5"/>
       <data key="d6">
         <y:GenericNode configuration="com.yworks.bpmn.Event.withShadow">
           <y:Geometry height="30.0" width="30.0" x="2803.2472035546966" y="4521.87552100734"/>
+          <y:Fill color="#FFFFFFE6" color2="#D4D4D4CC" transparent="false"/>
+          <y:BorderStyle color="#B11F1F" type="line" width="1.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="13.0" y="34.0">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="-0.5" nodeRatioX="0.0" nodeRatioY="0.5" offsetX="0.0" offsetY="4.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="com.yworks.yfiles.bpmn.view.EventCharEnum" name="com.yworks.bpmn.characteristic" value="EVENT_CHARACTERISTIC_END"/>
+            <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.line.color" value="#000000"/>
+            <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.fill2" value="#d4d4d4cc"/>
+            <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.fill" value="#ffffffe6"/>
+            <y:Property class="com.yworks.yfiles.bpmn.view.BPMNTypeEnum" name="com.yworks.bpmn.type" value="EVENT_TYPE_PLAIN"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n107" yfiles.foldertype="group">
+      <data key="d5"/>
+      <data key="d6">
+        <y:ProxyAutoBoundsNode>
+          <y:Realizers active="0">
+            <y:GenericGroupNode configuration="DemoGroup">
+              <y:Geometry height="99.25709125975482" width="229.93559994993575" x="1980.3689963105348" y="4226.23362072164"/>
+              <y:Fill color="#68B0E3" color2="#3C679B" transparent="false"/>
+              <y:BorderStyle color="#000000" type="line" width="1.0"/>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" borderDistance="0.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="221.142578125" x="0.0" y="0.0">If job.redirect_count &gt; max_redirect</y:NodeLabel>
+              <y:State autoResize="true" closed="false" closedHeight="50.0" closedWidth="50.0"/>
+              <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
+              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
+            </y:GenericGroupNode>
+            <y:GenericGroupNode configuration="DemoGroup">
+              <y:Geometry height="50.0" width="50.0" x="1980.3689963105348" y="4232.027115961948"/>
+              <y:Fill color="#68B0E3" color2="#3C679B" transparent="false"/>
+              <y:BorderStyle color="#000000" type="line" width="1.0"/>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" borderDistance="0.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="11.634765625" x="0.0" y="0.0">5</y:NodeLabel>
+              <y:State autoResize="true" closed="true" closedHeight="50.0" closedWidth="50.0"/>
+              <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
+              <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
+            </y:GenericGroupNode>
+          </y:Realizers>
+        </y:ProxyAutoBoundsNode>
+      </data>
+      <graph edgedefault="directed" id="n107:"/>
+    </node>
+    <node id="n108">
+      <data key="d5"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.bpmn.Event.withShadow">
+          <y:Geometry height="30.0" width="30.0" x="1736.5924353601436" y="4301.284207221703"/>
+          <y:Fill color="#FFFFFFE6" color2="#D4D4D4CC" transparent="false"/>
+          <y:BorderStyle color="#B11F1F" type="line" width="1.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="13.0" y="34.0">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="-0.5" nodeRatioX="0.0" nodeRatioY="0.5" offsetX="0.0" offsetY="4.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="com.yworks.yfiles.bpmn.view.EventCharEnum" name="com.yworks.bpmn.characteristic" value="EVENT_CHARACTERISTIC_END"/>
+            <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.line.color" value="#000000"/>
+            <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.fill2" value="#d4d4d4cc"/>
+            <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.fill" value="#ffffffe6"/>
+            <y:Property class="com.yworks.yfiles.bpmn.view.BPMNTypeEnum" name="com.yworks.bpmn.type" value="EVENT_TYPE_PLAIN"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n109">
+      <data key="d5"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.bpmn.Event.withShadow">
+          <y:Geometry height="30.0" width="30.0" x="1736.5924353601436" y="4506.309892576551"/>
+          <y:Fill color="#FFFFFFE6" color2="#D4D4D4CC" transparent="false"/>
+          <y:BorderStyle color="#B11F1F" type="line" width="1.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="13.0" y="34.0">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="-0.5" nodeRatioX="0.0" nodeRatioY="0.5" offsetX="0.0" offsetY="4.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="com.yworks.yfiles.bpmn.view.EventCharEnum" name="com.yworks.bpmn.characteristic" value="EVENT_CHARACTERISTIC_END"/>
+            <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.line.color" value="#000000"/>
+            <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.fill2" value="#d4d4d4cc"/>
+            <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.fill" value="#ffffffe6"/>
+            <y:Property class="com.yworks.yfiles.bpmn.view.BPMNTypeEnum" name="com.yworks.bpmn.type" value="EVENT_TYPE_PLAIN"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n110">
+      <data key="d5"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.bpmn.Event.withShadow">
+          <y:Geometry height="30.0" width="30.0" x="2803.2472035546966" y="4581.87552100734"/>
           <y:Fill color="#FFFFFFE6" color2="#D4D4D4CC" transparent="false"/>
           <y:BorderStyle color="#B11F1F" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="13.0" y="34.0">
@@ -3406,7 +3483,7 @@ Value</y:AttributeLabel>
         </y:BezierEdge>
       </data>
     </edge>
-    <edge id="e7" source="n104::n0" target="n9::n0">
+    <edge id="e7" source="n103::n0" target="n9::n0">
       <data key="d8"/>
       <data key="d10">
         <y:PolyLineEdge>
@@ -4824,10 +4901,10 @@ http_parser[Error]<y:LabelModel>
     <edge id="e73" source="n67" target="n69">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="-50.568160349188474" tx="0.0" ty="-12.841410560024087"/>
+          <y:Path sx="0.0" sy="22.834701543867595" tx="0.0" ty="-12.841410560024087"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="319.673828125" x="33.12195898765003" y="-21.676178116462324">create(job.id: Number, uri: String, job.fname: String)<y:LabelModel>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="319.673828125" x="33.12195898765003" y="-21.675941278726896">create(job.id: Number, uri: String, job.fname: String)<y:LabelModel>
               <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -4842,10 +4919,10 @@ http_parser[Error]<y:LabelModel>
     <edge id="e74" source="n69" target="n67">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="19.524193380854207" tx="-0.2817134014862859" ty="-18.202556408310556"/>
+          <y:Path sx="0.0" sy="19.524193380854207" tx="-0.2817134014862859" ty="55.20030548474551"/>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="176.271484375" x="-287.8567314610191" y="-19.958817531859495">job.downloader: Downloader<y:LabelModel>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="176.271484375" x="-287.8567314610191" y="-19.958580694124066">job.downloader: Downloader<y:LabelModel>
               <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -4935,7 +5012,7 @@ http_parser[Error]<y:LabelModel>
     <edge id="e79" source="n76" target="n79">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="-175.83214048102218" tx="0.0" ty="0.0"/>
+          <y:Path sx="0.0" sy="-206.2291663524893" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
           <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="91.31640625" x="27.87415078808408" y="-21.67608117346299">erase(job: Job)<y:LabelModel>
@@ -5165,7 +5242,7 @@ http_parser[Error]<y:LabelModel>
     <edge id="e93" source="n93" target="n67">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="-152.7694359765901"/>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="-170.27061951501946"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
           <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="172.0703125" x="24.28198687439385" y="-22.639832381377346">redirect(job: Job, uri: String)<y:LabelModel>
@@ -5183,13 +5260,13 @@ http_parser[Error]<y:LabelModel>
     <edge id="e94" source="n67" target="n67">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="74.14232430469474" tx="2.510887606671531" ty="108.61816964674654">
-            <y:Point x="2173.055031872131" y="4404.066428761135"/>
-            <y:Point x="2173.055031872131" y="4438.542274103187"/>
+          <y:Path sx="0.0" sy="103.92991545564382" tx="2.510887606671531" ty="143.87184706752487">
+            <y:Point x="2173.055031872131" y="4451.355203450514"/>
+            <y:Point x="2173.055031872131" y="4491.297135062395"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="116.06640625" x="29.077620119539006" y="13.093192092615027">next_task(job: Job)<y:LabelModel>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="116.06640625" x="29.077620119539006" y="18.559478833072717">next_task(job: Job)<y:LabelModel>
               <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -5204,13 +5281,10 @@ http_parser[Error]<y:LabelModel>
     <edge id="e95" source="n95" target="n76">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="-178.39204815070966">
-            <y:Point x="2909.531833362533" y="4177.15466847985"/>
-            <y:Point x="2909.531833362533" y="4177.271231036814"/>
-          </y:Path>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="-208.90563657914026"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="116.06640625" x="31.08839895725987" y="-20.058614017754735">next_task(job: Job)<y:LabelModel>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="116.06640625" x="15.793212095796662" y="-20.175176574718535">next_task(job: Job)<y:LabelModel>
               <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -5235,7 +5309,7 @@ http_parser[Error]<y:LabelModel>
     <edge id="e97" source="n76" target="n97">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="-99.88597717311677" tx="0.0" ty="-15.591193108920379"/>
+          <y:Path sx="0.0" sy="-130.2830030445839" tx="0.0" ty="-15.591193108920379"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
           <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="33.068359375" x="119.13450728195221" y="-21.39246199185709">get()<y:LabelModel>
@@ -5253,7 +5327,7 @@ http_parser[Error]<y:LabelModel>
     <edge id="e98" source="n97" target="n76">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="12.954665158877106" tx="-2.894724335783394" ty="-71.34011890531929"/>
+          <y:Path sx="0.0" sy="12.954665158877106" tx="-2.894724335783394" ty="-101.73714477678641"/>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
           <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="65.001953125" x="-175.99673131357213" y="-19.02772972587809">task: Task<y:LabelModel>
@@ -5271,7 +5345,7 @@ http_parser[Error]<y:LabelModel>
     <edge id="e99" source="n76" target="n98">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="11.14425151033356" tx="0.0" ty="0.0"/>
+          <y:Path sx="0.0" sy="-19.25277436113356" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
           <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="162.71875" x="84.03550338124523" y="-19.911343400559417">create(task.fname: String)<y:LabelModel>
@@ -5299,7 +5373,7 @@ http_parser[Error]<y:LabelModel>
     <edge id="e101" source="n76" target="n99">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="60.089729657143835" tx="0.0" ty="-18.027317032188876"/>
+          <y:Path sx="0.0" sy="29.692703785676713" tx="0.0" ty="-18.027317032188876"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
           <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="392.552734375" x="25.960511205221337" y="-22.63963654780946">create(next_jod.id: Number, task.uri: String, task: fname: String)<y:LabelModel>
@@ -5317,7 +5391,7 @@ http_parser[Error]<y:LabelModel>
     <edge id="e102" source="n99" target="n76">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="17.25146310033415" tx="-2.5808437517457605" ty="95.36850978966686"/>
+          <y:Path sx="0.0" sy="17.25146310033415" tx="-2.5808437517457605" ty="64.97148391819974"/>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
           <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="209.06640625" x="-357.01734228470787" y="-21.834011884247047">next_job.downloader: Downloader<y:LabelModel>
@@ -5335,10 +5409,10 @@ http_parser[Error]<y:LabelModel>
     <edge id="e103" source="n76" target="n100">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="175.04283632988245" tx="0.0" ty="0.0"/>
+          <y:Path sx="0.0" sy="144.64581045841533" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="98.6640625" x="23.765957600162437" y="-19.91119608101053">insert(next_job)<y:LabelModel>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="98.6640625" x="23.765957600162437" y="-19.91119608100962">insert(next_job)<y:LabelModel>
               <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -5373,10 +5447,10 @@ http_parser[Error]<y:LabelModel>
     <edge id="e106" source="n67" target="n102">
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="-142.56986870479614" tx="0.0" ty="0.0"/>
+          <y:Path sx="0.0" sy="-160.0710522432255" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="132.958984375" x="58.03480785509373" y="-21.08036454869034">job.redirect_count++<y:LabelModel>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="132.958984375" x="58.03480785509373" y="-21.08036454869125">job.redirect_count++<y:LabelModel>
               <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
             </y:LabelModel>
             <y:ModelParameter>
@@ -5388,11 +5462,66 @@ http_parser[Error]<y:LabelModel>
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e107" source="n76" target="n107">
+    <edge id="e107" source="n76" target="n106">
       <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="181.21224181981597" tx="0.0" ty="0.0"/>
+          <y:Path sx="0.0" sy="150.81521594834885" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#000000" type="dashed" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e108" source="n67" target="n108">
+      <data key="d9"/>
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="-31.141080773167232" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#000000" type="dashed" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e109" source="n67" target="n67">
+      <data key="d9"/>
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="-85.10855332245683" tx="1.197863155444793" ty="-45.39817203292205">
+            <y:Point x="2173.055031872131" y="4262.316734672413"/>
+            <y:Point x="2173.055031872131" y="4302.027115961948"/>
+          </y:Path>
+          <y:LineStyle color="#000000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="116.06640625" x="32.847114847972534" y="19.261414762800086">next_task(job: Job)<y:LabelModel>
+              <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartEdgeLabelModelParameter angle="6.283185307179586" distance="11.464431667897745" distanceToCenter="true" position="right" ratio="0.704774852830555" segment="-1"/>
+            </y:ModelParameter>
+            <y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
+          </y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e110" source="n67" target="n109">
+      <data key="d9"/>
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="173.88460458168083" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#000000" type="dashed" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e111" source="n76" target="n110">
+      <data key="d9"/>
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="210.81521594834885" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
           <y:BendStyle smoothed="false"/>

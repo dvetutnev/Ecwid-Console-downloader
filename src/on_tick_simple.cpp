@@ -60,8 +60,13 @@ void OnTickSimple::next_task(const ConstIt job_it)
 
 void OnTickSimple::redirect(It job_it, const string& uri)
 {
-    if ( ++(job_it->redirect_count) > max_redirect)
+    if ( ++(job_it->redirect_count) > max_redirect )
     {
+        StatusDownloader status;
+        status.state = StatusDownloader::State::Failed;
+        status.state_str = "Maximum count redirect";
+        dashboard.update(job_it->id, status);
+
         next_task(job_it);
         return;
     }
