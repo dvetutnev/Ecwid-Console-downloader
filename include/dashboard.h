@@ -5,6 +5,6 @@
 class Dashboard
 {
 public:
-    virtual void update(std::shared_ptr<const Task>, const StatusDownloader&) = 0;
+    virtual void update(std::size_t, const StatusDownloader&) = 0;
     virtual ~Dashboard() = default;
 };

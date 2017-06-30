@@ -5,5 +5,5 @@
 
 struct DashboardMock : public Dashboard
 {
-    MOCK_METHOD2( update, void(std::shared_ptr<const Task>, const StatusDownloader&) );
+    MOCK_METHOD2( update, void(std::size_t, const StatusDownloader&) );
 };

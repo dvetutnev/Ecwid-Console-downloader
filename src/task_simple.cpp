@@ -1,10 +1,10 @@
 #include "task_simple.h"
 #include <sstream>
 
-std::shared_ptr<Task> TaskListSimple::get()
+std::unique_ptr<Task> TaskListSimple::get()
 {
     using namespace std;
-    shared_ptr<Task> ret;
+    unique_ptr<Task> ret;
 
     while( !stream.eof() )
     {
@@ -20,7 +20,7 @@ std::shared_ptr<Task> TaskListSimple::get()
         if ( uri.empty() || fname.empty() )
             continue;
 
-        ret = make_shared<Task>( move(uri), path + fname );
+        ret = make_unique<Task>( move(uri), path + fname );
         break;
     }
 

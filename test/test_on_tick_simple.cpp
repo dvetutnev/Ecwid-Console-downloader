@@ -11,10 +11,20 @@
 #include <algorithm>
 #include <random>
 
-using namespace std;
+using ::std::size_t;
+using ::std::string;
+using ::std::shared_ptr;
+using ::std::make_shared;
+using ::std::make_unique;
+using ::std::move;
+using ::std::begin;
+using ::std::end;
+using ::std::find_if;
 
 using ::testing::ReturnRef;
 using ::testing::Return;
+using ::testing::ByMove;
+using ::testing::Invoke;
 using ::testing::AtLeast;
 using ::testing::_;
 using ::testing::DoAll;
@@ -22,605 +32,633 @@ using ::testing::SaveArg;
 
 using JobList = std::list<Job>;
 
-TEST(OnTickSimple, Downloader_is_OnTheGo)
+struct OnTickSimpleF : public ::testing::Test
+{
+    OnTickSimpleF()
+        : used_fname{"fname.zip"},
+          used_job{used_fname},
+          used_job_id{used_job.id},
+
+          other_fname{"fname2.zip"},
+          other_job{other_fname},
+          other_job_id{other_job.id},
+
+          used_downloader{ make_shared<DownloaderMock>() },
+          other_downloader{ make_shared<DownloaderMock>() },
+          factory{ make_shared<FactoryMock>() }
+    {
+        used_job.downloader = used_downloader;
+        other_job.downloader = other_downloader;
+
+        job_list.push_back( move(used_job) );
+        job_list.push_back( move(other_job) );
+    }
+
+
+    const string used_fname;
+    Job used_job;
+    const size_t used_job_id;
+
+    const string other_fname;
+    Job other_job;
+    const size_t other_job_id;
+
+    shared_ptr<DownloaderMock> used_downloader;
+    shared_ptr<DownloaderMock> other_downloader;
+
+    shared_ptr<FactoryMock> factory;
+    TaskListMock task_list;
+    DashboardMock dashboard;
+
+    JobList job_list;
+};
+
+TEST_F(OnTickSimpleF, Downloader_is_OnTheGo)
 {
     StatusDownloader status;
     status.state = StatusDownloader::State::OnTheGo;
-    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
-            .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{"http://internet.org/", "fname.zip"};
-    const Task other_task{"http://internet.org/2", "fname2.zip"};
-    Job used_job{ make_shared<Task>(used_task), used_downloader };
-    Job other_job{ make_shared<Task>(other_task), other_downloader };
-    JobList job_list{used_job, other_job};
+    EXPECT_CALL( *factory, create(_,_,_) )
+            .Times(0);
 
-    TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
             .Times(0);
 
-    auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_,_) )
-            .Times(0);
-
-    DashboardMock dashboard{};
-    EXPECT_CALL( dashboard, update(_,_) )
-            .Times( AtLeast(1) );
-
-    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
-    on_tick.invoke(used_job.downloader);
-
-    JobList::const_iterator it;
-    const JobList::const_iterator it_begin = std::begin(job_list);
-    const JobList::const_iterator it_end = std::end(job_list);
-
-    it = std::find_if( it_begin, it_end,
-                       [&used_job, &used_task](const auto& job) { return job == used_job && *(job.task) == used_task; } );
-    ASSERT_NE( it, it_end );
-
-    it = std::find_if( it_begin, it_end,
-                       [&other_job, &other_task](const auto& job) { return job == other_job && *(job.task) == other_task; } );
-    ASSERT_NE( it, it_end );
-
-    ASSERT_EQ( job_list.size(), 2u );
-}
-
-void Downloader_normal_completion(StatusDownloader::State state)
-{
-    StatusDownloader status;
-    status.state = state;
-    auto used_downloader = make_shared<DownloaderMock>();
-    EXPECT_CALL( *used_downloader, status() )
-            .Times( AtLeast(1) )
-            .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = make_shared<DownloaderMock>();
-    EXPECT_CALL( *other_downloader, status() )
-            .Times(0);
-
-    const Task used_task{"http://internet.org/", "fname.zip"};
-    const Task other_task{"http://internet.org/2", "fname2.zip"};
-    Job used_job{ make_shared<Task>(used_task), used_downloader };
-    Job other_job{ make_shared<Task>(other_task), other_downloader };
-    JobList job_list{used_job, other_job};
-
-    const Task next_task{"http://internet.org/next", "fname_next.zip"};
-    auto next_task_ptr = std::make_shared<Task>(next_task);
-    TaskListMock task_list;
-    EXPECT_CALL( task_list, get() )
-            .WillOnce( Return(next_task_ptr) );
-
-    auto next_downloader = make_shared<DownloaderMock>();
-    auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(next_task.uri, next_task.fname) )
-            .WillOnce( Return(next_downloader) );
-
-    DashboardMock dashboard{};
-    EXPECT_CALL( dashboard, update(_,_) )
-            .Times( AtLeast(1) );
+    EXPECT_CALL( dashboard, update(used_job_id,_) )
+            .Times(1);
 
     OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
 
-    JobList::const_iterator it;
-    const JobList::const_iterator it_begin = std::begin(job_list);
-    const JobList::const_iterator it_end = std::end(job_list);
+    auto used_predicate = [downloader = used_downloader, fname = used_fname, id = used_job_id](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto next_it = find_if( begin(job_list), end(job_list), used_predicate );
+    ASSERT_NE( next_it, end(job_list) );
 
-    // Insert next Job
-    Job next_job{ next_task_ptr, next_downloader };
-    it = std::find_if( it_begin, it_end,
-                       [&next_job, &next_task](const auto& job) { return job == next_job && *(job.task) == next_task; } );
-    ASSERT_NE( it, it_end );
-
-    // Remove current Job
-    it = std::find_if( it_begin, it_end,
-                      [&used_job](const auto& job) { return job.task == used_job.task; } );
-    ASSERT_EQ(it, it_end);
-
-    // Don`t touch other Job
-    it = std::find_if( it_begin, it_end,
-                       [&other_job, &other_task](const auto& job) { return job == other_job && *(job.task) == other_task; } );
-    ASSERT_NE( it, it_end );
+    auto other_predicate = [downloader = other_downloader, fname = other_fname, id = other_job_id](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto other_it = find_if( begin(job_list), end(job_list), other_predicate );
+    ASSERT_NE( other_it, end(job_list) );
 
     ASSERT_EQ( job_list.size(), 2u );
 }
 
-TEST(OnTickSimple, Downloader_is_Done)
+struct OnTickSimpleF_nextTask : public OnTickSimpleF
 {
-    {
-        SCOPED_TRACE("StatusDownloader::State::Done");
-        Downloader_normal_completion(StatusDownloader::State::Done);
-    }
-}
+    OnTickSimpleF_nextTask()
+        : next_uri{"http://internet.org/next"},
+          next_fname{"fname_next.zip"},
 
-TEST(OnTickSimple, Downloader_is_Failed)
-{
-    {
-        SCOPED_TRACE("StatusDownloader::State::Failed");
-        Downloader_normal_completion(StatusDownloader::State::Failed);
-    }
-}
+          next_downloader{ make_shared<DownloaderMock>() }
+    {}
 
-void Downloader_completion_Factory_is_null(StatusDownloader::State state)
+    virtual void SetUp()
+    {
+        EXPECT_CALL( task_list, get() )
+                .WillOnce( Return( ByMove( make_unique<Task>(next_uri, next_fname) ) ) );
+
+        EXPECT_CALL( *factory, create(_, next_uri, next_fname) )
+                .WillOnce( Return(next_downloader) );
+
+        EXPECT_CALL( dashboard, update(used_job_id,_) )
+                .Times(1);
+    }
+
+    virtual void TearDown()
+    {
+        // Insert next Job
+        auto next_predicate = [downloader = next_downloader, fname = next_fname](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname;
+        };
+        auto next_it = find_if( begin(job_list), end(job_list), next_predicate );
+        ASSERT_NE( next_it, end(job_list) );
+
+        // Remove current Job
+        auto used_predicate = [downloader = used_downloader, fname = used_fname, id = used_job_id](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname && job.id == id;
+        };
+        auto used_it = find_if( begin(job_list), end(job_list), used_predicate );
+        ASSERT_EQ( used_it, end(job_list) );
+
+        // Don`t touch other Job
+        auto other_predicate = [downloader = other_downloader, fname = other_fname, id = other_job_id](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname && job.id == id;
+        };
+        auto other_it = find_if( begin(job_list), end(job_list), other_predicate );
+        ASSERT_NE( other_it, end(job_list) );
+
+        ASSERT_EQ( job_list.size(), 2u );
+    }
+
+    const string next_uri;
+    const string next_fname;
+
+    shared_ptr<DownloaderMock> next_downloader;
+};
+
+TEST_F(OnTickSimpleF_nextTask, Downloader_is_Done)
 {
     StatusDownloader status;
-    status.state = state;
-    auto used_downloader = make_shared<DownloaderMock>();
+    status.state = StatusDownloader::State::Done;
     EXPECT_CALL( *used_downloader, status() )
-            .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{"http://internet.org/", "fname.zip"};
-    const Task other_task{"http://internet.org/2", "fname2.zip"};
-    Job used_job{ make_shared<Task>(used_task), used_downloader };
-    Job other_job{ make_shared<Task>(other_task), other_downloader };
-    JobList job_list{used_job, other_job};
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
+    on_tick.invoke(used_downloader);
+}
 
-    TaskListMock task_list;
-    EXPECT_CALL( task_list, get() )
+TEST_F(OnTickSimpleF_nextTask, Downloader_is_Failed)
+{
+    StatusDownloader status;
+    status.state = StatusDownloader::State::Failed;
+    EXPECT_CALL( *used_downloader, status() )
+            .WillRepeatedly( ReturnRef(status) );
+    EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    auto factory = std::make_shared<FactoryMock>();
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
+    on_tick.invoke(used_downloader);
+}
 
-    DashboardMock dashboard{};
-    EXPECT_CALL( dashboard, update(_,_) )
-            .Times( AtLeast(1) );
+struct OnTickSimpleF_skipBadTask : public OnTickSimpleF
+{
+    OnTickSimpleF_skipBadTask()
+        : bad_uri{"bad_uri"},
+          bad_fname{"bad_fname"},
+
+          next_uri{"http://internet.org/next"},
+          next_fname{"fname_next.zip"},
+
+          next_downloader{ make_shared<DownloaderMock>() }
+    {}
+
+    virtual void SetUp()
+    {
+        EXPECT_CALL( task_list, get() )
+                .WillOnce( Return( ByMove( make_unique<Task>(bad_uri, bad_fname) ) ) )
+                .WillOnce( Return( ByMove( make_unique<Task>(next_uri, next_fname) ) ) );
+
+        EXPECT_CALL( *factory, create(_,_,_) )
+                .WillOnce( DoAll( Invoke( [this](const size_t, const string& uri, const string& fname) { ASSERT_EQ( uri, bad_uri ); ASSERT_EQ( fname, bad_fname );  } ),
+                                  Return(nullptr) ) )
+                .WillOnce( DoAll( Invoke( [this](const size_t, const string& uri, const string& fname) { ASSERT_EQ( uri, next_uri ); ASSERT_EQ( fname, next_fname );  } ),
+                                  Return(next_downloader) ) );
+
+        EXPECT_CALL( dashboard, update(used_job_id,_) )
+                .Times(1);
+    }
+
+    virtual void TearDown()
+    {
+        // Insert next Job
+        auto next_predicate = [downloader = next_downloader, fname = next_fname](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname;
+        };
+        auto next_it = find_if( begin(job_list), end(job_list), next_predicate );
+        ASSERT_NE( next_it, end(job_list) );
+
+        // Remove current Job
+        auto used_predicate = [downloader = used_downloader, fname = used_fname, id = used_job_id](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname && job.id == id;
+        };
+        auto used_it = find_if( begin(job_list), end(job_list), used_predicate );
+        ASSERT_EQ( used_it, end(job_list) );
+
+        // Don`t touch other Job
+        auto other_predicate = [downloader = other_downloader, fname = other_fname, id = other_job_id](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname && job.id == id;
+        };
+        auto other_it = find_if( begin(job_list), end(job_list), other_predicate );
+        ASSERT_NE( other_it, end(job_list) );
+
+        ASSERT_EQ( job_list.size(), 2u );
+    }
+
+    const string bad_uri;
+    const string bad_fname;
+
+    const string next_uri;
+    const string next_fname;
+
+    shared_ptr<DownloaderMock> next_downloader;
+};
+
+TEST_F(OnTickSimpleF_skipBadTask, Downloader_is_Done)
+{
+    StatusDownloader status;
+    status.state = StatusDownloader::State::Done;
+    EXPECT_CALL( *used_downloader, status() )
+            .WillRepeatedly( ReturnRef(status) );
+    EXPECT_CALL( *other_downloader, status() )
+            .Times(0);
 
     OnTickSimple on_tick{job_list, factory, task_list, dashboard};
+    on_tick.invoke(used_downloader);
+}
 
+TEST_F(OnTickSimpleF_skipBadTask, Downloader_is_Failed)
+{
+    StatusDownloader status;
+    status.state = StatusDownloader::State::Failed;
+    EXPECT_CALL( *used_downloader, status() )
+            .WillRepeatedly( ReturnRef(status) );
+    EXPECT_CALL( *other_downloader, status() )
+            .Times(0);
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
+    on_tick.invoke(used_downloader);
+}
+
+struct OnTickSimpleF_factoryNull : public OnTickSimpleF
+{
+    virtual void SetUp()
+    {
+        EXPECT_CALL( task_list, get() )
+                .Times(0);
+
+        EXPECT_CALL( *factory, create(_,_,_) )
+                .Times(0);
+
+        EXPECT_CALL( dashboard, update(used_job_id,_) )
+                .Times(1);
+    }
+
+    virtual void TearDown()
+    {
+        // Remove current Job
+        auto used_predicate = [downloader = used_downloader, fname = used_fname, id = used_job_id](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname && job.id == id;
+        };
+        auto used_it = find_if( begin(job_list), end(job_list), used_predicate );
+        ASSERT_EQ( used_it, end(job_list) );
+
+        // Don`t touch other Job
+        auto other_predicate = [downloader = other_downloader, fname = other_fname, id = other_job_id](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname && job.id == id;
+        };
+        auto other_it = find_if( begin(job_list), end(job_list), other_predicate );
+        ASSERT_NE( other_it, end(job_list) );
+
+        ASSERT_EQ( job_list.size(), 1u );
+    }
+};
+
+TEST_F(OnTickSimpleF_factoryNull, Downloader_is_Done)
+{
+    StatusDownloader status;
+    status.state = StatusDownloader::State::Done;
+    EXPECT_CALL( *used_downloader, status() )
+            .Times( AtLeast(1) )
+            .WillRepeatedly( ReturnRef(status) );
+    EXPECT_CALL( *other_downloader, status() )
+            .Times(0);
+
+
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     factory.reset();
     on_tick.invoke(used_downloader);
-
-    JobList::const_iterator it;
-    const JobList::const_iterator it_begin = std::begin(job_list);
-    const JobList::const_iterator it_end = std::end(job_list);
-
-    // Remove current Job
-    it = std::find_if( it_begin, it_end,
-                      [&used_job](const auto& job) { return job.task == used_job.task; } );
-    ASSERT_EQ(it, it_end);
-
-    // Don`t touch other Job
-    it = std::find_if( it_begin, it_end,
-                       [&other_job, &other_task](const auto& job) { return job == other_job && *(job.task) == other_task; } );
-    ASSERT_NE( it, it_end );
-
-    ASSERT_EQ( job_list.size(), 1u );
 }
 
-TEST(OnTickSimple, Downloader_is_Done_Factory_is_null)
-{
-    {
-        SCOPED_TRACE("StatusDownloader::State::Done");
-        Downloader_completion_Factory_is_null(StatusDownloader::State::Done);
-    }
-}
-
-TEST(OnTickSimple, Downloader_is_Failed_Factory_is_null)
-{
-    {
-        SCOPED_TRACE("StatusDownloader::State::Failed");
-        Downloader_completion_Factory_is_null(StatusDownloader::State::Failed);
-    }
-}
-
-void Downloader_completion_no_Task(StatusDownloader::State state)
+TEST_F(OnTickSimpleF_factoryNull, Downloader_is_Failed)
 {
     StatusDownloader status;
-    status.state = state;
-    auto used_downloader = make_shared<DownloaderMock>();
+    status.state = StatusDownloader::State::Done;
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{"http://internet.org/", "fname.zip"};
-    const Task other_task{"http://internet.org/2", "fname2.zip"};
-    Job used_job{ make_shared<Task>(used_task), used_downloader };
-    Job other_job{ make_shared<Task>(other_task), other_downloader };
-    JobList job_list{used_job, other_job};
-
-    TaskListMock task_list;
-    EXPECT_CALL( task_list, get() )
-            .WillOnce( Return(nullptr) );
-
-    auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_,_) )
-            .Times(0);
-
-    DashboardMock dashboard{};
-    EXPECT_CALL( dashboard, update(_,_) )
-            .Times( AtLeast(1) );
 
     OnTickSimple on_tick{job_list, factory, task_list, dashboard};
+    factory.reset();
     on_tick.invoke(used_downloader);
-
-    JobList::const_iterator it;
-    const JobList::const_iterator it_begin = std::begin(job_list);
-    const JobList::const_iterator it_end = std::end(job_list);
-
-    // Remove current Job
-    it = std::find_if( it_begin, it_end,
-                      [&used_job](const auto& job) { return job.task == used_job.task; } );
-    ASSERT_EQ(it, it_end);
-
-    // Don`t touch other Job
-    it = std::find_if( it_begin, it_end,
-                       [&other_job, &other_task](const auto& job) { return job == other_job && *(job.task) == other_task; } );
-    ASSERT_NE( it, it_end );
-
-    ASSERT_EQ( job_list.size(), 1u );
 }
 
-TEST(OnTickSimple, Downloader_is_Done_no_Task)
+struct OnTickSimpleF_noTask : public OnTickSimpleF
 {
+    virtual void SetUp()
     {
-        SCOPED_TRACE("StatusDownloader::State::Done");
-        Downloader_completion_no_Task(StatusDownloader::State::Done);
-    }
-}
+        EXPECT_CALL( task_list, get() )
+                .WillOnce( Return( ByMove(nullptr) ) );
 
-TEST(OnTickSimple, Downloader_is_Failed_no_Task)
-{
+        EXPECT_CALL( *factory, create(_,_,_) )
+                .Times(0);
+
+        EXPECT_CALL( dashboard, update(used_job_id,_) )
+                .Times(1);
+    }
+
+    virtual void TearDown()
     {
-        SCOPED_TRACE("StatusDownloader::State::Failed");
-        Downloader_completion_no_Task(StatusDownloader::State::Failed);
-    }
-}
+        // Remove current Job
+        auto used_predicate = [downloader = used_downloader, fname = used_fname, id = used_job_id](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname && job.id == id;
+        };
+        auto used_it = find_if( begin(job_list), end(job_list), used_predicate );
+        ASSERT_EQ( used_it, end(job_list) );
 
-void Downloader_completion_Factory_returning_null_no_Task(StatusDownloader::State state)
+        // Don`t touch other Job
+        auto other_predicate = [downloader = other_downloader, fname = other_fname, id = other_job_id](const auto& job)
+        {
+            return job.downloader == downloader && job.fname == fname && job.id == id;
+        };
+        auto other_it = find_if( begin(job_list), end(job_list), other_predicate );
+        ASSERT_NE( other_it, end(job_list) );
+
+        ASSERT_EQ( job_list.size(), 1u );
+    }
+};
+
+TEST_F(OnTickSimpleF_noTask, Downloader_is_Done)
 {
     StatusDownloader status;
-    status.state = state;
-    auto used_downloader = make_shared<DownloaderMock>();
+    status.state = StatusDownloader::State::Done;
     EXPECT_CALL( *used_downloader, status() )
-            .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{"http://internet.org/", "fname.zip"};
-    const Task other_task{"http://internet.org/2", "fname2.zip"};
-    Job used_job{ make_shared<Task>(used_task), used_downloader };
-    Job other_job{ make_shared<Task>(other_task), other_downloader };
-    JobList job_list{used_job, other_job};
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
+    on_tick.invoke(used_downloader);
+}
 
-    const Task first_bad_task{"first_bad_uri", "first_bad_fname"};
-    const Task second_bad_task{"second_bad_uri", "second_bad_fname"};
-    auto first_bad_task_ptr = make_shared<Task>(first_bad_task);
-    auto second_bad_task_ptr = make_shared<Task>(second_bad_task);
-    TaskListMock task_list;
-    EXPECT_CALL( task_list, get() )
-            .WillOnce( Return(first_bad_task_ptr) )
-            .WillOnce( Return(second_bad_task_ptr) )
-            .WillOnce( Return(nullptr) );
-
-    Task first_call_factory_task, second_call_factory_task;
-    auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_,_) )
-            .WillOnce( DoAll( SaveArg<0>(&(first_call_factory_task.uri)), SaveArg<1>(&(first_call_factory_task.fname)), Return(nullptr) ) )
-            .WillOnce( DoAll( SaveArg<0>(&(second_call_factory_task.uri)), SaveArg<1>(&(second_call_factory_task.fname)), Return(nullptr) ) );
-
-    DashboardMock dashboard{};
-    EXPECT_CALL( dashboard, update(_,_) )
-            .Times( AtLeast(1) );
+TEST_F(OnTickSimpleF_noTask, Downloader_is_Failed)
+{
+    StatusDownloader status;
+    status.state = StatusDownloader::State::Failed;
+    EXPECT_CALL( *used_downloader, status() )
+            .WillRepeatedly( ReturnRef(status) );
+    EXPECT_CALL( *other_downloader, status() )
+            .Times(0);
 
     OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
-
-    ASSERT_EQ( first_call_factory_task, first_bad_task );
-    ASSERT_EQ( second_call_factory_task, second_bad_task );
-
-    JobList::const_iterator it;
-    const JobList::const_iterator it_begin = std::begin(job_list);
-    const JobList::const_iterator it_end = std::end(job_list);
-
-    // Remove current Job
-    it = std::find_if( it_begin, it_end,
-                      [&used_job](const auto& job) { return job.task == used_job.task; } );
-    ASSERT_EQ(it, it_end);
-
-    // Don`t touch other Job
-    it = std::find_if( it_begin, it_end,
-                       [&other_job, &other_task](const auto& job) { return job == other_job && *(job.task) == other_task; } );
-    ASSERT_NE( it, it_end );
-
-    ASSERT_EQ( job_list.size(), 1u );
 }
 
-TEST(OnTickSimple, Downloader_is_Done_Factory_returning_null_no_Task)
-{
-    {
-        SCOPED_TRACE("StatusDownloader::State::Done");
-        Downloader_completion_Factory_returning_null_no_Task(StatusDownloader::State::Done);
-    }
-}
-
-TEST(OnTickSimple, Downloader_is_Failed_Factory_returning_null_no_Task)
-{
-    {
-        SCOPED_TRACE("StatusDownloader::State::Failed");
-        Downloader_completion_Factory_returning_null_no_Task(StatusDownloader::State::Failed);
-    }
-}
-
-TEST(OnTickSimple, Downloader_is_Redirect)
+TEST_F(OnTickSimpleF, Downloader_is_Redirect)
 {
     StatusDownloader status;
     status.state = StatusDownloader::State::Redirect;
     status.redirect_uri = "http://internet.org/redirect";
-    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
-            .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{"http://internet.org/", "fname.zip"};
-    const Task other_task{"http://internet.org/2", "fname2.zip"};
-    Job used_job{ make_shared<Task>(used_task), used_downloader };
-    Job other_job{ make_shared<Task>(other_task), other_downloader };
-    JobList job_list{used_job, other_job};
-
-    TaskListMock task_list;
-    EXPECT_CALL( task_list, get() )
-            .Times(0);
-
-    const Task redirect_task{status.redirect_uri, used_job.task->fname};
     auto redirect_downloader = make_shared<DownloaderMock>();
-    auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(redirect_task.uri, redirect_task.fname) )
+    EXPECT_CALL( *factory, create(used_job_id, status.redirect_uri, used_fname) )
             .WillOnce( Return(redirect_downloader) );
 
-    DashboardMock dashboard{};
-    EXPECT_CALL( dashboard, update(_,_) )
-            .Times( AtLeast(1) );
+    EXPECT_CALL( task_list, get() )
+            .Times(0);
+
+    EXPECT_CALL( dashboard, update(used_job_id,_) )
+            .Times(1);
 
     OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
 
-    JobList::const_iterator it;
-    const JobList::const_iterator it_begin = std::begin(job_list);
-    const JobList::const_iterator it_end = std::end(job_list);
-
-    // Update Downloader & Task.uri in current Job
-    it = std::find_if( it_begin, it_end,
-                       [&used_job, &redirect_task, &redirect_downloader](const auto& job)
+    // Update used Job
+    auto used_predicate = [downloader = redirect_downloader, fname = used_fname, id = used_job_id](const auto& job)
     {
-        return job.task == used_job.task && *(job.task) == redirect_task && job.downloader == redirect_downloader;
-    } );
-    ASSERT_NE(it, it_end);
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto used_it = find_if( begin(job_list), end(job_list), used_predicate );
+    ASSERT_NE( used_it, end(job_list) );
+    ASSERT_EQ( used_it->redirect_count, 1u );
 
     // Don`t touch other Job
-    it = std::find_if( it_begin, it_end,
-                       [&other_job, &other_task](const auto& job) { return job == other_job && *(job.task) == other_task; } );
-    ASSERT_NE( it, it_end );
+    auto other_predicate = [downloader = other_downloader, fname = other_fname, id = other_job_id](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto other_it = find_if( begin(job_list), end(job_list), other_predicate );
+    ASSERT_NE( other_it, end(job_list) );
 
     ASSERT_EQ( job_list.size(), 2u );
 }
 
-TEST(OnTickSimple, Downloader_is_Redirect_Factory_is_null)
+TEST_F(OnTickSimpleF, Downloader_is_Redirect_Factory_is_null)
 {
     StatusDownloader status;
     status.state = StatusDownloader::State::Redirect;
     status.redirect_uri = "http://internet.org/redirect";
-    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
             .Times( AtLeast(1) )
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{"http://internet.org/", "fname.zip"};
-    const Task other_task{"http://internet.org/2", "fname2.zip"};
-    Job used_job{ make_shared<Task>(used_task), used_downloader };
-    Job other_job{ make_shared<Task>(other_task), other_downloader };
-    JobList job_list{used_job, other_job};
+    EXPECT_CALL( *factory, create(_,_,_) )
+            .Times(0);
 
-    TaskListMock task_list;
     EXPECT_CALL( task_list, get() )
             .Times(0);
 
-    auto factory = make_shared<FactoryMock>();
-
-    DashboardMock dashboard{};
     EXPECT_CALL( dashboard, update(_,_) )
-            .Times( AtLeast(1) );
+            .Times(1);
 
     OnTickSimple on_tick{job_list, factory, task_list, dashboard};
 
     factory.reset();
     on_tick.invoke(used_downloader);
 
-    JobList::const_iterator it;
-    const JobList::const_iterator it_begin = std::begin(job_list);
-    const JobList::const_iterator it_end = std::end(job_list);
-
     // Remove current Job
-    it = std::find_if( it_begin, it_end,
-                      [&used_job](const auto& job) { return job.task == used_job.task; } );
-    ASSERT_EQ(it, it_end);
+    auto used_predicate = [downloader = used_downloader, fname = used_fname, id = used_job_id](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto used_it = find_if( begin(job_list), end(job_list), used_predicate );
+    ASSERT_EQ( used_it, end(job_list) );
 
     // Don`t touch other Job
-    it = std::find_if( it_begin, it_end,
-                       [&other_job, &other_task](const auto& job) { return job == other_job && *(job.task) == other_task; } );
-    ASSERT_NE( it, it_end );
+    auto other_predicate = [downloader = other_downloader, fname = other_fname, id = other_job_id](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto other_it = find_if( begin(job_list), end(job_list), other_predicate );
+    ASSERT_NE( other_it, end(job_list) );
 
     ASSERT_EQ( job_list.size(), 1u );
 }
 
-TEST(OnTickSimple, Downloader_is_Redirect_max_redirect)
+TEST_F(OnTickSimpleF, Downloader_is_Redirect_max_redirect)
 {
-    const std::size_t max_redirect = 10;
+    const size_t max_redirect = 2;
 
-    StatusDownloader status;
-    status.state = StatusDownloader::State::Redirect;
-    status.redirect_uri = "http://internet.org/redirect";
-    auto used_downloader = make_shared<DownloaderMock>();
+    StatusDownloader status_1;
+    status_1.state = StatusDownloader::State::Redirect;
+    status_1.redirect_uri = "http://internet.org/redirect_1";
     EXPECT_CALL( *used_downloader, status() )
-            .Times( AtLeast(1) )
-            .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = make_shared<DownloaderMock>();
+            .WillRepeatedly( ReturnRef(status_1) );
+
+    StatusDownloader status_2;
+    status_2.state = StatusDownloader::State::Redirect;
+    status_2.redirect_uri = "http://internet.org/redirect_2";
+    auto first_redirect_downloader = make_shared<DownloaderMock>();
+    EXPECT_CALL( *first_redirect_downloader, status() )
+            .WillRepeatedly( ReturnRef(status_2) );
+
+    StatusDownloader status_3;
+    status_3.state = StatusDownloader::State::Redirect;
+    status_3.redirect_uri = "http://internet.org/redirect_3";
+    auto second_redirect_downloader = make_shared<DownloaderMock>();
+    EXPECT_CALL( *second_redirect_downloader, status() )
+            .WillRepeatedly( ReturnRef(status_3) );
+
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{"http://internet.org/", "fname.zip"};
-    const Task other_task{"http://internet.org/2", "fname2.zip"};
-    Job used_job{ std::make_shared<Task>(used_task), used_downloader, max_redirect };
-    Job other_job{ std::make_shared<Task>(other_task), other_downloader };
-    JobList job_list{used_job, other_job};
-
-    const Task next_task{"http://internet.org/next", "fname_next.zip"};
-    auto next_task_ptr = make_shared<Task>(next_task);
-    TaskListMock task_list;
-    EXPECT_CALL( task_list, get() )
-            .WillOnce( Return(next_task_ptr) );
-
     auto next_downloader = make_shared<DownloaderMock>();
-    auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(next_task.uri, next_task.fname) )
+    EXPECT_CALL( *factory, create(_,_,_) )
+            .WillOnce( Return(first_redirect_downloader) )
+            .WillOnce( Return(second_redirect_downloader) )
             .WillOnce( Return(next_downloader) );
 
-    DashboardMock dashboard{};
+    const string next_uri = "http://internet.org/next";
+    const string next_fname = "fname_next.zip";
+    EXPECT_CALL( task_list, get() )
+            .WillOnce( Return( ByMove( make_unique<Task>(next_uri, next_fname) ) ) );
+
     EXPECT_CALL( dashboard, update(_,_) )
-            .Times( AtLeast(1) );
+            .Times(3);
 
-    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard, max_redirect};
+
     on_tick.invoke(used_downloader);
-
-    JobList::const_iterator it;
-    const JobList::const_iterator it_begin = std::begin(job_list);
-    const JobList::const_iterator it_end = std::end(job_list);
+    on_tick.invoke(first_redirect_downloader);
+    on_tick.invoke(second_redirect_downloader);
 
     // Insert next Job
-    Job next_job{ next_task_ptr, next_downloader };
-    it = std::find_if( it_begin, it_end,
-                       [&next_job, &next_task](const auto& job) { return job == next_job && *(job.task) == next_task; } );
-    ASSERT_NE( it, it_end );
+    auto next_predicate = [downloader = next_downloader, fname = next_fname](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname;
+    };
+    auto next_it = find_if( begin(job_list), end(job_list), next_predicate );
+    ASSERT_NE( next_it, end(job_list) );
 
     // Remove current Job
-    it = std::find_if( it_begin, it_end,
-                      [&used_job](const auto& job) { return job.task == used_job.task; } );
-    ASSERT_EQ(it, it_end);
+    auto used_predicate = [downloader = used_downloader, fname = used_fname, id = used_job_id](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto used_it = find_if( begin(job_list), end(job_list), used_predicate );
+    ASSERT_EQ( used_it, end(job_list) );
 
     // Don`t touch other Job
-    it = std::find_if( it_begin, it_end,
-                       [&other_job, &other_task](const auto& job) { return job == other_job && *(job.task) == other_task; } );
-    ASSERT_NE( it, it_end );
+    auto other_predicate = [downloader = other_downloader, fname = other_fname, id = other_job_id](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto other_it = find_if( begin(job_list), end(job_list), other_predicate );
+    ASSERT_NE( other_it, end(job_list) );
 
     ASSERT_EQ( job_list.size(), 2u );
 }
 
-TEST(OnTickSimple, Downloader_is_Redirect_Factory_returning_null)
+TEST_F(OnTickSimpleF, Downloader_is_Redirect_Factory_returning_null)
 {
     StatusDownloader status;
     status.state = StatusDownloader::State::Redirect;
     status.redirect_uri = "bad_uri";
-    auto used_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *used_downloader, status() )
-            .Times( AtLeast(1) )
+            .Times(1)
             .WillRepeatedly( ReturnRef(status) );
-    auto other_downloader = make_shared<DownloaderMock>();
     EXPECT_CALL( *other_downloader, status() )
             .Times(0);
 
-    const Task used_task{"http://internet.org/", "fname.zip"};
-    const Task other_task{"http://internet.org/2", "fname2.zip"};
-    Job used_job{ make_shared<Task>(used_task), used_downloader };
-    Job other_job{ make_shared<Task>(other_task), other_downloader };
-    JobList job_list{used_job, other_job};
-
-    const Task next_task{"http://internet.org/next", "fname_next.zip"};
-    auto next_task_ptr = make_shared<Task>(next_task);
-    TaskListMock task_list;
-    EXPECT_CALL( task_list, get() )
-            .WillOnce( Return(next_task_ptr) );
-
-    Task first_call_factory_task, second_call_factory_task;
     auto next_downloader = make_shared<DownloaderMock>();
-    auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_,_) )
-            .WillOnce( DoAll( SaveArg<0>(&(first_call_factory_task.uri)), SaveArg<1>(&(first_call_factory_task.fname)), Return(nullptr) ) )
-            .WillOnce( DoAll( SaveArg<0>(&(second_call_factory_task.uri)), SaveArg<1>(&(second_call_factory_task.fname)), Return(next_downloader) ) );
+    EXPECT_CALL( *factory, create(_,_,_) )
+            .WillOnce( Return(nullptr) )
+            .WillOnce( Return(next_downloader) );
 
-    DashboardMock dashboard{};
+    const string next_uri = "http://internet.org/next";
+    const string next_fname = "fname_next.zip";
+    EXPECT_CALL( task_list, get() )
+            .WillOnce( Return( ByMove( make_unique<Task>(next_uri, next_fname) ) ) );
+
     EXPECT_CALL( dashboard, update(_,_) )
-            .Times( AtLeast(1) );
+            .Times(1);
 
     OnTickSimple on_tick{job_list, factory, task_list, dashboard};
     on_tick.invoke(used_downloader);
 
-    const Task redirect_task{status.redirect_uri, used_task.fname};
-    ASSERT_EQ( first_call_factory_task, redirect_task );
-    ASSERT_EQ( second_call_factory_task, next_task );
-
-    JobList::const_iterator it;
-    const JobList::const_iterator it_begin = std::begin(job_list);
-    const JobList::const_iterator it_end = std::end(job_list);
-
     // Insert next Job
-    Job next_job{ next_task_ptr, next_downloader };
-    it = std::find_if( it_begin, it_end,
-                       [&next_job, &next_task](const auto& job) { return job == next_job && *(job.task) == next_task; } );
-    ASSERT_NE( it, it_end );
+    auto next_predicate = [downloader = next_downloader, fname = next_fname](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname;
+    };
+    auto next_it = find_if( begin(job_list), end(job_list), next_predicate );
+    ASSERT_NE( next_it, end(job_list) );
 
     // Remove current Job
-    it = std::find_if( it_begin, it_end,
-                      [&used_job](const auto& job) { return job.task == used_job.task; } );
-    ASSERT_EQ(it, it_end);
+    auto used_predicate = [downloader = used_downloader, fname = used_fname, id = used_job_id](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto used_it = find_if( begin(job_list), end(job_list), used_predicate );
+    ASSERT_EQ( used_it, end(job_list) );
 
     // Don`t touch other Job
-    it = std::find_if( it_begin, it_end,
-                       [&other_job, &other_task](const auto& job) { return job == other_job && *(job.task) == other_task; } );
-    ASSERT_NE( it, it_end );
+    auto other_predicate = [downloader = other_downloader, fname = other_fname, id = other_job_id](const auto& job)
+    {
+        return job.downloader == downloader && job.fname == fname && job.id == id;
+    };
+    auto other_it = find_if( begin(job_list), end(job_list), other_predicate );
+    ASSERT_NE( other_it, end(job_list) );
 
     ASSERT_EQ( job_list.size(), 2u );
 }
 
-void invalid_Downloader(shared_ptr<Downloader> downloader)
+struct OnTickSimpleF_invalidDownloader : public OnTickSimpleF
 {
-    JobList job_list;
+    OnTickSimpleF_invalidDownloader()
+    {
+        EXPECT_CALL( *used_downloader, status() )
+                .Times(0);
+        EXPECT_CALL( *other_downloader, status() )
+                .Times(0);
+        EXPECT_CALL( *factory, create(_,_,_) )
+                .Times(0);
+        EXPECT_CALL( task_list, get() )
+                .Times(0);
+        EXPECT_CALL( dashboard, update(_,_) )
+                .Times(0);
+    }
+};
 
-    auto factory = make_shared<FactoryMock>();
-    EXPECT_CALL( *factory, create(_,_) )
-            .Times(0);
+TEST_F(OnTickSimpleF_invalidDownloader, null_ptr)
+{
+    OnTickSimple on_tick{job_list, factory, task_list, dashboard};
+    ASSERT_THROW( on_tick.invoke(nullptr), std::runtime_error );
+}
 
-    TaskListMock task_list;
-    EXPECT_CALL( task_list, get() )
-            .Times(0);
-
-    DashboardMock dashboard{};
-    EXPECT_CALL( dashboard, update(_,_) )
+TEST_F(OnTickSimpleF_invalidDownloader, unknow_Downloader)
+{
+    auto unknow_downloader = make_shared<DownloaderMock>();
+    EXPECT_CALL( *unknow_downloader, status() )
             .Times(0);
 
     OnTickSimple on_tick{job_list, factory, task_list, dashboard};
-    ASSERT_THROW( on_tick.invoke(downloader), std::runtime_error );
-}
-
-TEST(OnTickSimple, Downloader_null)
-{
-    {
-        SCOPED_TRACE("Downloader_null");
-        invalid_Downloader(nullptr);
-    }
-}
-
-TEST(OnTickSimple, unknow_Downloader)
-{
-    {
-        SCOPED_TRACE("unknow_Downloader");
-        invalid_Downloader( make_shared<DownloaderMock>() );
-    }
+    ASSERT_THROW( on_tick.invoke(unknow_downloader), std::runtime_error );
 }

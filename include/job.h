@@ -1,25 +1,37 @@
 #pragma once
 
-#include "task.h"
-#include "downloader.h"
+#include <string>
+#include <memory>
 
-#include <list>
-
+class Downloader;
 class Job
 {
 public:
-    Job( std::shared_ptr<Task> t, std::shared_ptr<Downloader> d, std::size_t redirect_count_ = 0 )
-        : task{ std::move(t) },
-          downloader{ std::move(d) },
-          redirect_count{redirect_count_}
+    template< typename String,
+              typename = std::enable_if_t< std::is_convertible<String, std::string>::value, String> >
+    Job(String&& fname_)
+        : id{ generate_id() },
+          fname{ std::forward<String>(fname_) },
+          redirect_count{0}
     {}
 
-    std::shared_ptr<Task> task;
-    std::shared_ptr<Downloader> downloader;
+    const std::size_t id;
+    const std::string fname;
     std::size_t redirect_count;
-};
+    std::shared_ptr<Downloader> downloader;
 
-inline bool operator== (const Job& a, const Job& b)
-{
-    return a.task == b.task && a.downloader == b.downloader && a.redirect_count == b.redirect_count;
-}
+    Job() = delete;
+    Job(const Job&) = delete;
+    Job& operator= (const Job&) = delete;
+
+    Job(Job&&) = default;
+    Job& operator= (Job&&) = default;
+    ~Job() = default;
+
+private:
+    static std::size_t generate_id()
+    {
+        static std::size_t id = 1;
+        return id++;
+    }
+};

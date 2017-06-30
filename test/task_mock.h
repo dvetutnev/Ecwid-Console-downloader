@@ -6,5 +6,5 @@
 class TaskListMock : public TaskList
 {
 public:
-    MOCK_METHOD0( get, std::shared_ptr<Task>() );
+    MOCK_METHOD0( get, std::unique_ptr<Task>() );
 };

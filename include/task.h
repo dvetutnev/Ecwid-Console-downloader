@@ -7,8 +7,6 @@
 class Task
 {
 public:
-    Task() = default;
-
     template< typename StringUri,  typename StringFname,
               typename = std::enable_if_t< std::is_convertible<StringUri, std::string>::value, StringUri>,
               typename = std::enable_if_t< std::is_convertible<StringFname, std::string>::value, StringFname> >
@@ -17,21 +15,21 @@ public:
           fname{ std::forward<StringFname>(fname_) }
     {}
 
-    Task(const Task&) = default;
-    Task& operator= (const Task&) = default;
+    const std::string uri;
+    const std::string fname;
 
-    std::string uri;
-    std::string fname;
+    Task() = delete;
+    Task(const Task&) = delete;
+    Task& operator= (const Task&) = delete;
+    Task(Task&&) = delete;
+    Task& operator= (Task&&) = delete;
+
+    ~Task() = default;
 };
 
 class TaskList
 {
 public:
-    virtual std::shared_ptr<Task> get() = 0;
+    virtual std::unique_ptr<Task> get() = 0;
     virtual ~TaskList() = default;
 };
-
-inline bool operator== (const Task& a, const Task& b)
-{
-    return a.uri == b.uri && a.fname == b.fname;
-}

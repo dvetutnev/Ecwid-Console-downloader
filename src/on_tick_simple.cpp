@@ -3,32 +3,41 @@
 #include <algorithm>
 #include <exception>
 
-using namespace std;
+using ::std::shared_ptr;
+using ::std::string;
+using ::std::move;
+using ::std::begin;
+using ::std::end;
+using ::std::find_if;
+using ::std::runtime_error;
 
 void OnTickSimple::invoke(shared_ptr<Downloader> downloader)
 {
+    using State = StatusDownloader::State;
+
     auto job_it = find_job( downloader.get() );
     const auto status = downloader->status();
 
-    dashboard.update(job_it->task, status);
+    dashboard.update(job_it->id, status);
 
     switch (status.state)
     {
-    case StatusDownloader::State::Done:
-    case StatusDownloader::State::Failed:
+    case State::Done:
+    case State::Failed:
         next_task(job_it);
         break;
-    case StatusDownloader::State::Redirect:
-        redirect(job_it);
+    case State::Redirect:
+        redirect(job_it, status.redirect_uri);
         break;
     default:
         break;
     }
 }
 
-void OnTickSimple::next_task(const JobContainer::iterator job_it)
+void OnTickSimple::next_task(const ConstIt job_it)
 {
-    job_container.erase(job_it);
+    job_list.erase(job_it);
+
     auto factory = weak_factory.lock();
     if ( !factory )
         return;
@@ -36,19 +45,20 @@ void OnTickSimple::next_task(const JobContainer::iterator job_it)
     for (;;)
     {
         auto task = task_list.get();
-        if (!task)
+        if ( !task )
             return;
 
-        auto downloader = factory->create(task->uri, task->fname);
-        if (!downloader)
+        Job job{task->fname};
+        job.downloader = factory->create(job.id, task->uri, task->fname);
+        if ( !job.downloader )
             continue;
 
-        job_container.emplace_back(task, downloader);
+        job_list.push_back( move(job) );
         break;
     }
 }
 
-void OnTickSimple::redirect(JobContainer::iterator job_it)
+void OnTickSimple::redirect(It job_it, const string& uri)
 {
     if ( ++(job_it->redirect_count) > max_redirect)
     {
@@ -59,29 +69,21 @@ void OnTickSimple::redirect(JobContainer::iterator job_it)
     auto factory = weak_factory.lock();
     if (factory)
     {
-        auto uri = job_it->downloader->status().redirect_uri;
-        auto fname = job_it->task->fname;
-        Task task{ std::move(uri), std::move(fname) };
-        auto downloader = factory->create(task.uri, task.fname);
-        if (downloader)
-        {
-            job_it->task->uri = task.uri;
-            job_it->downloader = downloader;
-        } else
-        {
+        job_it->downloader = factory->create(job_it->id, uri, job_it->fname);
+        if ( !(job_it->downloader) )
             next_task(job_it);
-        }
+
     } else
     {
-        job_container.erase(job_it);
+        job_list.erase(job_it);
     }
 }
 
-OnTickSimple::JobContainer::iterator OnTickSimple::find_job(Downloader* downloader)
+OnTickSimple::It OnTickSimple::find_job(Downloader* downloader)
 {
-    auto it = std::find_if( std::begin(job_container), std::end(job_container),
+    auto it = find_if( begin(job_list), end(job_list),
                             [&downloader](const Job& job) { return job.downloader.get() == downloader; } );
-    if ( it == std::end(job_container) )
-        throw std::runtime_error{"OnTickSimple => invalid Downloader"};
+    if ( it == end(job_list) )
+        throw runtime_error{"OnTickSimple => invalid Downloader"};
     return it;
 }

@@ -3,121 +3,131 @@
 #include "task_simple.h"
 #include <sstream>
 
-using namespace std;
+using ::std::string;
+using ::std::stringstream;
+using ::std::endl;
 
 TEST(TaskListSimple, normal)
 {
-    const string path{"/home/"};
-    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
-    const Task t2{"http://internet.org/download/", "New_file.zip"};
+    const string path = "/home/";
+
+    const string uri_1 = "http://internet.org/archive.bin";
+    const string fname_1 = "downloaded_file_1.zip";
+    const string uri_2 = "http://internet.org/download/";
+    const string fname_2 = "New_file.zip";
 
     stringstream stream;
-    stream << t1.uri << " " << t1.fname << std::endl;
-    stream << t2.uri << " " << t2.fname << std::endl;
+    stream << uri_1 << " " << fname_1 << endl;
+    stream << uri_2 << " " << fname_2 << endl;
 
     TaskListSimple task_list{stream, path};
 
-    auto t1_ptr = task_list.get();
-    ASSERT_TRUE(t1_ptr);
-    ASSERT_EQ(t1_ptr->uri, t1.uri);
-    ASSERT_EQ(t1_ptr->fname, path + t1.fname);
+    auto task_1 = task_list.get();
+    ASSERT_TRUE(task_1);
+    ASSERT_EQ(task_1->uri, uri_1);
+    ASSERT_EQ(task_1->fname, path + fname_1);
 
-    auto t2_ptr = task_list.get();
-    ASSERT_TRUE(t2_ptr);
-    ASSERT_EQ(t2_ptr->uri, t2.uri);
-    ASSERT_EQ(t2_ptr->fname, path + t2.fname);
+    auto task_2 = task_list.get();
+    ASSERT_TRUE(task_2);
+    ASSERT_EQ(task_2->uri, uri_2);
+    ASSERT_EQ(task_2->fname, path + fname_2);
 }
 
 TEST(TaskListSimple, null_if_eof)
 {
-    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
-
     stringstream stream;
-    stream << t1.uri << " " << t1.fname << std::endl;
+    stream << "http://internet.org/archive.bin" << " " << "downloaded_file_1.zip" << endl;
 
     TaskListSimple task_list{stream, std::string{} };
 
     task_list.get();
-    auto t2_ptr = task_list.get();
-    ASSERT_FALSE(t2_ptr);
-    auto t3_ptr = task_list.get();
-    ASSERT_FALSE(t3_ptr);
+    auto task_2 = task_list.get();
+    ASSERT_FALSE(task_2);
+    auto task_3 = task_list.get();
+    ASSERT_FALSE(task_3);
 }
 
 TEST(TaskListSimple, skip_line_empty)
 {
-    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
-    const Task t2{"http://internet.org/download/", "New_file.zip"};
+    const string uri_1 = "http://internet.org/archive.bin";
+    const string fname_1 = "downloaded_file_1.zip";
+    const string uri_2 = "http://internet.org/download/";
+    const string fname_2 = "New_file.zip";
 
     stringstream stream;
-    stream << t1.uri << " " << t1.fname << std::endl;
-    stream << std::endl;
-    stream << t2.uri << " " << t2.fname << std::endl;
+    stream << uri_1 << " " << fname_1 << endl;
+    stream << endl;
+    stream << uri_2 << " " << fname_2 << endl;
 
     TaskListSimple task_list{stream, std::string{} };
 
-    auto t1_ptr = task_list.get();
-    ASSERT_TRUE(t1_ptr);
-    ASSERT_EQ(t1_ptr->uri, t1.uri);
-    ASSERT_EQ(t1_ptr->fname, t1.fname);
+    auto task_1 = task_list.get();
+    ASSERT_TRUE(task_1);
+    ASSERT_EQ(task_1->uri, uri_1);
+    ASSERT_EQ(task_1->fname, fname_1);
 
-    auto t2_ptr = task_list.get();
-    ASSERT_TRUE(t2_ptr);
-    ASSERT_EQ(t2_ptr->uri, t2.uri);
-    ASSERT_EQ(t2_ptr->fname, t2.fname);
+    auto task_2 = task_list.get();
+    ASSERT_TRUE(task_2);
+    ASSERT_EQ(task_2->uri, uri_2);
+    ASSERT_EQ(task_2->fname, fname_2);
 }
 
 TEST(TaskListSimple, skip_line_not_complete)
 {
-    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
-    const Task t2{"http://internet.org/download/", "New_file.zip"};
+    const string uri_1 = "http://internet.org/archive.bin";
+    const string fname_1 = "downloaded_file_1.zip";
+    const string uri_2 = "http://internet.org/download/";
+    const string fname_2 = "New_file.zip";
 
     stringstream stream;
-    stream << t1.uri << " " << t1.fname << std::endl;
-    stream << "xyz" << std::endl;
-    stream << t2.uri << " " << t2.fname << std::endl;
+    stream << uri_1 << " " << fname_1 << endl;
+    stream << "xyz" << endl;
+    stream << uri_2 << " " << fname_2 << endl;
+
 
     TaskListSimple task_list{stream, std::string{} };
 
-    auto t1_ptr = task_list.get();
-    ASSERT_TRUE(t1_ptr);
-    ASSERT_EQ(t1_ptr->uri, t1.uri);
-    ASSERT_EQ(t1_ptr->fname, t1.fname);
+    auto task_1 = task_list.get();
+    ASSERT_TRUE(task_1);
+    ASSERT_EQ(task_1->uri, uri_1);
+    ASSERT_EQ(task_1->fname, fname_1);
 
-    auto t2_ptr = task_list.get();
-    ASSERT_TRUE(t2_ptr);
-    ASSERT_EQ(t2_ptr->uri, t2.uri);
-    ASSERT_EQ(t2_ptr->fname, t2.fname);
+    auto task_2 = task_list.get();
+    ASSERT_TRUE(task_2);
+    ASSERT_EQ(task_2->uri, uri_2);
+    ASSERT_EQ(task_2->fname, fname_2);
 }
 
 TEST(TaskListSimple, ignore_whitespace_charters)
 {
-    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
+    const string uri = "http://internet.org/archive.bin";
+    const string fname = "downloaded_file_1.zip";
 
     stringstream stream;
-    stream << "  " << t1.uri << "  " << t1.fname << "  " << std::endl;
+    stream << "  " << uri << "  " << fname << "  " << std::endl;
 
     TaskListSimple task_list{stream, string{} };
 
-    auto t1_ptr = task_list.get();
-    ASSERT_TRUE(t1_ptr);
-    ASSERT_EQ(t1_ptr->uri, t1.uri);
-    ASSERT_EQ(t1_ptr->fname, t1.fname);
+    auto task = task_list.get();
+    ASSERT_TRUE(task);
+    ASSERT_EQ(task->uri, uri);
+    ASSERT_EQ(task->fname, fname);
 }
 
 TEST(TaskListSimple, ignore_additional_word)
 {
-    const Task t1{"http://internet.org/archive.bin", "downloaded_file_1.zip"};
+    const string uri = "http://internet.org/archive.bin";
+    const string fname = "downloaded_file_1.zip";
 
     stringstream stream;
-    stream << t1.uri << " " << t1.fname << " xyz" << std::endl;
+    stream << uri << " " << fname << " xyz" << std::endl;
 
     TaskListSimple task_list{stream, string{} };
 
-    auto t1_ptr = task_list.get();
-    ASSERT_TRUE(t1_ptr);
-    ASSERT_EQ(t1_ptr->uri, t1.uri);
-    ASSERT_EQ(t1_ptr->fname, t1.fname);
+    auto task = task_list.get();
+    ASSERT_TRUE(task);
+    ASSERT_EQ(task->uri, uri);
+    ASSERT_EQ(task->fname, fname);
 }
 
 TEST(TaskListSimple, constructor)
@@ -129,18 +139,4 @@ TEST(TaskListSimple, constructor)
     TaskListSimple path_rvalue{stream, move(path) };
     TaskListSimple path_const_char{stream, "/path/" };
     //TaskListSimple invalid_path_type{stream, 42};
-}
-
-TEST(Task, constructor)
-{
-    const string uri, fname;
-
-    Task lvalue__lvalue{uri, fname};
-    Task lvalue__rvalue{uri, string{} };
-    Task rvalue__lvalue{string{}, fname};
-    Task rvalue__rvalue{ string{}, string{} };
-    Task lvalue__const_char{uri, "fname"};
-    Task rvalue__const_char{string{}, "fname"};
-    //Task invalid_lvalue{42, fname};
-    //Task lvalue_invalid{uri, 42};
 }

@@ -13,7 +13,7 @@ class DashboardSimple : public Dashboard
 
 public:
     DashboardSimple() = default;
-    virtual void update(std::shared_ptr<const Task>, const StatusDownloader&) override;
+    virtual void update(std::size_t, const StatusDownloader&) override;
 
     DashboardSimple(const DashboardSimple&) = delete;
     DashboardSimple(DashboardSimple&&) = delete;
@@ -22,20 +22,20 @@ public:
     virtual ~DashboardSimple() = default;
 };
 
-void DashboardSimple::update(std::shared_ptr<const Task> task, const StatusDownloader& status)
+void DashboardSimple::update(std::size_t job_it, const StatusDownloader& status)
 {
     auto time = std::chrono::system_clock::now();
     auto time_ = std::chrono::system_clock::to_time_t(time);
     switch (status.state)
     {
     case State::Done:
-        std::cout << std::put_time(std::localtime(&time_), "%H:%M:%S  ") << "task: " << task << " State: Done" << std::endl;
+        std::cout << std::put_time(std::localtime(&time_), "%H:%M:%S  ") << "#" << job_it << " State: Done" << std::endl;
         break;
     case State::Failed:
-        std::cout << std::put_time(std::localtime(&time_), "%H:%M:%S  ") << "task: " << task << " State: Failed, error: " << status.state_str << std::endl;
+        std::cout << std::put_time(std::localtime(&time_), "%H:%M:%S  ") << "#" << job_it << " State: Failed, error: " << status.state_str << std::endl;
         break;
     case State::Redirect:
-        std::cout << std::put_time(std::localtime(&time_), "%H:%M:%S  ") << "task: " << task << " State: Redirect, status: " << status.state_str << std::endl;
+        std::cout << std::put_time(std::localtime(&time_), "%H:%M:%S  ") << "#" << job_it << " State: Redirect, status: " << status.state_str << std::endl;
         break;
     default:
         break;

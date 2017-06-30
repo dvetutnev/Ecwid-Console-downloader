@@ -22,12 +22,14 @@ int main(int argc, char *argv[])
         cout << "Can`t open <" << task_fname << ">, break." << endl;
         return 1;
     }
+
     TaskListSimple task_list{task_stream, "./"};
+    DashboardSimple dashboard{};
 
     auto loop = AIO_UVW::Loop::getDefault();
     auto controller = make_shared< ::bandwidth::ControllerSimple<AIO_UVW> >( loop, limit, make_unique<::bandwidth::Time>() );
-    auto factory = make_shared<FactoryBandwidthThrottled>(loop, controller);
-    DashboardSimple dashboard{};
+    auto factory = make_shared<FactoryBandwidthThrottled>(loop, dashboard, controller);
+
     std::list<Job> job_list;
     auto on_tick = make_shared<OnTickSimple>(job_list, factory, task_list, dashboard);
     factory->set_OnTick(on_tick);
@@ -38,11 +40,12 @@ int main(int argc, char *argv[])
         if (!task)
             break;
 
-        auto downloader = factory->create(task->uri, task->fname);
-        if (!downloader)
+        Job job{task->fname};
+        job.downloader = factory->create(job.id, task->uri, task->fname);
+        if ( !(job.downloader) )
             continue;
 
-        job_list.emplace_back(task, downloader);
+        job_list.push_back( move(job) );
     }
 
     loop->run();

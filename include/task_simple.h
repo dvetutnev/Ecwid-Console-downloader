@@ -14,7 +14,7 @@ public:
         path{ std::forward<String>(path_) }
     {}
 
-    virtual std::shared_ptr<Task> get() override final;
+    virtual std::unique_ptr<Task> get() override final;
 
     TaskListSimple() = delete;
     TaskListSimple(const TaskListSimple&) = delete;
