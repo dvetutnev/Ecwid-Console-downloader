@@ -1,6 +1,7 @@
 #pragma once
 
-#include "aio_uvw_tcp.h"
+#include "aio/tcp.h"
+#include "uvw/stream.hpp"
 #include "bandwidth.h"
 #include "data_chunk.h"
 
@@ -53,7 +54,7 @@ private:
     static std::function< void(Event&, const TCPSocket&) > bind_on_event(std::shared_ptr<TCPSocketBandwidth>);
 
     void on_data(std::unique_ptr<char[]>, std::size_t);
-    static std::function< void(uvw::DataEvent&, const TCPSocket&) > bind_on_data(std::shared_ptr<TCPSocketBandwidth>);
+    static std::function< void(DataEvent&, const TCPSocket&) > bind_on_data(std::shared_ptr<TCPSocketBandwidth>);
     std::unique_ptr<char[]> pop_buffer(std::size_t);
 
     std::size_t buffer_used = 0;

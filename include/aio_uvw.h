@@ -3,10 +3,11 @@
 #include <uvw/loop.hpp>
 #include <uvw/dns.hpp>
 #include <uvw/timer.hpp>
+#include <uvw/tcp.hpp>
 #include <uvw/fs.hpp>
 
-#include "aio_uvw_tcp_simple.h"
-#include "aio_uvw_tcp_bandwidth.h"
+#include "aio/tcp_simple.h"
+#include "aio/tcp_bandwidth.h"
 
 struct AIO_UVW
 {

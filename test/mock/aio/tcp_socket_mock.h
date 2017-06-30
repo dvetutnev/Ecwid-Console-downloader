@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gmock/gmock.h>
-#include "aio_uvw_tcp.h"
+#include "aio/tcp.h"
 
 struct TCPSocketMock : public uvw::TCPSocket
 {

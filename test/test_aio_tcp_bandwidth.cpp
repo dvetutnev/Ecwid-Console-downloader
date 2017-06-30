@@ -1,13 +1,14 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "aio_tcp_socket_mock.h"
-#include "bandwidth_controller_mock.h"
+#include "mock/aio/tcp_socket_mock.h"
+#include "mock/aio/bandwidth_controller_mock.h"
+
 #include "aio_uvw.h"
-
-#include "aio_uvw_tcp_bandwidth.h"
-
 #include <random>
+
+#include "aio/tcp_bandwidth.h"
+
 
 using namespace std;
 using namespace bandwidth;

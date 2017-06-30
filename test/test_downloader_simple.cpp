@@ -1,18 +1,21 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
+#include "mock/uvw/loop_mock.h"
+#include "mock/uvw/dns_mock.h"
+#include "mock/uvw/timer_mock.h"
+#include "mock/uvw/file_mock.h"
+#include "mock/aio/tcp_socket_mock.h"
+#include "mock/on_tick_mock.h"
+
+#include "aio_uvw.h"
+#include "http.h"
+
+#include "downloader_simple.h"
 
 #include <regex>
 #include <algorithm>
 #include <random>
-
-#include "downloader_simple.h"
-#include "aio_loop_mock.h"
-#include "aio_dns_mock.h"
-#include "aio_tcp_socket_mock.h"
-#include "aio_timer_mock.h"
-#include "aio_file_mock.h"
-#include "aio_uvw.h"
-#include "on_tick_mock.h"
-#include "http.h"
 
 using ::std::cout;
 using ::std::endl;

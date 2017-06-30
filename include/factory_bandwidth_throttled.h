@@ -4,7 +4,7 @@
 #include "dashboard.h"
 #include "downloader_bandwidth_throttled.h"
 #include "aio_uvw.h"
-#include "bandwidth.h"
+#include "aio/bandwidth.h"
 #include "http.h"
 
 class FactoryBandwidthThrottled : public Factory

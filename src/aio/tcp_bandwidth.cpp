@@ -1,4 +1,5 @@
-#include "aio_uvw_tcp_bandwidth.h"
+#include "aio/tcp_bandwidth.h"
+#include "uvw/stream.hpp"
 
 #include <algorithm>
 #include <cassert>

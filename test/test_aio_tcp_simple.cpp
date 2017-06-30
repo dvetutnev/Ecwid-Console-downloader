@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "aio_loop_mock.h"
-#include "aio_tcp_handle_mock.h"
+#include "mock/uvw/loop_mock.h"
+#include "mock/uvw/tcp_handle_mock.h"
 #include "aio_uvw.h"
 
-#include "aio_uvw_tcp_simple.h"
+#include "aio/tcp_simple.h"
 
 using namespace std;
 

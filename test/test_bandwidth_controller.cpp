@@ -1,12 +1,14 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
-#include "bandwidth_controller.h"
+#include "mock/uvw/loop_mock.h"
+#include "mock/uvw/timer_mock.h"
+#include "mock/aio/bandwidth_stream_mock.h"
+#include "mock/aio/bandwidth_time_mock.h"
 
-#include "bandwidth_stream_mock.h"
-#include "bandwidth_time_mock.h"
-#include "aio_loop_mock.h"
-#include "aio_timer_mock.h"
 #include "aio_uvw.h"
+
+#include "aio/bandwidth_controller.h"
 
 using ::bandwidth::Stream;
 using ::bandwidth::StreamMock;

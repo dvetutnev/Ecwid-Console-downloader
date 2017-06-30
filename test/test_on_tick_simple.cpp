@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "downloader_mock.h"
-#include "factory_mock.h"
-#include "task_mock.h"
-#include "dashboard_mock.h"
+#include "mock/downloader_mock.h"
+#include "mock/factory_mock.h"
+#include "mock/task_mock.h"
+#include "mock/dashboard_mock.h"
 
 #include "on_tick_simple.h"
 

@@ -46,7 +46,7 @@ set(SRC_LIST
     src/task_simple.cpp
     src/on_tick_simple.cpp
     src/http.cpp
-    src/aio_uvw_tcp_bandwidth.cpp
+    src/aio/tcp_bandwidth.cpp
 )
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 target_link_libraries(${PROJECT_NAME} uv http-parser ${CMAKE_THREAD_LIBS_INIT})

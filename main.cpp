@@ -1,7 +1,7 @@
 #include "task_simple.h"
 #include "factory_simple.h"
 #include "factory_bandwidth_throttled.h"
-#include "bandwidth_controller.h"
+#include "aio/bandwidth_controller.h"
 #include "dashboard_simple.h"
 #include "on_tick_simple.h"
 

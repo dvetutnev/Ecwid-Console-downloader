@@ -1,7 +1,7 @@
 #pragma once
 
 #include "downloader_simple.h"
-#include "bandwidth.h"
+#include "aio/bandwidth.h"
 
 template< typename AIO, typename Parser >
 class DownloaderBandwidthThrottled : public DownloaderSimple<AIO, Parser>
