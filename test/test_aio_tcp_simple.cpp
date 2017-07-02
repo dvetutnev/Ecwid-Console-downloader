@@ -3,7 +3,7 @@
 
 #include "mock/uvw/loop_mock.h"
 #include "mock/uvw/tcp_handle_mock.h"
-#include "aio_uvw.h"
+#include <uvw/stream.hpp>
 
 #include "aio/tcp_simple.h"
 
@@ -19,14 +19,6 @@ struct AIO_Mock
 {
     using Loop = LoopMock;
     using TcpHandle = TcpHandleMock;
-
-    using ErrorEvent = AIO_UVW::ErrorEvent;
-    using ConnectEvent = AIO_UVW::ConnectEvent;
-    using DataEvent = AIO_UVW::DataEvent;
-    using EndEvent = AIO_UVW::EndEvent;
-    using WriteEvent = AIO_UVW::WriteEvent;
-    using ShutdownEvent = AIO_UVW::ShutdownEvent;
-    using CloseEvent = AIO_UVW::CloseEvent;
 };
 
 TEST(TCPSocketWrapperSimple, TcpHandle_is_null)
@@ -60,8 +52,8 @@ struct TCPSocketSimpleF : public ::testing::Test
                 .Times(1);
 
         bool cb_called = false;
-        resource->clear<uvw::CloseEvent>();
-        resource->once<uvw::CloseEvent>( [&cb_called, this](const auto&, auto& handle)
+        resource->clear<::uvw::CloseEvent>();
+        resource->once<::uvw::CloseEvent>( [&cb_called, this](const auto&, auto& handle)
         {
             cb_called = true;
 
@@ -72,7 +64,7 @@ struct TCPSocketSimpleF : public ::testing::Test
         } );
 
         resource->close();
-        tcp_handle->publish( uvw::CloseEvent{} );
+        tcp_handle->publish( ::uvw::CloseEvent{} );
 
         EXPECT_TRUE(cb_called);
         Mock::VerifyAndClearExpectations(tcp_handle.get());
@@ -99,8 +91,8 @@ TEST_F(TCPSocketSimpleF, create_and_close)
 TEST_F(TCPSocketSimpleF, connect_failed)
 {
     bool cb_called = false;
-    AIO_UVW::ErrorEvent event{ static_cast<int>(UV_ECONNREFUSED) };
-    resource->once<AIO_UVW::ErrorEvent>( [&cb_called, &event, this](const auto& err, auto& handle)
+    ::uvw::ErrorEvent event{ static_cast<int>(UV_ECONNREFUSED) };
+    resource->once<::uvw::ErrorEvent>( [&cb_called, &event, this](const auto& err, auto& handle)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
@@ -109,10 +101,10 @@ TEST_F(TCPSocketSimpleF, connect_failed)
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
     } );
-    resource->once<AIO_UVW::ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::EndEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::EndEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
 
     const string ip = "127.0.0.1";
     const unsigned short port = 8080;
@@ -131,8 +123,8 @@ TEST_F(TCPSocketSimpleF, connect_failed)
 TEST_F(TCPSocketSimpleF, connect6_failed)
 {
     bool cb_called = false;
-    AIO_UVW::ErrorEvent event{ static_cast<int>(UV_ECONNREFUSED) };
-    resource->once<AIO_UVW::ErrorEvent>( [&cb_called, &event, this](const auto& err, auto& handle)
+    ::uvw::ErrorEvent event{ static_cast<int>(UV_ECONNREFUSED) };
+    resource->once<::uvw::ErrorEvent>( [&cb_called, &event, this](const auto& err, auto& handle)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
@@ -141,10 +133,10 @@ TEST_F(TCPSocketSimpleF, connect6_failed)
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
     } );
-    resource->once<AIO_UVW::ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::EndEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::EndEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
 
     const string ip = "::1";
     const unsigned short port = 8080;
@@ -163,7 +155,7 @@ TEST_F(TCPSocketSimpleF, connect6_failed)
 TEST_F(TCPSocketSimpleF, connect_shutdown_close_normal)
 {
     bool cb_connect_called = false;
-    resource->once<AIO_UVW::ConnectEvent>( [&cb_connect_called, this](const auto&, auto& handle)
+    resource->once<::uvw::ConnectEvent>( [&cb_connect_called, this](const auto&, auto& handle)
     {
         cb_connect_called = true;
         auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
@@ -172,7 +164,7 @@ TEST_F(TCPSocketSimpleF, connect_shutdown_close_normal)
         ASSERT_EQ(ptr, resource);
     } );
     bool cb_shutdown_called = false;
-    resource->once<AIO_UVW::ShutdownEvent>( [&cb_shutdown_called, this](const auto&, auto& handle)
+    resource->once<::uvw::ShutdownEvent>( [&cb_shutdown_called, this](const auto&, auto& handle)
     {
         cb_shutdown_called = true;
         auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
@@ -181,7 +173,7 @@ TEST_F(TCPSocketSimpleF, connect_shutdown_close_normal)
         ASSERT_EQ(ptr, resource);
     } );
     bool cb_close_called = false;
-    resource->once<AIO_UVW::CloseEvent>( [&cb_close_called, this](const auto&, auto& handle)
+    resource->once<::uvw::CloseEvent>( [&cb_close_called, this](const auto&, auto& handle)
     {
         cb_close_called = true;
         auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
@@ -189,10 +181,10 @@ TEST_F(TCPSocketSimpleF, connect_shutdown_close_normal)
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
     } );
-    resource->once<AIO_UVW::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::EndEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::EndEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
 
     const string ip = "127.0.0.1";
     const size_t port = 8080;
@@ -204,11 +196,11 @@ TEST_F(TCPSocketSimpleF, connect_shutdown_close_normal)
                 .Times(1);
     }
     resource->connect(ip, port);
-    tcp_handle->publish( AIO_UVW::ConnectEvent{} );
+    tcp_handle->publish( ::uvw::ConnectEvent{} );
     EXPECT_TRUE(cb_connect_called);
 
     resource->shutdown();
-    tcp_handle->publish( AIO_UVW::ShutdownEvent{} );
+    tcp_handle->publish( ::uvw::ShutdownEvent{} );
     EXPECT_TRUE(cb_shutdown_called);
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
@@ -218,9 +210,9 @@ TEST_F(TCPSocketSimpleF, connect_shutdown_close_normal)
 
 TEST_F(TCPSocketSimpleF, read_failed)
 {
-    AIO_UVW::ErrorEvent event{ static_cast<int>(UV_ECONNREFUSED) };
+    ::uvw::ErrorEvent event{ static_cast<int>(UV_ECONNREFUSED) };
     bool cb_called = false;
-    resource->once<AIO_UVW::ErrorEvent>( [&cb_called, &event, this](const auto& err, auto& handle)
+    resource->once<::uvw::ErrorEvent>( [&cb_called, &event, this](const auto& err, auto& handle)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
@@ -229,10 +221,10 @@ TEST_F(TCPSocketSimpleF, read_failed)
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
     } );
-    resource->once<AIO_UVW::ConnectEvent>( [](auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::DataEvent>( [](auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::EndEvent>( [](auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::WriteEvent>( [](auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ConnectEvent>( [](auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::DataEvent>( [](auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::EndEvent>( [](auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::WriteEvent>( [](auto&, auto&) { FAIL(); } );
 
     EXPECT_CALL( *tcp_handle, read() )
             .Times(1);
@@ -249,7 +241,7 @@ TEST_F(TCPSocketSimpleF, read_failed)
 TEST_F(TCPSocketSimpleF, read_EOF)
 {
     bool cb_called = false;
-    resource->once<AIO_UVW::EndEvent>( [&cb_called, this](const auto&, auto& handle)
+    resource->once<::uvw::EndEvent>( [&cb_called, this](const auto&, auto& handle)
     {
         cb_called = true;
         auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
@@ -257,10 +249,10 @@ TEST_F(TCPSocketSimpleF, read_EOF)
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
     } );
-    resource->once<AIO_UVW::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
 
     EXPECT_CALL( *tcp_handle, read() )
             .Times(1);
@@ -269,7 +261,7 @@ TEST_F(TCPSocketSimpleF, read_EOF)
 
     resource->read();
     EXPECT_TRUE( resource->active() );
-    tcp_handle->publish( AIO_UVW::EndEvent{} );
+    tcp_handle->publish( ::uvw::EndEvent{} );
 
     EXPECT_TRUE(cb_called);
     Mock::VerifyAndClearExpectations(tcp_handle.get());
@@ -282,7 +274,7 @@ TEST_F(TCPSocketSimpleF, read_normal)
     bool cb_called = false;
     const std::size_t len = 42;
     char* raw_data_ptr = new char[len];
-    resource->once<AIO_UVW::DataEvent>( [&cb_called, &raw_data_ptr, &len, this](auto& event, auto& handle)
+    resource->once<::uvw::DataEvent>( [&cb_called, &raw_data_ptr, &len, this](auto& event, auto& handle)
     {
         cb_called = true;
         ASSERT_EQ(event.data.get(), raw_data_ptr);
@@ -294,16 +286,16 @@ TEST_F(TCPSocketSimpleF, read_normal)
         ASSERT_EQ(ptr, resource);
 
     } );
-    resource->once<AIO_UVW::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::EndEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::WriteEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::EndEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::WriteEvent>( [](const auto&, auto&) { FAIL(); } );
 
     EXPECT_CALL( *tcp_handle, read() )
             .Times(1);
 
     resource->read();
-    tcp_handle->publish( AIO_UVW::DataEvent{std::unique_ptr<char[]>{raw_data_ptr}, len} );
+    tcp_handle->publish( ::uvw::DataEvent{std::unique_ptr<char[]>{raw_data_ptr}, len} );
 
     EXPECT_TRUE(cb_called);
     Mock::VerifyAndClearExpectations(tcp_handle.get());
@@ -313,11 +305,11 @@ TEST_F(TCPSocketSimpleF, read_normal)
 
 TEST_F(TCPSocketSimpleF, read_stop)
 {
-    resource->once<AIO_UVW::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::DataEvent>( [](auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::EndEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::WriteEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::DataEvent>( [](auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::EndEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::WriteEvent>( [](const auto&, auto&) { FAIL(); } );
 
     {
         InSequence dummy;
@@ -337,8 +329,8 @@ TEST_F(TCPSocketSimpleF, read_stop)
 TEST_F(TCPSocketSimpleF, write_failed_and_close_on_event)
 {
     bool cb_called = false;
-    AIO_UVW::ErrorEvent event{ static_cast<int>(UV_ECONNREFUSED) };
-    resource->once<AIO_UVW::ErrorEvent>( [&cb_called, &event, this](const auto& err, auto& handle)
+    ::uvw::ErrorEvent event{ static_cast<int>(UV_ECONNREFUSED) };
+    resource->once<::uvw::ErrorEvent>( [&cb_called, &event, this](const auto& err, auto& handle)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
@@ -349,10 +341,10 @@ TEST_F(TCPSocketSimpleF, write_failed_and_close_on_event)
 
         this->resource_close();
     } );
-    resource->once<AIO_UVW::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::DataEvent>( [](auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::EndEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::WriteEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::DataEvent>( [](auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::EndEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::WriteEvent>( [](const auto&, auto&) { FAIL(); } );
 
     const unsigned int len = 42;
     char* raw_data_ptr = new char[len];
@@ -362,7 +354,7 @@ TEST_F(TCPSocketSimpleF, write_failed_and_close_on_event)
     resource->write( std::unique_ptr<char[]>{raw_data_ptr}, len );
     tcp_handle->publish(event);
     EXPECT_TRUE(cb_called);
-    tcp_handle->publish( AIO_UVW::CloseEvent{} );
+    tcp_handle->publish( ::uvw::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 }
@@ -370,7 +362,7 @@ TEST_F(TCPSocketSimpleF, write_failed_and_close_on_event)
 TEST_F(TCPSocketSimpleF, write_normal)
 {
     bool cb_called = false;
-    resource->once<AIO_UVW::WriteEvent>( [&cb_called, this](const auto&, auto& handle)
+    resource->once<::uvw::WriteEvent>( [&cb_called, this](const auto&, auto& handle)
     {
         cb_called = true;
         auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
@@ -378,10 +370,10 @@ TEST_F(TCPSocketSimpleF, write_normal)
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
     } );
-    resource->once<AIO_UVW::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::DataEvent>( [](auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::EndEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ConnectEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::DataEvent>( [](auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::EndEvent>( [](const auto&, auto&) { FAIL(); } );
 
     const unsigned int len = 42;
     char* raw_data_ptr = new char[len];
@@ -389,7 +381,7 @@ TEST_F(TCPSocketSimpleF, write_normal)
             .Times(1);
 
     resource->write( std::unique_ptr<char[]>{raw_data_ptr}, len );
-    tcp_handle->publish( AIO_UVW::WriteEvent{} );
+    tcp_handle->publish( ::uvw::WriteEvent{} );
     EXPECT_TRUE(cb_called);
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
@@ -400,7 +392,7 @@ TEST_F(TCPSocketSimpleF, write_normal)
 TEST_F(TCPSocketSimpleF, read_EOF_and_close_on_event)
 {
     bool cb_called = false;
-    resource->once<AIO_UVW::EndEvent>( [&cb_called, this](const auto&, auto& handle)
+    resource->once<::uvw::EndEvent>( [&cb_called, this](const auto&, auto& handle)
     {
         cb_called = true;
         auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
@@ -410,19 +402,19 @@ TEST_F(TCPSocketSimpleF, read_EOF_and_close_on_event)
 
         this->resource_close();
     } );
-    resource->once<AIO_UVW::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
-    resource->once<AIO_UVW::ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
-    resource->once<AIO_UVW::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::ErrorEvent>( [](const auto&, auto&) { FAIL(); } );
+    resource->once<::uvw::ConnectEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::DataEvent>( [](const auto&, const auto&) { FAIL(); } );
+    resource->once<::uvw::WriteEvent>( [](const auto&, const auto&) { FAIL(); } );
 
     EXPECT_CALL( *tcp_handle, read() )
             .Times(1);
 
     resource->read();
-    tcp_handle->publish( AIO_UVW::EndEvent{} );
+    tcp_handle->publish( ::uvw::EndEvent{} );
     EXPECT_TRUE(cb_called);
 
-    tcp_handle->publish( AIO_UVW::CloseEvent{} );
+    tcp_handle->publish( ::uvw::CloseEvent{} );
 
     Mock::VerifyAndClearExpectations(tcp_handle.get());
 }

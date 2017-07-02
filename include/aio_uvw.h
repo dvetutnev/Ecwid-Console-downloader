@@ -11,8 +11,7 @@
 
 struct AIO_UVW
 {
-    using Loop = uvw::Loop;
-    using ErrorEvent = uvw::ErrorEvent;
+    using Loop = ::uvw::Loop;
 
     struct IPAddress
     {
@@ -33,30 +32,13 @@ struct AIO_UVW
     };
     static const IPAddress addrinfo2IPAddress(const addrinfo*);
 
-    using AddrInfoEvent = uvw::AddrInfoEvent;
-    using GetAddrInfoReq = uvw::GetAddrInfoReq;
-
-    using CloseEvent = uvw::CloseEvent;
-
-    using ConnectEvent = uvw::ConnectEvent;
-    using DataEvent = uvw::DataEvent;
-    using EndEvent = uvw::EndEvent;
-    using WriteEvent = uvw::WriteEvent;
-    using ShutdownEvent = uvw::ShutdownEvent;
-    using TcpHandle = uvw::TcpHandle;
-
+    using GetAddrInfoReq = ::uvw::GetAddrInfoReq;
+    using TcpHandle = ::uvw::TcpHandle;
     using TCPSocket = ::aio::TCPSocket;
     using TCPSocketSimple = ::aio::TCPSocketSimple<AIO_UVW>;
     using TCPSocketBandwidth = ::aio::TCPSocketBandwidth;
-
     using TimerHandle = uvw::TimerHandle;
-    using TimerEvent = uvw::TimerEvent;
-
     using FileReq = uvw::FileReq;
-    using FileOpenEvent = uvw::FsEvent<uvw::FileReq::Type::OPEN>;
-    using FileWriteEvent = uvw::FsEvent<uvw::FileReq::Type::WRITE>;
-    using FileCloseEvent = uvw::FsEvent<uvw::FileReq::Type::CLOSE>;
-
     using FsReq = uvw::FsReq;
 };
 

@@ -4,7 +4,6 @@
 #include "mock/aio/tcp_socket_mock.h"
 #include "mock/aio/bandwidth_controller_mock.h"
 
-#include "aio_uvw.h"
 #include <random>
 
 #include "aio/tcp_bandwidth.h"

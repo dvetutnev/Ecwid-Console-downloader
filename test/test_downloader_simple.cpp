@@ -46,31 +46,21 @@ using ::testing::AnyNumber;
 struct AIO_Mock
 {
     using Loop = LoopMock;
-    using ErrorEvent = AIO_UVW::ErrorEvent;
-
-    using AddrInfoEvent = AIO_UVW::AddrInfoEvent;
     using GetAddrInfoReq = GetAddrInfoReqMock;
     using IPAddress = AIO_UVW::IPAddress;
     static auto addrinfo2IPAddress(const addrinfo* addr) { return AIO_UVW::addrinfo2IPAddress(addr); }
 
     using TCPSocket = ::aio::TCPSocket;
     using TCPSocketSimple = ::aio::TCPSocketMock;
-    using ConnectEvent = AIO_UVW::ConnectEvent;
-    using WriteEvent = AIO_UVW::WriteEvent;
-    using DataEvent = AIO_UVW::DataEvent;
-    using EndEvent = AIO_UVW::EndEvent;
-    using ShutdownEvent = AIO_UVW::ShutdownEvent;
-
     using TimerHandle = TimerHandleMock;
-    using TimerEvent = AIO_UVW::TimerEvent;
 
     using FileReq = FileReqMock;
-    using FileOpenEvent = AIO_UVW::FileOpenEvent;
-    using FileWriteEvent = AIO_UVW::FileWriteEvent;
-    using FileCloseEvent = AIO_UVW::FileCloseEvent;
-
     using FsReq = FsReqMock;
 };
+
+using FileOpenEvent = ::uvw::FsEvent<uvw::FileReq::Type::OPEN>;
+using FileWriteEvent = ::uvw::FsEvent<uvw::FileReq::Type::WRITE>;
+using FileCloseEvent = ::uvw::FsEvent<uvw::FileReq::Type::CLOSE>;
 
 /*------- HttpParserMock -------*/
 
@@ -360,7 +350,7 @@ struct DownloaderSimpleResolve : public DownloaderSimpleHandlesCreate
 TEST_F(DownloaderSimpleResolve, resolver_failed_on_run)
 {
     EXPECT_CALL( *resolver, nodeAddrInfo(host) )
-            .WillOnce( InvokeWithoutArgs( [h = resolver.get()]() { h->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
+            .WillOnce( InvokeWithoutArgs( [h = resolver.get()]() { h->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
     EXPECT_CALL( *resolver, cancel() )
             .Times(0);
 
@@ -414,7 +404,7 @@ TEST_F(DownloaderSimpleResolve_normalRun, host_resolve_failed)
             .WillOnce( Invoke(on_tick_handler) );
     prepare_close_socket_and_timer();
 
-    resolver->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EAI_NONAME) } );
+    resolver->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_EAI_NONAME) } );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -444,7 +434,7 @@ TEST_F(DownloaderSimpleResolve_normalRun, stop)
 
 /*------- connect -------*/
 
-AIO_UVW::AddrInfoEvent create_addr_info_event(const string& ip)
+::uvw::AddrInfoEvent create_addr_info_event(const string& ip)
 {
     auto addrinfo_raw_ptr = new addrinfo;
     addrinfo_raw_ptr->ai_family = AF_INET;
@@ -454,10 +444,10 @@ AIO_UVW::AddrInfoEvent create_addr_info_event(const string& ip)
     addrinfo_raw_ptr->ai_next = nullptr;
     addrinfo_raw_ptr->ai_canonname = nullptr;
     auto addrinfo_ptr = unique_ptr<addrinfo, void(*)(addrinfo*)>{addrinfo_raw_ptr, [](addrinfo* ptr) { uv_freeaddrinfo(ptr); } };
-    return AIO_UVW::AddrInfoEvent{ std::move(addrinfo_ptr) };
+    return ::uvw::AddrInfoEvent{ std::move(addrinfo_ptr) };
 }
 
-AIO_UVW::AddrInfoEvent create_addr_info_event_ipv6(const string& ip)
+::uvw::AddrInfoEvent create_addr_info_event_ipv6(const string& ip)
 {
     auto addrinfo_raw_ptr = new addrinfo;
     addrinfo_raw_ptr->ai_family = AF_INET6;
@@ -467,7 +457,7 @@ AIO_UVW::AddrInfoEvent create_addr_info_event_ipv6(const string& ip)
     addrinfo_raw_ptr->ai_next = nullptr;
     addrinfo_raw_ptr->ai_canonname = nullptr;
     auto addrinfo_ptr = unique_ptr<addrinfo, void(*)(addrinfo*)>{addrinfo_raw_ptr, [](addrinfo* ptr) { uv_freeaddrinfo(ptr); } };
-    return AIO_UVW::AddrInfoEvent{ std::move(addrinfo_ptr) };
+    return ::uvw::AddrInfoEvent{ std::move(addrinfo_ptr) };
 }
 
 struct DownloaderSimpleConnect : DownloaderSimpleResolve_normalRun {};
@@ -495,7 +485,7 @@ TEST_F(DownloaderSimpleConnect, connect_failed)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNREFUSED) } );
+    socket->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ECONNREFUSED) } );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -527,7 +517,7 @@ TEST_F(DownloaderSimpleConnect, connect6_failed)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNREFUSED) } );
+    socket->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ECONNREFUSED) } );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -560,7 +550,7 @@ TEST_F(DownloaderSimpleConnect, connect_timeout)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    timer->publish( AIO_UVW::TimerEvent{} );
+    timer->publish( ::uvw::TimerEvent{} );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -572,7 +562,7 @@ TEST_F(DownloaderSimpleConnect, connect_timeout)
 TEST_F(DownloaderSimpleConnect, connect_failed_on_run)
 {
     EXPECT_CALL( *socket, connect(_,_) )
-            .WillOnce( InvokeWithoutArgs( [h = socket.get()]() { h->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
+            .WillOnce( InvokeWithoutArgs( [h = socket.get()]() { h->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
 
     EXPECT_CALL( *timer, start(_,_) )
             .Times(0);
@@ -599,7 +589,7 @@ TEST_F(DownloaderSimpleConnect, timer_failed_on_run)
             .Times(1);
 
     EXPECT_CALL( *timer, start(_,_) )
-            .WillOnce( InvokeWithoutArgs( [h = timer.get()]() { h->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
+            .WillOnce( InvokeWithoutArgs( [h = timer.get()]() { h->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
 
     prepare_close_socket_and_timer();
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
@@ -664,7 +654,7 @@ TEST_F(DownloaderSimpleHttpRequest, write_failed__and_check_request_data)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ConnectEvent{} );
+    socket->publish( ::uvw::ConnectEvent{} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -692,7 +682,7 @@ TEST_F(DownloaderSimpleHttpRequest, write_failed__and_check_request_data)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } );
+    socket->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Failed );
@@ -716,7 +706,7 @@ TEST_F(DownloaderSimpleHttpRequest, write_timeout)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ConnectEvent{} );
+    socket->publish( ::uvw::ConnectEvent{} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -729,7 +719,7 @@ TEST_F(DownloaderSimpleHttpRequest, write_timeout)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    timer->publish( AIO_UVW::TimerEvent{} );
+    timer->publish( ::uvw::TimerEvent{} );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Failed );
@@ -752,7 +742,7 @@ TEST_F(DownloaderSimpleHttpRequest, stop)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ConnectEvent{} );
+    socket->publish( ::uvw::ConnectEvent{} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -777,7 +767,7 @@ TEST_F(DownloaderSimpleHttpRequest, stop)
 TEST_F(DownloaderSimpleHttpRequest, write_failed_on_run)
 {
     EXPECT_CALL( *socket, write_(_,_) )
-            .WillOnce( InvokeWithoutArgs( [h = socket.get()]() { h->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } ); } ) );
+            .WillOnce( InvokeWithoutArgs( [h = socket.get()]() { h->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } ); } ) );
 
     EXPECT_CALL( *timer, stop() )
             .Times(1);
@@ -789,7 +779,7 @@ TEST_F(DownloaderSimpleHttpRequest, write_failed_on_run)
             .Times(2)
             .WillRepeatedly( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ConnectEvent{} );
+    socket->publish( ::uvw::ConnectEvent{} );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -809,14 +799,14 @@ TEST_F(DownloaderSimpleHttpRequest, timer_failed_on_run)
         EXPECT_CALL( *timer, stop() )
                 .Times(1);
         EXPECT_CALL( *timer, start(timeout, repeat) )
-                .WillOnce( InvokeWithoutArgs( [h = timer.get()]() { h->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
+                .WillOnce( InvokeWithoutArgs( [h = timer.get()]() { h->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ENOSYS) } ); } ) );
     }
     prepare_close_socket_and_timer();
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .Times(2)
             .WillRepeatedly( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ConnectEvent{} );
+    socket->publish( ::uvw::ConnectEvent{} );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -845,7 +835,7 @@ struct DownloaderSimpleReadStart : public DownloaderSimpleHttpRequest
         EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
                 .WillOnce( Invoke(on_tick_handler) );
 
-        socket->publish( AIO_UVW::ConnectEvent{} );
+        socket->publish( ::uvw::ConnectEvent{} );
 
         const auto status = downloader->status();
         EXPECT_EQ( status.state, StatusDownloader::State::OnTheGo );
@@ -859,7 +849,7 @@ struct DownloaderSimpleReadStart : public DownloaderSimpleHttpRequest
 TEST_F(DownloaderSimpleReadStart, read_failed_on_run)
 {
     EXPECT_CALL( *socket, read() )
-            .WillOnce( InvokeWithoutArgs( [h = socket.get()]() { h->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } ); } ) );
+            .WillOnce( InvokeWithoutArgs( [h = socket.get()]() { h->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } ); } ) );
 
     EXPECT_CALL( *timer, stop() )
             .Times( AtMost(1) );
@@ -871,7 +861,7 @@ TEST_F(DownloaderSimpleReadStart, read_failed_on_run)
             .Times(2)
             .WillRepeatedly( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::WriteEvent{} );
+    socket->publish( ::uvw::WriteEvent{} );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -896,7 +886,7 @@ struct DownloaderSimpleReadStart_normalRun : public DownloaderSimpleReadStart
         EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
                 .WillOnce( Invoke(on_tick_handler) );
 
-        socket->publish( AIO_UVW::WriteEvent{} );
+        socket->publish( ::uvw::WriteEvent{} );
 
         const auto status = downloader->status();
         EXPECT_EQ( status.state, StatusDownloader::State::OnTheGo );
@@ -914,7 +904,7 @@ TEST_F(DownloaderSimpleReadStart_normalRun, unexpectedly_EOF)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::EndEvent{} );
+    socket->publish( ::uvw::EndEvent{} );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -929,7 +919,7 @@ TEST_F(DownloaderSimpleReadStart, error_read)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } );
+    socket->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -944,7 +934,7 @@ TEST_F(DownloaderSimpleReadStart, timeout_read)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    timer->publish( AIO_UVW::TimerEvent{} );
+    timer->publish( ::uvw::TimerEvent{} );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -997,7 +987,7 @@ TEST_F(DownloaderSimpleResponseParse, redirect)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::DataEvent{ unique_ptr<char[]>{data}, len } );
+    socket->publish( ::uvw::DataEvent{ unique_ptr<char[]>{data}, len } );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1005,7 +995,7 @@ TEST_F(DownloaderSimpleResponseParse, redirect)
     EXPECT_CALL( *socket, close_() )
             .Times(1);
 
-    socket->publish( AIO_UVW::ShutdownEvent{} );
+    socket->publish( ::uvw::ShutdownEvent{} );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Redirect );
@@ -1033,7 +1023,7 @@ TEST_F(DownloaderSimpleResponseParse, error_on_headers)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::DataEvent{ make_unique<char[]>(421), 421 } );
+    socket->publish( ::uvw::DataEvent{ make_unique<char[]>(421), 421 } );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -1099,7 +1089,7 @@ TEST_F(DownloaderSimpleFileOpen, file_filed_open)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::DataEvent{ make_unique<char[]>(42), 42 } );
+    socket->publish( ::uvw::DataEvent{ make_unique<char[]>(42), 42 } );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1118,7 +1108,7 @@ TEST_F(DownloaderSimpleFileOpen, file_filed_open)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EPERM) } );
+    file->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_EPERM) } );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Failed );
@@ -1131,7 +1121,7 @@ TEST_F(DownloaderSimpleFileOpen, file_filed_open)
 TEST_F(DownloaderSimpleFileOpen, file_filed_open_on_run)
 {
     EXPECT_CALL( *file, open(fname, file_flags, file_mode) )
-            .WillOnce( InvokeWithoutArgs( [this]() { file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EPERM) } ); } ) );
+            .WillOnce( InvokeWithoutArgs( [this]() { file->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_EPERM) } ); } ) );
 
     EXPECT_CALL( *timer, stop() )
             .Times(1);
@@ -1145,7 +1135,7 @@ TEST_F(DownloaderSimpleFileOpen, file_filed_open_on_run)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::DataEvent{ make_unique<char[]>(421), 421 } );
+    socket->publish( ::uvw::DataEvent{ make_unique<char[]>(421), 421 } );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -1183,7 +1173,7 @@ struct FileCloseAndUnlink : public DownloaderSimpleFileOpen
         Mock::VerifyAndClearExpectations( file.get() );
         Mock::VerifyAndClearExpectations( loop.get() );
 
-        file->publish( AIO_UVW::FileCloseEvent{fname.c_str()} );
+        file->publish( FileCloseEvent{fname.c_str()} );
 
         Mock::VerifyAndClearExpectations( fs.get() );
     }
@@ -1208,8 +1198,8 @@ struct FileCloseAndUnlink : public DownloaderSimpleFileOpen
         Mock::VerifyAndClearExpectations( file.get() );
         Mock::VerifyAndClearExpectations( loop.get() );
 
-        file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
-        file->publish( AIO_UVW::FileCloseEvent{fname.c_str()} );
+        file->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ECANCELED) } );
+        file->publish( FileCloseEvent{fname.c_str()} );
 
         Mock::VerifyAndClearExpectations( fs.get() );
     }
@@ -1247,7 +1237,7 @@ struct DownloaderSimpleFileWrite : public FileCloseAndUnlink
         EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
                 .WillOnce( Invoke(on_tick_handler) );
 
-        socket->publish( AIO_UVW::DataEvent{ unique_ptr<char[]>{ generate_data(421) }, 421 } );
+        socket->publish( ::uvw::DataEvent{ unique_ptr<char[]>{ generate_data(421) }, 421 } );
 
         const auto status = downloader->status();
         EXPECT_EQ( status.state, StatusDownloader::State::OnTheGo );
@@ -1262,14 +1252,14 @@ struct DownloaderSimpleFileWrite : public FileCloseAndUnlink
 TEST_F(DownloaderSimpleFileWrite, write_failed_on_run)
 {
     EXPECT_CALL( *file, write(_,_,_) )
-            .WillOnce( InvokeWithoutArgs( [h = file.get()]() { h->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } ); } ) );
+            .WillOnce( InvokeWithoutArgs( [h = file.get()]() { h->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_EIO) } ); } ) );
 
     prepare_close_socket_and_timer();
     prepare_close_unlink_file();
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
+    file->publish( FileOpenEvent{fname.c_str()} );
 
     const auto status = downloader->status();
     EXPECT_EQ( status.state, StatusDownloader::State::Failed );
@@ -1284,7 +1274,7 @@ TEST_F(DownloaderSimpleFileWrite, write_failed)
     EXPECT_CALL( *file, write(_,_,_) )
             .Times(1);
 
-    file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
+    file->publish( FileOpenEvent{fname.c_str()} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1294,7 +1284,7 @@ TEST_F(DownloaderSimpleFileWrite, write_failed)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } );
+    file->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_EIO) } );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Failed );
@@ -1309,7 +1299,7 @@ TEST_F(DownloaderSimpleFileWrite, socket_read_error)
     EXPECT_CALL( *file, write(_,_,_) )
             .Times(1);
 
-    file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
+    file->publish( FileOpenEvent{fname.c_str()} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1323,7 +1313,7 @@ TEST_F(DownloaderSimpleFileWrite, socket_read_error)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } );
+    socket->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_ECONNABORTED) } );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Failed );
@@ -1339,7 +1329,7 @@ TEST_F(DownloaderSimpleFileWrite, unexpected_EOF)
     EXPECT_CALL( *file, write(_,_,_) )
             .Times(1);
 
-    file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
+    file->publish( FileOpenEvent{fname.c_str()} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1359,7 +1349,7 @@ TEST_F(DownloaderSimpleFileWrite, unexpected_EOF)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::EndEvent{} );
+    socket->publish( ::uvw::EndEvent{} );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Failed );
@@ -1375,7 +1365,7 @@ TEST_F(DownloaderSimpleFileWrite, parser_error)
     EXPECT_CALL( *file, write(_,_,_) )
             .Times(1);
 
-    file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
+    file->publish( FileOpenEvent{fname.c_str()} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1395,7 +1385,7 @@ TEST_F(DownloaderSimpleFileWrite, parser_error)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::DataEvent{make_unique<char[]>(43), 43} );
+    socket->publish( ::uvw::DataEvent{make_unique<char[]>(43), 43} );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Failed );
@@ -1438,7 +1428,7 @@ TEST_F(DownloaderSimpleQueue, partial_file_write)
 
     const size_t chunk_size = 1000;
     for (size_t i = 1; i <= backlog; i++)
-        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>{ generate_data(chunk_size) }, chunk_size} );
+        socket->publish( ::uvw::DataEvent{unique_ptr<char[]>{ generate_data(chunk_size) }, chunk_size} );
 
     string buff(chunk_size * backlog, '\0');
     auto buff_replace = [&buff](const char* data, size_t length, size_t offset) { buff.replace(offset, length, data, length); };
@@ -1464,16 +1454,16 @@ TEST_F(DownloaderSimpleQueue, partial_file_write)
                 .WillOnce( Invoke(buff_replace) );
     }
 
-    file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
+    file->publish( FileOpenEvent{fname.c_str()} );
 
-    file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size} ); // first chunk write done
+    file->publish( FileWriteEvent{fname.c_str(), chunk_size} ); // first chunk write done
 
-    file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size / 2} ); // second chunk, part one
-    file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size / 2} ); // second chunk, part two
+    file->publish( FileWriteEvent{fname.c_str(), chunk_size / 2} ); // second chunk, part one
+    file->publish( FileWriteEvent{fname.c_str(), chunk_size / 2} ); // second chunk, part two
 
-    file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size} ); // 3, all write
+    file->publish( FileWriteEvent{fname.c_str(), chunk_size} ); // 3, all write
 
-    file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size / 2} ); // 4 chunk, part one
+    file->publish( FileWriteEvent{fname.c_str(), chunk_size / 2} ); // 4 chunk, part one
 
     Mock::VerifyAndClearExpectations( socket.get() );
     // continue read
@@ -1485,7 +1475,7 @@ TEST_F(DownloaderSimpleQueue, partial_file_write)
                 .Times(1);
     }
 
-    file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size / 2} ); // 4 chunk, part two
+    file->publish( FileWriteEvent{fname.c_str(), chunk_size / 2} ); // 4 chunk, part two
 
     Mock::VerifyAndClearExpectations( socket.get() );
 
@@ -1522,14 +1512,14 @@ TEST_F(DownloaderSimpleQueue, socket_stop_on_buffer_filled)
     const size_t chunk_size = 1042;
     for (size_t i = 1; i <= backlog; i++)
     {
-        socket->publish( AIO_UVW::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
+        socket->publish( ::uvw::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
         const auto status = downloader->status();
         EXPECT_EQ(status.downloaded, i * chunk_size);
     }
 
     EXPECT_CALL( *file, write(_,_,_) )
             .Times(1);
-    file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
+    file->publish( FileOpenEvent{fname.c_str()} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1567,12 +1557,12 @@ TEST_F(DownloaderSimpleQueue, socket_read_on_buffer_empty)
 
     const size_t chunk_size = 1042;
 
-    socket->publish( AIO_UVW::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
-    file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
-    socket->publish( AIO_UVW::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
-    file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size} );
+    socket->publish( ::uvw::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
+    file->publish( FileOpenEvent{fname.c_str()} );
+    socket->publish( ::uvw::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
+    file->publish( FileWriteEvent{fname.c_str(), chunk_size} );
     for (size_t i = 1; i < backlog; i++)
-        socket->publish( AIO_UVW::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
+        socket->publish( ::uvw::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1586,7 +1576,7 @@ TEST_F(DownloaderSimpleQueue, socket_read_on_buffer_empty)
             .WillOnce( Invoke( [&socket_active]() { socket_active = true; } ) );
 
     for (size_t i = 1; i <= backlog; i++)
-        file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size} );
+        file->publish( FileWriteEvent{fname.c_str(), chunk_size} );
 
     Mock::VerifyAndClearExpectations( socket.get() );
 
@@ -1619,11 +1609,11 @@ TEST_F(DownloaderSimpleQueue, dont_call_read_if_socket_active)
 
     const size_t chunk_size = 1042;
 
-    socket->publish( AIO_UVW::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
-    file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
-    socket->publish( AIO_UVW::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
-    file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size} );
-    file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size} );
+    socket->publish( ::uvw::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
+    file->publish( FileOpenEvent{fname.c_str()} );
+    socket->publish( ::uvw::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
+    file->publish( FileWriteEvent{fname.c_str(), chunk_size} );
+    file->publish( FileWriteEvent{fname.c_str(), chunk_size} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1635,7 +1625,7 @@ TEST_F(DownloaderSimpleQueue, dont_call_read_if_socket_active)
     EXPECT_CALL( *file, write(_,_,_) )
             .Times(1);
 
-    socket->publish( AIO_UVW::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
+    socket->publish( ::uvw::DataEvent{make_unique<char[]>(chunk_size), chunk_size} );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::OnTheGo );
@@ -1672,13 +1662,13 @@ struct DownloaderSimpleComplete : public DownloaderSimpleQueue
         EXPECT_CALL( *file, write(_,_,_) )
                 .WillRepeatedly( Invoke(buff_replace) );
 
-        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>( generate_data(chunk_size) ), chunk_size} );
-        file->publish( AIO_UVW::FileOpenEvent{fname.c_str()} );
+        socket->publish( ::uvw::DataEvent{unique_ptr<char[]>( generate_data(chunk_size) ), chunk_size} );
+        file->publish( FileOpenEvent{fname.c_str()} );
 
         for (size_t i = 1; i < chunk_count; i++)
         {
-            socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>( generate_data(chunk_size) ), chunk_size} );
-            file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size} );
+            socket->publish( ::uvw::DataEvent{unique_ptr<char[]>( generate_data(chunk_size) ), chunk_size} );
+            file->publish( FileWriteEvent{fname.c_str(), chunk_size} );
         }
 
         // shutdown socket and close timer
@@ -1705,9 +1695,9 @@ struct DownloaderSimpleComplete : public DownloaderSimpleQueue
                                   Invoke(copy_data),
                                   Return(parser_result) ) );
 
-        socket->publish( AIO_UVW::DataEvent{unique_ptr<char[]>( generate_data(chunk_size) ), chunk_size} );
+        socket->publish( ::uvw::DataEvent{unique_ptr<char[]>( generate_data(chunk_size) ), chunk_size} );
 
-        file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size} );
+        file->publish( FileWriteEvent{fname.c_str(), chunk_size} );
 
         Mock::VerifyAndClearExpectations( timer.get() );
         Mock::VerifyAndClearExpectations( socket.get() );
@@ -1721,7 +1711,7 @@ struct DownloaderSimpleComplete : public DownloaderSimpleQueue
         EXPECT_CALL( *socket, read() )
                 .Times(0);
 
-        file->publish( AIO_UVW::FileWriteEvent{fname.c_str(), chunk_size} );
+        file->publish( FileWriteEvent{fname.c_str(), chunk_size} );
 
         const auto status = downloader->status();
         EXPECT_EQ( status.state, StatusDownloader::State::OnTheGo );
@@ -1739,7 +1729,7 @@ TEST_F(DownloaderSimpleComplete, close_socket_before_file)
     EXPECT_CALL( *socket, close_() )
             .Times(1);
 
-    socket->publish( AIO_UVW::ShutdownEvent{} );
+    socket->publish( ::uvw::ShutdownEvent{} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1747,7 +1737,7 @@ TEST_F(DownloaderSimpleComplete, close_socket_before_file)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    file->publish( AIO_UVW::FileCloseEvent{fname.c_str()} );
+    file->publish( FileCloseEvent{fname.c_str()} );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Done );
@@ -1761,7 +1751,7 @@ TEST_F(DownloaderSimpleComplete, close_file_before_socket)
     EXPECT_CALL( *socket, close_() )
             .Times(1);
 
-    file->publish( AIO_UVW::FileCloseEvent{fname.c_str()} );
+    file->publish( FileCloseEvent{fname.c_str()} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1769,7 +1759,7 @@ TEST_F(DownloaderSimpleComplete, close_file_before_socket)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    socket->publish( AIO_UVW::ShutdownEvent{} );
+    socket->publish( ::uvw::ShutdownEvent{} );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Done );
@@ -1786,7 +1776,7 @@ TEST_F(DownloaderSimpleComplete, close_socket_before_file_error)
     EXPECT_CALL( *socket, close_() )
             .Times(1);
 
-    socket->publish( AIO_UVW::ShutdownEvent{} );
+    socket->publish( ::uvw::ShutdownEvent{} );
 
     const auto status_1 = downloader->status();
     EXPECT_EQ( status_1.state, StatusDownloader::State::OnTheGo );
@@ -1794,7 +1784,7 @@ TEST_F(DownloaderSimpleComplete, close_socket_before_file_error)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } );
+    file->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_EIO) } );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Failed );
@@ -1815,7 +1805,7 @@ TEST_F(DownloaderSimpleComplete, file_error)
     EXPECT_CALL( *on_tick, invoke_( downloader.get() ) )
             .WillOnce( Invoke(on_tick_handler) );
 
-    file->publish( AIO_UVW::ErrorEvent{ static_cast<int>(UV_EIO) } );
+    file->publish( ::uvw::ErrorEvent{ static_cast<int>(UV_EIO) } );
 
     const auto status_2 = downloader->status();
     EXPECT_EQ( status_2.state, StatusDownloader::State::Failed );

@@ -39,14 +39,14 @@ TEST(aio_uvw__addrinfo2IPAddress, normal_ipv6)
 
 TEST(aio_uvw__GetAddrInfoReq, loopback)
 {
-    auto loop = AIO_UVW::Loop::getDefault();
-    auto resolver = loop->resource<AIO_UVW::GetAddrInfoReq>();
+    auto loop = ::uvw::Loop::getDefault();
+    auto resolver = loop->resource<::uvw::GetAddrInfoReq>();
     const string host = "127.0.0.1";
 
-    resolver->on<AIO_UVW::ErrorEvent>( [](const auto&, auto&) { FAIL(); }
+    resolver->on<::uvw::ErrorEvent>( [](const auto&, auto&) { FAIL(); }
                 );
     bool resolved = false;
-    resolver->on<AIO_UVW::AddrInfoEvent>( [&resolved, &host](const auto& event, auto&)
+    resolver->on<::uvw::AddrInfoEvent>( [&resolved, &host](const auto& event, auto&)
     {
         resolved = true;
         auto address = AIO_UVW::addrinfo2IPAddress( event.data.get() );
@@ -64,17 +64,17 @@ TEST(aio_uvw__GetAddrInfoReq, loopback)
 
 TEST(aio_uvw__GetAddrInfoReq, bad_uri)
 {
-    auto loop = AIO_UVW::Loop::getDefault();
-    auto resolver = loop->resource<AIO_UVW::GetAddrInfoReq>();
+    auto loop = ::uvw::Loop::getDefault();
+    auto resolver = loop->resource<::uvw::GetAddrInfoReq>();
 
     bool failed = false;
-    resolver->on<AIO_UVW::ErrorEvent>( [&failed](const auto& err, auto&)
+    resolver->on<::uvw::ErrorEvent>( [&failed](const auto& err, auto&)
     {
         failed = true;
         cout << "ErrorEvent: what => " << err.what() << " code => " << err.code() << boolalpha << " bool => " << static_cast<bool>(err) << endl;
     }
                 );
-    resolver->on<AIO_UVW::AddrInfoEvent>( [](const auto&, auto&) { FAIL(); }
+    resolver->on<::uvw::AddrInfoEvent>( [](const auto&, auto&) { FAIL(); }
                 );
     resolver->nodeAddrInfo("bad_uri");
     loop->run();

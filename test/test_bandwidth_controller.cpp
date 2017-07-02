@@ -6,8 +6,6 @@
 #include "mock/aio/bandwidth_stream_mock.h"
 #include "mock/aio/bandwidth_time_mock.h"
 
-#include "aio_uvw.h"
-
 #include "aio/bandwidth_controller.h"
 
 using ::aio::bandwidth::Stream;
@@ -37,9 +35,6 @@ struct AIO_Mock
 {
     using Loop = LoopMock;
     using TimerHandle = TimerHandleMock;
-
-    using ErrorEvent = AIO_UVW::ErrorEvent;
-    using TimerEvent = AIO_UVW::TimerEvent;
 };
 
 TEST(bandwidth_ControllerSimple, timer_cant_create)
@@ -300,7 +295,7 @@ TEST_F(bandwidth_ControllerSimpleStreams, planing_on_zero_to_transfer)
         available_3 -= size;
     } ) );
 
-    timer->publish( AIO_UVW::TimerEvent{} );
+    timer->publish( ::uvw::TimerEvent{} );
 
     EXPECT_EQ(available_1, 0u);
     EXPECT_EQ(available_2, 0u);
@@ -381,7 +376,7 @@ TEST_F(bandwidth_ControllerSimple_planing, normal)
             .WillRepeatedly( Return( milliseconds{50} ) );
 
     controller->shedule_transfer();
-    timer->publish( AIO_UVW::TimerEvent{} );
+    timer->publish( ::uvw::TimerEvent{} );
 
     EXPECT_EQ(available_1, 0u);
     EXPECT_EQ(available_2, 0u);
@@ -402,7 +397,7 @@ TEST_F(bandwidth_ControllerSimple_planing, remove_stream)
             .Times(0);
     controller->remove_stream(conn_2);
 
-    timer->publish( AIO_UVW::TimerEvent{} );
+    timer->publish( ::uvw::TimerEvent{} );
 
     Mock::VerifyAndClearExpectations( stream_2.get() );
     EXPECT_EQ(available_1, 0u);
@@ -428,7 +423,7 @@ TEST_F(bandwidth_ControllerSimple_planing, remove_current_stream)
     EXPECT_CALL( *stream_2, transfer(_) )
             .Times(0);
 
-    timer->publish( AIO_UVW::TimerEvent{} );
+    timer->publish( ::uvw::TimerEvent{} );
 
     Mock::VerifyAndClearExpectations( stream_2.get() );
     EXPECT_EQ(available_1, 0u);
@@ -465,7 +460,7 @@ TEST_F(bandwidth_ControllerSimple_planing, remove_other_stream)
     EXPECT_CALL( *stream_3, transfer(_) )
             .Times(0);
 
-    timer->publish( AIO_UVW::TimerEvent{} );
+    timer->publish( ::uvw::TimerEvent{} );
 
     Mock::VerifyAndClearExpectations( stream_2.get() );
     EXPECT_EQ(available_1, 0u);
