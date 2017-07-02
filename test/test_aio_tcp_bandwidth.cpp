@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "mock/aio/tcp_socket_mock.h"
+#include "mock/aio/tcp_mock.h"
 #include "mock/aio/bandwidth_controller_mock.h"
 
 #include <random>

@@ -5,7 +5,7 @@
 #include "mock/uvw/dns_mock.h"
 #include "mock/uvw/timer_mock.h"
 #include "mock/uvw/file_mock.h"
-#include "mock/aio/tcp_socket_mock.h"
+#include "mock/aio/tcp_mock.h"
 #include "mock/on_tick_mock.h"
 
 #include "aio_uvw.h"
