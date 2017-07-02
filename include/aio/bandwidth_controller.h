@@ -1,19 +1,21 @@
 #pragma once
 
 #include "bandwidth.h"
+#include <uvw/timer.hpp>
 
 #include <list>
 #include <cassert>
 #include <exception>
 
+namespace aio {
 namespace bandwidth {
 
 template< typename AIO >
 class ControllerSimple final : public Controller, public std::enable_shared_from_this< ControllerSimple<AIO> >
 {
+private:
     using Loop = typename AIO::Loop;
     using TimerHandle = typename AIO::TimerHandle;
-    using TimerEvent = typename AIO::TimerEvent;
 
 public:
     ControllerSimple(std::shared_ptr<Loop>loop, std::size_t limit_, std::unique_ptr<Time> time_)
@@ -34,6 +36,7 @@ public:
     ControllerSimple(ControllerSimple&&) = delete;
     ControllerSimple& operator= (const ControllerSimple&) = delete;
     ControllerSimple& operator= (ControllerSimple&&) = delete;
+
     virtual ~ControllerSimple() = default;
 
 private:
@@ -132,8 +135,9 @@ template< typename AIO >
 void ControllerSimple<AIO>::defer_transfer()
 {
     sheduled = true;
-    timer->template once<TimerEvent>( [self = this->template shared_from_this()](const auto&, const auto&) { self->transfer(); } );
+    timer->template once<::uvw::TimerEvent>( [self = this->template shared_from_this()](const auto&, const auto&) { self->transfer(); } );
     timer->start( std::chrono::milliseconds{50}, std::chrono::milliseconds{0} );
 }
 
 } // namespace bandwidth
+} // namespace aio

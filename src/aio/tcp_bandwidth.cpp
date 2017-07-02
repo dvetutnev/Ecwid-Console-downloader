@@ -1,29 +1,28 @@
 #include "aio/tcp_bandwidth.h"
-#include "uvw/stream.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <numeric>
 
-using std::size_t;
-using std::shared_ptr;
-using std::make_shared;
-using std::unique_ptr;
-using std::make_unique;
-using std::move;
-using std::function;
-using std::min;
-using std::copy_n;
+using namespace aio;
 
-using uvw::TCPSocket;
-using uvw::TCPSocketBandwidth;
-using uvw::ErrorEvent;
-using uvw::ConnectEvent;
-using uvw::WriteEvent;
-using uvw::DataEvent;
-using uvw::EndEvent;
-using uvw::ShutdownEvent;
+using ::std::size_t;
+using ::std::shared_ptr;
+using ::std::make_shared;
+using ::std::unique_ptr;
+using ::std::make_unique;
+using ::std::move;
+using ::std::function;
+using ::std::min;
+using ::std::copy_n;
 
+using ::uvw::ErrorEvent;
+using ::uvw::ConnectEvent;
+using ::uvw::WriteEvent;
+using ::uvw::DataEvent;
+using ::uvw::EndEvent;
+using ::uvw::ShutdownEvent;
+using ::uvw::CloseEvent;
 
 /* TCPSocket implementation */
 

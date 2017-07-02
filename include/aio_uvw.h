@@ -45,9 +45,9 @@ struct AIO_UVW
     using ShutdownEvent = uvw::ShutdownEvent;
     using TcpHandle = uvw::TcpHandle;
 
-    using TCPSocket = uvw::TCPSocket;
-    using TCPSocketSimple = uvw::TCPSocketSimple<AIO_UVW>;
-    using TCPSocketBandwidth = uvw::TCPSocketBandwidth;
+    using TCPSocket = ::aio::TCPSocket;
+    using TCPSocketSimple = ::aio::TCPSocketSimple<AIO_UVW>;
+    using TCPSocketBandwidth = ::aio::TCPSocketBandwidth;
 
     using TimerHandle = uvw::TimerHandle;
     using TimerEvent = uvw::TimerEvent;

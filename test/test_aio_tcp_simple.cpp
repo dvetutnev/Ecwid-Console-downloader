@@ -34,7 +34,7 @@ TEST(TCPSocketWrapperSimple, TcpHandle_is_null)
     auto loop = make_shared<LoopMock>();
     EXPECT_CALL( *loop, resource_TcpHandleMock() )
             .WillOnce( Return(nullptr) );
-    auto resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
+    auto resource = ::aio::TCPSocketSimple<AIO_Mock>::create(loop);
     ASSERT_FALSE(resource);
     ASSERT_TRUE( loop.unique() );
 }
@@ -48,7 +48,7 @@ struct TCPSocketSimpleF : public ::testing::Test
         EXPECT_CALL( *loop, resource_TcpHandleMock() )
                 .WillOnce( Return(tcp_handle) );
 
-        resource = uvw::TCPSocketSimple<AIO_Mock>::create(loop);
+        resource = ::aio::TCPSocketSimple<AIO_Mock>::create(loop);
 
         EXPECT_TRUE(resource);
         Mock::VerifyAndClearExpectations(loop.get());
@@ -65,7 +65,7 @@ struct TCPSocketSimpleF : public ::testing::Test
         {
             cb_called = true;
 
-            auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+            auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
             ASSERT_NE(raw_ptr, nullptr);
             auto ptr = raw_ptr->shared_from_this();
             ASSERT_EQ(ptr, resource);
@@ -88,7 +88,7 @@ struct TCPSocketSimpleF : public ::testing::Test
     shared_ptr<LoopMock> loop;
     shared_ptr<TcpHandleMock> tcp_handle;
 
-    shared_ptr< uvw::TCPSocketSimple<AIO_Mock> > resource;
+    shared_ptr< ::aio::TCPSocketSimple<AIO_Mock> > resource;
 };
 
 TEST_F(TCPSocketSimpleF, create_and_close)
@@ -104,7 +104,7 @@ TEST_F(TCPSocketSimpleF, connect_failed)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -136,7 +136,7 @@ TEST_F(TCPSocketSimpleF, connect6_failed)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -166,7 +166,7 @@ TEST_F(TCPSocketSimpleF, connect_shutdown_close_normal)
     resource->once<AIO_UVW::ConnectEvent>( [&cb_connect_called, this](const auto&, auto& handle)
     {
         cb_connect_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -175,7 +175,7 @@ TEST_F(TCPSocketSimpleF, connect_shutdown_close_normal)
     resource->once<AIO_UVW::ShutdownEvent>( [&cb_shutdown_called, this](const auto&, auto& handle)
     {
         cb_shutdown_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -184,7 +184,7 @@ TEST_F(TCPSocketSimpleF, connect_shutdown_close_normal)
     resource->once<AIO_UVW::CloseEvent>( [&cb_close_called, this](const auto&, auto& handle)
     {
         cb_close_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -224,7 +224,7 @@ TEST_F(TCPSocketSimpleF, read_failed)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -252,7 +252,7 @@ TEST_F(TCPSocketSimpleF, read_EOF)
     resource->once<AIO_UVW::EndEvent>( [&cb_called, this](const auto&, auto& handle)
     {
         cb_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -288,7 +288,7 @@ TEST_F(TCPSocketSimpleF, read_normal)
         ASSERT_EQ(event.data.get(), raw_data_ptr);
         ASSERT_EQ(event.length, len);
 
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -342,7 +342,7 @@ TEST_F(TCPSocketSimpleF, write_failed_and_close_on_event)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -373,7 +373,7 @@ TEST_F(TCPSocketSimpleF, write_normal)
     resource->once<AIO_UVW::WriteEvent>( [&cb_called, this](const auto&, auto& handle)
     {
         cb_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -403,7 +403,7 @@ TEST_F(TCPSocketSimpleF, read_EOF_and_close_on_event)
     resource->once<AIO_UVW::EndEvent>( [&cb_called, this](const auto&, auto& handle)
     {
         cb_called = true;
-        auto raw_ptr = dynamic_cast< uvw::TCPSocketSimple<AIO_Mock>* >(&handle);
+        auto raw_ptr = dynamic_cast< ::aio::TCPSocketSimple<AIO_Mock>* >(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);

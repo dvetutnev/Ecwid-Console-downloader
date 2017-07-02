@@ -9,7 +9,7 @@
 
 class FactoryBandwidthThrottled : public Factory
 {
-    using Controller = ::bandwidth::Controller;
+    using Controller = ::aio::bandwidth::Controller;
 public:
     FactoryBandwidthThrottled(std::shared_ptr<AIO_UVW::Loop> loop_, Dashboard& dashboard_, std::shared_ptr<Controller> controller_)
         : loop{ std::move(loop_) },

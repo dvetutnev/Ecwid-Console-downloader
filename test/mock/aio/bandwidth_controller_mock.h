@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 #include "aio/bandwidth.h"
 
+namespace aio {
 namespace bandwidth {
 
 struct ControllerMock : public Controller
@@ -13,3 +14,4 @@ struct ControllerMock : public Controller
 };
 
 } // namespace bandwidth
+} // namespace aio_mock

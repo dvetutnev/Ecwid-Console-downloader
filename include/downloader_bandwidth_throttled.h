@@ -10,7 +10,7 @@ class DownloaderBandwidthThrottled : public DownloaderSimple<AIO, Parser>
     using TCPSocket = typename AIO::TCPSocket;
     using TCPSocketBandwidth = typename AIO::TCPSocketBandwidth;
 
-    using Controller = ::bandwidth::Controller;
+    using Controller = ::aio::bandwidth::Controller;
 
 public:
     DownloaderBandwidthThrottled(std::shared_ptr<Loop> loop, std::shared_ptr<OnTick> on_tick, std::shared_ptr<Controller> controller_, std::size_t backlog = 10)

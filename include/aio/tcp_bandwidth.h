@@ -1,17 +1,19 @@
 #pragma once
 
 #include "aio/tcp.h"
-#include "uvw/stream.hpp"
-#include "bandwidth.h"
+#include "aio/bandwidth.h"
 #include "data_chunk.h"
+
+#include <uvw/stream.hpp>
 
 #include <queue>
 
-namespace uvw {
+namespace aio {
 
 class TCPSocketBandwidth final : public TCPSocket, public bandwidth::Stream, public std::enable_shared_from_this<TCPSocketBandwidth>
 {
-    using Controller = ::bandwidth::Controller;
+private:
+    using Controller = bandwidth::Controller;
 
 public:
     TCPSocketBandwidth(ConstructorAccess, std::shared_ptr<Controller> c, std::shared_ptr<TCPSocket>&& s) noexcept
@@ -54,7 +56,7 @@ private:
     static std::function< void(Event&, const TCPSocket&) > bind_on_event(std::shared_ptr<TCPSocketBandwidth>);
 
     void on_data(std::unique_ptr<char[]>, std::size_t);
-    static std::function< void(DataEvent&, const TCPSocket&) > bind_on_data(std::shared_ptr<TCPSocketBandwidth>);
+    static std::function< void(::uvw::DataEvent&, const TCPSocket&) > bind_on_data(std::shared_ptr<TCPSocketBandwidth>);
     std::unique_ptr<char[]> pop_buffer(std::size_t);
 
     std::size_t buffer_used = 0;

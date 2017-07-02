@@ -9,7 +9,7 @@ struct TcpHandleMock;
 struct TimerHandleMock;
 struct FileReqMock;
 struct FsReqMock;
-struct TCPSocketMock;
+namespace aio { struct TCPSocketMock; }
 
 namespace LoopMock_internal {
 
@@ -32,7 +32,7 @@ template<>
 std::shared_ptr<FsReqMock> resource<FsReqMock>(LoopMock&);
 
 template<>
-std::shared_ptr<TCPSocketMock> resource<TCPSocketMock>(LoopMock&);
+std::shared_ptr<::aio::TCPSocketMock> resource<::aio::TCPSocketMock>(LoopMock&);
 
 }
 
@@ -46,7 +46,7 @@ struct LoopMock
     MOCK_METHOD0( resource_TimerHandleMock, std::shared_ptr<TimerHandleMock>() );
     MOCK_METHOD0( resource_FileReqMock, std::shared_ptr<FileReqMock>() );
     MOCK_METHOD0( resource_FsReqMock, std::shared_ptr<FsReqMock>() );
-    MOCK_METHOD0( resource_TCPSocketMock, std::shared_ptr<TCPSocketMock>() );
+    MOCK_METHOD0( resource_TCPSocketMock, std::shared_ptr<::aio::TCPSocketMock>() );
 };
 
 namespace LoopMock_internal {
@@ -67,5 +67,5 @@ template<>
 std::shared_ptr<FsReqMock> resource<FsReqMock>(LoopMock& self) { return self.resource_FsReqMock(); }
 
 template<>
-std::shared_ptr<TCPSocketMock> resource<TCPSocketMock>(LoopMock& self) { return self.resource_TCPSocketMock(); }
+std::shared_ptr<::aio::TCPSocketMock> resource<::aio::TCPSocketMock>(LoopMock& self) { return self.resource_TCPSocketMock(); }
 }

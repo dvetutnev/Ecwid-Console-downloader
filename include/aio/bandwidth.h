@@ -4,6 +4,7 @@
 #include <chrono>
 #include <list>
 
+namespace aio {
 namespace bandwidth {
 
 class Stream
@@ -52,3 +53,4 @@ public:
 };
 
 } // namespace bandwidth
+} // namespace aio

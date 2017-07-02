@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 #include "aio/bandwidth.h"
 
+namespace aio {
 namespace bandwidth {
 
 struct TimeMock : public Time
@@ -12,3 +13,4 @@ struct TimeMock : public Time
 };
 
 } // namespace bandwidth
+} // namespace aio

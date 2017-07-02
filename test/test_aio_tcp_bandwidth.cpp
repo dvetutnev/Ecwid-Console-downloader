@@ -11,7 +11,7 @@
 
 
 using namespace std;
-using namespace bandwidth;
+using namespace ::aio::bandwidth;
 
 using ::testing::_;
 using ::testing::Return;
@@ -26,7 +26,7 @@ struct TCPSocketBandwidthF : public ::testing::Test
     TCPSocketBandwidthF()
         : loop{ ::uvw::Loop::getDefault() },
           controller{ make_shared<ControllerMock>() },
-          socket{ make_shared<TCPSocketMock>() },
+          socket{ make_shared<::aio::TCPSocketMock>() },
           buffer_length{ 4 * 1024 }
     {
         EXPECT_CALL( *controller, add_stream(_) )
@@ -39,7 +39,7 @@ struct TCPSocketBandwidthF : public ::testing::Test
             return stream_conn;
         } ) );
 
-        resource = loop->resource<uvw::TCPSocketBandwidth>(controller, socket);
+        resource = loop->resource<::aio::TCPSocketBandwidth>(controller, socket);
         EXPECT_TRUE(resource);
 
         Mock::VerifyAndClearExpectations(controller.get());
@@ -56,7 +56,7 @@ struct TCPSocketBandwidthF : public ::testing::Test
         resource->once<uvw::CloseEvent>( [&cb_called, this](const auto&, auto& handle)
         {
             cb_called = true;
-            auto raw_ptr = dynamic_cast<uvw::TCPSocketBandwidth*>(&handle);
+            auto raw_ptr = dynamic_cast<::aio::TCPSocketBandwidth*>(&handle);
             ASSERT_NE(raw_ptr, nullptr);
             auto ptr = raw_ptr->shared_from_this();
             ASSERT_EQ(ptr, resource);
@@ -86,9 +86,9 @@ struct TCPSocketBandwidthF : public ::testing::Test
 
     shared_ptr<::uvw::Loop> loop;
     shared_ptr<ControllerMock> controller;
-    shared_ptr<TCPSocketMock> socket;
+    shared_ptr<::aio::TCPSocketMock> socket;
 
-    shared_ptr<::uvw::TCPSocketBandwidth> resource;
+    shared_ptr<::aio::TCPSocketBandwidth> resource;
 
     const size_t buffer_length;
 
@@ -117,7 +117,7 @@ TEST_F(TCPSocketBandwidthF, connect_failed)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast<uvw::TCPSocketBandwidth*>(&handle);
+        auto raw_ptr = dynamic_cast<::aio::TCPSocketBandwidth*>(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -142,7 +142,7 @@ TEST_F(TCPSocketBandwidthF, connect_and_shutdown)
     resource->once<uvw::ConnectEvent>( [&cb_connect_called, this](const auto&, auto& handle)
     {
         cb_connect_called = true;
-        auto raw_ptr = dynamic_cast<uvw::TCPSocketBandwidth*>(&handle);
+        auto raw_ptr = dynamic_cast<::aio::TCPSocketBandwidth*>(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -166,7 +166,7 @@ TEST_F(TCPSocketBandwidthF, connect_and_shutdown)
     resource->once<uvw::ShutdownEvent>( [&cb_shutdown_called, this](const auto&, auto& handle)
     {
         cb_shutdown_called = true;
-        auto raw_ptr = dynamic_cast<uvw::TCPSocketBandwidth*>(&handle);
+        auto raw_ptr = dynamic_cast<::aio::TCPSocketBandwidth*>(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -190,7 +190,7 @@ TEST_F(TCPSocketBandwidthF, connect6_and_close)
     resource->once<uvw::ConnectEvent>( [&cb_connect_called, this](const auto&, auto& handle)
     {
         cb_connect_called = true;
-        auto raw_ptr = dynamic_cast<uvw::TCPSocketBandwidth*>(&handle);
+        auto raw_ptr = dynamic_cast<::aio::TCPSocketBandwidth*>(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -224,7 +224,7 @@ TEST_F(TCPSocketBandwidthF, write_failed_and_close)
     {
         cb_called = true;
         ASSERT_EQ( err.code(), event.code() );
-        auto raw_ptr = dynamic_cast<uvw::TCPSocketBandwidth*>(&handle);
+        auto raw_ptr = dynamic_cast<::aio::TCPSocketBandwidth*>(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -266,7 +266,7 @@ TEST_F(TCPSocketBandwidthF, write_normal)
     resource->once<uvw::WriteEvent>( [&cb_called, this](const auto&, auto& handle)
     {
         cb_called = true;
-        auto raw_ptr = dynamic_cast<uvw::TCPSocketBandwidth*>(&handle);
+        auto raw_ptr = dynamic_cast<::aio::TCPSocketBandwidth*>(&handle);
         ASSERT_NE(raw_ptr, nullptr);
         auto ptr = raw_ptr->shared_from_this();
         ASSERT_EQ(ptr, resource);
@@ -555,8 +555,8 @@ TEST_F(TCPSocketBandwidth_read, transfer_normal)
         socket->publish( uvw::DataEvent{move(item.first), item.second} );
 
     string buffer;
-    std::function< void(uvw::DataEvent&, const uvw::TCPSocket&) > handler;
-    handler = [&buffer, &handler, this](uvw::DataEvent& event, const uvw::TCPSocket&)
+    std::function< void(uvw::DataEvent&, const ::aio::TCPSocket&) > handler;
+    handler = [&buffer, &handler, this](uvw::DataEvent& event, const ::aio::TCPSocket&)
     {
         buffer.append(event.data.get(), event.length);
         resource->once<uvw::DataEvent>(handler);

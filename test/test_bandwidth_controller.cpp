@@ -10,11 +10,11 @@
 
 #include "aio/bandwidth_controller.h"
 
-using ::bandwidth::Stream;
-using ::bandwidth::StreamMock;
-using ::bandwidth::TimeMock;
-using ::bandwidth::Controller;
-using ::bandwidth::ControllerSimple;
+using ::aio::bandwidth::Stream;
+using ::aio::bandwidth::StreamMock;
+using ::aio::bandwidth::TimeMock;
+using ::aio::bandwidth::Controller;
+using ::aio::bandwidth::ControllerSimple;
 
 using ::std::size_t;
 using ::std::shared_ptr;

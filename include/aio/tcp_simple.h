@@ -2,30 +2,26 @@
 
 #include "aio/tcp.h"
 
+#include <uvw/tcp.hpp>
+
 #include <cassert>
 #include <limits>
 
-namespace uvw {
+namespace aio {
 
 template< typename AIO >
 class TCPSocketSimple final : public TCPSocket, public std::enable_shared_from_this< TCPSocketSimple<AIO> >
 {
+private:
     using Loop = typename AIO::Loop;
     using TcpHandle = typename AIO::TcpHandle;
-
-    using ErrorEvent = typename AIO::ErrorEvent;
-    using ConnectEvent = typename AIO::ConnectEvent;
-    using DataEvent = typename AIO::DataEvent;
-    using EndEvent = typename AIO::EndEvent;
-    using WriteEvent = typename AIO::WriteEvent;
-    using ShutdownEvent = typename AIO::ShutdownEvent;
 
 public:
     TCPSocketSimple(ConstructorAccess) {}
     static std::shared_ptr<TCPSocketSimple> create(std::shared_ptr<Loop>);
 
-    virtual void connect(const std::string& ip, unsigned short port) override { tcp_handle->template connect<uvw::IPv4>(ip, port); }
-    virtual void connect6(const std::string& ip, unsigned short port) override { tcp_handle->template connect<uvw::IPv6>(ip, port); }
+    virtual void connect(const std::string& ip, unsigned short port) override { tcp_handle->template connect<::uvw::IPv4>(ip, port); }
+    virtual void connect6(const std::string& ip, unsigned short port) override { tcp_handle->template connect<::uvw::IPv6>(ip, port); }
     virtual void read() override { tcp_handle->read(); }
     virtual void stop() noexcept override { tcp_handle->stop(); }
     virtual void write(std::unique_ptr<char[]> data, std::size_t length) override
@@ -41,7 +37,7 @@ public:
         {
             closed = true;
             tcp_handle->clear();
-            tcp_handle->template once<CloseEvent>( bind<CloseEvent>(this->template shared_from_this()) );
+            tcp_handle->template once<::uvw::CloseEvent>( bind<::uvw::CloseEvent>(this->template shared_from_this()) );
             tcp_handle->close();
         }
     }
@@ -76,15 +72,15 @@ std::shared_ptr< TCPSocketSimple<AIO> > TCPSocketSimple<AIO>::create(std::shared
     if ( !tcp_handle )
         return nullptr;
 
-    tcp_handle->template once<ErrorEvent>( bind<ErrorEvent>(self) );
-    tcp_handle->template once<ConnectEvent>( bind<ConnectEvent>(self) );
-    tcp_handle->template once<DataEvent>( bind<DataEvent>(self) );
-    tcp_handle->template once<EndEvent>( bind<EndEvent>(self) );
-    tcp_handle->template once<WriteEvent>( bind<WriteEvent>(self) );
-    tcp_handle->template once<ShutdownEvent>( bind<ShutdownEvent>(self) );
+    tcp_handle->template once<::uvw::ErrorEvent>( bind<::uvw::ErrorEvent>(self) );
+    tcp_handle->template once<::uvw::ConnectEvent>( bind<::uvw::ConnectEvent>(self) );
+    tcp_handle->template once<::uvw::DataEvent>( bind<::uvw::DataEvent>(self) );
+    tcp_handle->template once<::uvw::EndEvent>( bind<::uvw::EndEvent>(self) );
+    tcp_handle->template once<::uvw::WriteEvent>( bind<::uvw::WriteEvent>(self) );
+    tcp_handle->template once<::uvw::ShutdownEvent>( bind<::uvw::ShutdownEvent>(self) );
 
     self->tcp_handle = std::move(tcp_handle);
     return self;
 }
 
-} // namespace uvw
+} // namespace aio

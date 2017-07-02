@@ -53,8 +53,8 @@ struct AIO_Mock
     using IPAddress = AIO_UVW::IPAddress;
     static auto addrinfo2IPAddress(const addrinfo* addr) { return AIO_UVW::addrinfo2IPAddress(addr); }
 
-    using TCPSocket = uvw::TCPSocket;
-    using TCPSocketSimple = TCPSocketMock;
+    using TCPSocket = ::aio::TCPSocket;
+    using TCPSocketSimple = ::aio::TCPSocketMock;
     using ConnectEvent = AIO_UVW::ConnectEvent;
     using WriteEvent = AIO_UVW::WriteEvent;
     using DataEvent = AIO_UVW::DataEvent;
@@ -216,7 +216,7 @@ TEST_F(DownloaderSimpleHandlesCreate, socket_create_failed)
 
 TEST_F(DownloaderSimpleHandlesCreate, timer_create_failed)
 {
-    auto socket = make_shared<TCPSocketMock>();
+    auto socket = make_shared<::aio::TCPSocketMock>();
     auto resolver = make_shared<GetAddrInfoReqMock>();
 
     bool socket_closed = true;
@@ -264,7 +264,7 @@ TEST_F(DownloaderSimpleHandlesCreate, timer_create_failed)
 
 TEST_F(DownloaderSimpleHandlesCreate, resolver_create_failed)
 {
-    auto socket = make_shared<TCPSocketMock>();
+    auto socket = make_shared<::aio::TCPSocketMock>();
     auto timer = make_shared<TimerHandleMock>();
 
     bool socket_closed = true;
@@ -319,7 +319,7 @@ TEST_F(DownloaderSimpleHandlesCreate, resolver_create_failed)
 struct DownloaderSimpleResolve : public DownloaderSimpleHandlesCreate
 {
     DownloaderSimpleResolve()
-        : socket{ make_shared<TCPSocketMock>() },
+        : socket{ make_shared<::aio::TCPSocketMock>() },
           timer{ make_shared<TimerHandleMock>() },
           resolver{ make_shared<GetAddrInfoReqMock>() }
     {
@@ -352,7 +352,7 @@ struct DownloaderSimpleResolve : public DownloaderSimpleHandlesCreate
         EXPECT_LE( resolver.use_count(), 2 );
     }
 
-    shared_ptr<TCPSocketMock> socket;
+    shared_ptr<::aio::TCPSocketMock> socket;
     shared_ptr<TimerHandleMock> timer;
     shared_ptr<GetAddrInfoReqMock> resolver;
 };

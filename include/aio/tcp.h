@@ -2,9 +2,9 @@
 
 #include <uvw/emitter.hpp>
 
-namespace uvw {
+namespace aio {
 
-class TCPSocket : public Emitter<TCPSocket>
+class TCPSocket : public ::uvw::Emitter<TCPSocket>
 {
 public:
     virtual void connect(const std::string& ip, unsigned short port) = 0;
@@ -20,4 +20,4 @@ protected:
     struct ConstructorAccess { explicit ConstructorAccess(int) {} };
 };
 
-} // namespace uvw
+} // namespace aio

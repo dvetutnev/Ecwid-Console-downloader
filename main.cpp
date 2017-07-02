@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     DashboardSimple dashboard{};
 
     auto loop = AIO_UVW::Loop::getDefault();
-    auto controller = make_shared< ::bandwidth::ControllerSimple<AIO_UVW> >( loop, limit, make_unique<::bandwidth::Time>() );
+    auto controller = make_shared< ::aio::bandwidth::ControllerSimple<AIO_UVW> >( loop, limit, make_unique<::aio::bandwidth::Time>() );
     auto factory = make_shared<FactoryBandwidthThrottled>(loop, dashboard, controller);
 
     std::list<Job> job_list;
