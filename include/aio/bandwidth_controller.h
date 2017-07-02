@@ -134,9 +134,11 @@ void ControllerSimple<AIO>::transfer()
 template< typename AIO >
 void ControllerSimple<AIO>::defer_transfer()
 {
+    using namespace std::literals::chrono_literals;
+
     sheduled = true;
     timer->template once<::uvw::TimerEvent>( [self = this->template shared_from_this()](const auto&, const auto&) { self->transfer(); } );
-    timer->start( std::chrono::milliseconds{50}, std::chrono::milliseconds{0} );
+    timer->start(50ms, 0ms);
 }
 
 } // namespace bandwidth
