@@ -10,3 +10,6 @@
 [submodule "vendor/uvw"]
 	path = vendor/uvw
 	url = https://github.com/skypjack/uvw.git
+[submodule "vendor/docopt.cpp"]
+	path = vendor/docopt.cpp
+	url = https://github.com/docopt/docopt.cpp.git
