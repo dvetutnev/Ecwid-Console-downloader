@@ -7,6 +7,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <chrono>
 
 using namespace std;
 
@@ -26,7 +27,7 @@ int main(int argc, char *argv[])
     TaskListSimple task_list{task_stream, "./"};
     DashboardSimple dashboard{};
 
-    auto loop = AIO_UVW::Loop::getDefault();
+    auto loop = uvw::Loop::getDefault();
     auto controller = make_shared< aio::bandwidth::ControllerSimple<AIO_UVW> >( loop, limit, make_unique<aio::bandwidth::Time>() );
     auto factory_socket = make_shared<aio::FactoryTCPSocketBandwidth>(loop, controller);
     auto factory = make_shared<FactorySimple>(loop, dashboard, factory_socket);
@@ -49,7 +50,16 @@ int main(int argc, char *argv[])
         job_list.push_back( move(job) );
     }
 
+    using Clock = chrono::steady_clock;
+    using Duration = chrono::seconds;
+    auto start_time = Clock::now();
+
     loop->run();
+
+    auto elapsed = chrono::duration_cast<Duration>(Clock::now() - start_time);
+    auto status = dashboard.status();
+    cout << "---------------" << endl;
+    cout << "Done tasks: " << status.first << ", total downloaded: " << status.second << ", time elapsed: " << elapsed.count() << " seconds" << endl;
 
     return 0;
 }
