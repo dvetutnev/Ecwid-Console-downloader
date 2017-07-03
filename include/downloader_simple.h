@@ -2,6 +2,7 @@
 
 #include "downloader.h"
 #include "on_tick.h"
+#include "aio/factory_tcp.h"
 #include "data_chunk.h"
 
 #include <uvw/dns.hpp>
@@ -22,8 +23,6 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
 
     using Loop = typename AIO::Loop;
     using GetAddrInfoReq = typename AIO::GetAddrInfoReq;
-    using TCPSocket = typename AIO::TCPSocket;
-    using TCPSocketSimple = typename AIO::TCPSocketSimple;
     using Timer = typename AIO::TimerHandle;
     using FileReq = typename AIO::FileReq;
     using FsReq = typename AIO::FsReq;
@@ -34,9 +33,10 @@ class DownloaderSimple : public Downloader, public std::enable_shared_from_this<
     using UriParseResult = typename Parser::UriParseResult;
 
 public:
-    DownloaderSimple(std::shared_ptr<Loop> loop_, std::shared_ptr<OnTick> on_tick_, std::size_t backlog_ = 10)
+    DownloaderSimple(std::shared_ptr<Loop> loop_, std::shared_ptr<OnTick> on_tick_, std::shared_ptr<aio::FactoryTCPSocket> factory_socket_, std::size_t backlog_ = 10)
         : loop{ std::move(loop_) },
           on_tick{ std::move(on_tick_) },
+          factory_socket{ std::move(factory_socket_) },
           backlog{backlog_}
     {}
 
@@ -49,21 +49,20 @@ public:
     DownloaderSimple(DownloaderSimple&&) = delete;
     DownloaderSimple& operator= (const DownloaderSimple&) = delete;
     DownloaderSimple& operator= (DownloaderSimple&&) = delete;
-    virtual ~DownloaderSimple() = default;
 
-protected:
-    virtual std::shared_ptr<TCPSocket> create_socket(const std::string&) { return loop->template resource<TCPSocketSimple>(); }
+    virtual ~DownloaderSimple() = default;
 
 private:
     std::shared_ptr<Loop> loop;
     std::shared_ptr<OnTick> on_tick;
+    std::shared_ptr<aio::FactoryTCPSocket> factory_socket;
     const std::size_t backlog;
 
     std::string fname;
     StatusDownloader m_status;
     std::unique_ptr<UriParseResult> uri_parsed;
     std::shared_ptr<GetAddrInfoReq> resolver;
-    std::shared_ptr<TCPSocket> socket;
+    std::shared_ptr<aio::TCPSocket> socket;
     std::shared_ptr<Timer> net_timer;
     std::unique_ptr<Parser> http_parser;
     std::shared_ptr<FileReq> file;
@@ -378,7 +377,7 @@ void DownloaderSimple<AIO, Parser>::on_write()
 template< typename AIO, typename Parser >
 std::pair<bool, std::string> DownloaderSimple<AIO, Parser>::create_handles()
 {
-    socket = create_socket(uri_parsed->proto);
+    socket = (uri_parsed->proto == "https") ? factory_socket->tcp_tls() : factory_socket->tcp();
     if (!socket)
         return std::pair<bool, std::string>{false, "Socket can`t create"};
 

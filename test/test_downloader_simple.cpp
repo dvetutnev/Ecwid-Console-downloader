@@ -6,6 +6,7 @@
 #include "mock/uvw/timer_mock.h"
 #include "mock/uvw/file_mock.h"
 #include "mock/aio/tcp_mock.h"
+#include "mock/aio/factory_tcp_mock.h"
 #include "mock/on_tick_mock.h"
 
 #include "aio_uvw.h"
@@ -51,9 +52,7 @@ struct AIO_Mock
     static auto addrinfo2IPAddress(const addrinfo* addr) { return AIO_UVW::addrinfo2IPAddress(addr); }
 
     using TCPSocket = ::aio::TCPSocket;
-    using TCPSocketSimple = ::aio::TCPSocketMock;
     using TimerHandle = TimerHandleMock;
-
     using FileReq = FileReqMock;
     using FsReq = FsReqMock;
 };
@@ -90,10 +89,11 @@ struct DownloaderSimpleF : public ::testing::Test
     DownloaderSimpleF()
         : loop{ make_shared<LoopMock>() },
           on_tick{ make_shared<OnTickMock>() },
+          factory_socket{ make_shared<aio::FactoryTCPSocketMock>() },
           instance_uri_parse{ make_unique<HttpParserMock>() },
 
           backlog{4},
-          downloader{ make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick, backlog) }
+          downloader{ make_shared< DownloaderSimple<AIO_Mock, HttpParserMock> >(loop, on_tick, factory_socket, backlog) }
     {
         HttpParserMock::instance_uri_parse = instance_uri_parse.get();
     }
@@ -103,10 +103,12 @@ struct DownloaderSimpleF : public ::testing::Test
         EXPECT_TRUE( downloader.unique() );
         EXPECT_LE( loop.use_count(), 2 );
         EXPECT_LE( on_tick.use_count(), 2 );
+        EXPECT_LE( factory_socket.use_count(), 2 );
     }
 
     shared_ptr<LoopMock> loop;
     shared_ptr<OnTickMock> on_tick;
+    shared_ptr<aio::FactoryTCPSocketMock> factory_socket;
     unique_ptr<HttpParserMock> instance_uri_parse;
 
     const size_t backlog;
@@ -120,6 +122,10 @@ TEST_F(DownloaderSimpleF, uri_parse_failed)
     EXPECT_CALL( *instance_uri_parse, uri_parse_(bad_uri) )
             .WillOnce( Return( ByMove(nullptr) ) );
     EXPECT_CALL( *on_tick, invoke_(_) )
+            .Times(0);
+    EXPECT_CALL( *factory_socket, tcp() )
+            .Times(0);
+    EXPECT_CALL( *factory_socket, tcp_tls() )
             .Times(0);
 
     EXPECT_FALSE( downloader->run(bad_uri, "") );
@@ -161,8 +167,10 @@ TEST_F(DownloaderSimpleHandlesCreate, socket_create_failed)
     auto timer = make_shared<TimerHandleMock>();
     auto resolver = make_shared<GetAddrInfoReqMock>();
 
-    EXPECT_CALL( *loop, resource_TCPSocketMock() )
+    EXPECT_CALL( *factory_socket, tcp() )
             .WillOnce( Return(nullptr) );
+    EXPECT_CALL( *factory_socket, tcp_tls() )
+            .Times(0);
 
     bool timer_closed = true;
     EXPECT_CALL( *loop, resource_TimerHandleMock() )
@@ -195,6 +203,7 @@ TEST_F(DownloaderSimpleHandlesCreate, socket_create_failed)
     Mock::VerifyAndClearExpectations( instance_uri_parse.get() );
     Mock::VerifyAndClearExpectations( on_tick.get() );
     Mock::VerifyAndClearExpectations( loop.get() );
+    Mock::VerifyAndClearExpectations( factory_socket.get() );
 
     Mock::VerifyAndClearExpectations( timer.get() );
     Mock::VerifyAndClearExpectations( resolver.get() );
@@ -210,12 +219,15 @@ TEST_F(DownloaderSimpleHandlesCreate, timer_create_failed)
     auto resolver = make_shared<GetAddrInfoReqMock>();
 
     bool socket_closed = true;
-    EXPECT_CALL( *loop, resource_TCPSocketMock() )
+    EXPECT_CALL( *factory_socket, tcp() )
             .Times( AtMost(1) )
             .WillRepeatedly( DoAll(
                                  InvokeWithoutArgs( [&socket_closed]() { socket_closed = false; } ),
                                  Return(socket)
                                  ) );
+    EXPECT_CALL( *factory_socket, tcp_tls() )
+            .Times(0);
+
     EXPECT_CALL( *socket, close_() )
             .Times( AtMost(1) )
             .WillRepeatedly( InvokeWithoutArgs( [&socket_closed]() { socket_closed = true; } ) );
@@ -243,6 +255,7 @@ TEST_F(DownloaderSimpleHandlesCreate, timer_create_failed)
     Mock::VerifyAndClearExpectations( instance_uri_parse.get() );
     Mock::VerifyAndClearExpectations( on_tick.get() );
     Mock::VerifyAndClearExpectations( loop.get() );
+    Mock::VerifyAndClearExpectations( factory_socket.get() );
 
     Mock::VerifyAndClearExpectations( socket.get() );
     Mock::VerifyAndClearExpectations( resolver.get() );
@@ -258,12 +271,15 @@ TEST_F(DownloaderSimpleHandlesCreate, resolver_create_failed)
     auto timer = make_shared<TimerHandleMock>();
 
     bool socket_closed = true;
-    EXPECT_CALL( *loop, resource_TCPSocketMock() )
+    EXPECT_CALL( *factory_socket, tcp() )
             .Times( AtMost(1) )
             .WillRepeatedly( DoAll(
                                  InvokeWithoutArgs( [&socket_closed]() { socket_closed = false; } ),
                                  Return(socket)
                                  ) );
+    EXPECT_CALL( *factory_socket, tcp_tls() )
+            .Times(0);
+
     EXPECT_CALL( *socket, close_() )
             .Times( AtMost(1) )
             .WillRepeatedly( InvokeWithoutArgs( [&socket_closed]() { socket_closed = true; } ) );
@@ -294,6 +310,7 @@ TEST_F(DownloaderSimpleHandlesCreate, resolver_create_failed)
     Mock::VerifyAndClearExpectations( instance_uri_parse.get() );
     Mock::VerifyAndClearExpectations( on_tick.get() );
     Mock::VerifyAndClearExpectations( loop.get() );
+    Mock::VerifyAndClearExpectations( factory_socket.get() );
 
     Mock::VerifyAndClearExpectations( socket.get() );
     Mock::VerifyAndClearExpectations( timer.get() );
@@ -309,12 +326,14 @@ TEST_F(DownloaderSimpleHandlesCreate, resolver_create_failed)
 struct DownloaderSimpleResolve : public DownloaderSimpleHandlesCreate
 {
     DownloaderSimpleResolve()
-        : socket{ make_shared<::aio::TCPSocketMock>() },
+        : socket{ make_shared<aio::TCPSocketMock>() },
           timer{ make_shared<TimerHandleMock>() },
           resolver{ make_shared<GetAddrInfoReqMock>() }
     {
-        EXPECT_CALL( *loop, resource_TCPSocketMock() )
+        EXPECT_CALL( *factory_socket, tcp() )
                 .WillOnce( Return(socket) );
+        EXPECT_CALL( *factory_socket, tcp_tls() )
+                .Times(0);
         EXPECT_CALL( *loop, resource_TimerHandleMock() )
                 .WillOnce( Return(timer) );
         EXPECT_CALL( *loop, resource_GetAddrInfoReqMock() )
@@ -342,7 +361,7 @@ struct DownloaderSimpleResolve : public DownloaderSimpleHandlesCreate
         EXPECT_LE( resolver.use_count(), 2 );
     }
 
-    shared_ptr<::aio::TCPSocketMock> socket;
+    shared_ptr<aio::TCPSocketMock> socket;
     shared_ptr<TimerHandleMock> timer;
     shared_ptr<GetAddrInfoReqMock> resolver;
 };
@@ -368,6 +387,7 @@ TEST_F(DownloaderSimpleResolve, resolver_failed_on_run)
     check_close_socket_and_timer();
     Mock::VerifyAndClearExpectations( instance_uri_parse.get() );
     Mock::VerifyAndClearExpectations( loop.get() );
+    Mock::VerifyAndClearExpectations( factory_socket.get() );
     Mock::VerifyAndClearExpectations( on_tick.get() );
     Mock::VerifyAndClearExpectations( resolver.get() );
 }
@@ -391,6 +411,7 @@ struct DownloaderSimpleResolve_normalRun : public DownloaderSimpleResolve
 
         Mock::VerifyAndClearExpectations( instance_uri_parse.get() );
         Mock::VerifyAndClearExpectations( loop.get() );
+        Mock::VerifyAndClearExpectations( factory_socket.get() );
         Mock::VerifyAndClearExpectations( resolver.get() );
         Mock::VerifyAndClearExpectations( on_tick.get() );
     }

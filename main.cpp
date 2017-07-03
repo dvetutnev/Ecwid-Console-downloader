@@ -1,7 +1,7 @@
 #include "task_simple.h"
 #include "factory_simple.h"
-#include "factory_bandwidth_throttled.h"
 #include "aio/bandwidth_controller.h"
+#include "aio/factory_tcp_bandwidth.h"
 #include "dashboard_simple.h"
 #include "on_tick_simple.h"
 
@@ -27,8 +27,9 @@ int main(int argc, char *argv[])
     DashboardSimple dashboard{};
 
     auto loop = AIO_UVW::Loop::getDefault();
-    auto controller = make_shared< ::aio::bandwidth::ControllerSimple<AIO_UVW> >( loop, limit, make_unique<::aio::bandwidth::Time>() );
-    auto factory = make_shared<FactoryBandwidthThrottled>(loop, dashboard, controller);
+    auto controller = make_shared< aio::bandwidth::ControllerSimple<AIO_UVW> >( loop, limit, make_unique<aio::bandwidth::Time>() );
+    auto factory_socket = make_shared<aio::FactoryTCPSocketBandwidth>(loop, controller);
+    auto factory = make_shared<FactorySimple>(loop, dashboard, factory_socket);
 
     std::list<Job> job_list;
     auto on_tick = make_shared<OnTickSimple>(job_list, factory, task_list, dashboard);

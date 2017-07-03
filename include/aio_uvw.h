@@ -42,7 +42,7 @@ struct AIO_UVW
     using FsReq = uvw::FsReq;
 };
 
-const AIO_UVW::IPAddress AIO_UVW::addrinfo2IPAddress(const addrinfo* addr)
+inline const AIO_UVW::IPAddress AIO_UVW::addrinfo2IPAddress(const addrinfo* addr)
 {
     if (addr == nullptr)
         throw std::invalid_argument{"addrinfo must not be NULL!"};
