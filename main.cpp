@@ -4,6 +4,7 @@
 #include "aio/factory_tcp_bandwidth.h"
 #include "dashboard_simple.h"
 #include "on_tick_simple.h"
+#include <uvw/signal.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -49,6 +50,21 @@ int main(int argc, char *argv[])
 
         job_list.push_back( move(job) );
     }
+
+    auto signal_handle = loop->resource<uvw::SignalHandle>();
+    auto sig_handler = [&factory, &job_list](const auto&, auto& handle)
+    {
+        cout << "Break" << endl;
+        std::list< shared_ptr<Downloader> > downloader_list;
+        for (auto it = begin(job_list); it != end(job_list); ++it)
+            downloader_list.push_back(it->downloader);
+        factory.reset();
+        for (auto it = begin(downloader_list); it != end(downloader_list); ++it)
+            (*it)->stop();
+        handle.close();
+    };
+    signal_handle->once<uvw::SignalEvent>(sig_handler);
+    signal_handle->oneShot(SIGINT);
 
     using Clock = chrono::steady_clock;
     using Duration = chrono::seconds;
