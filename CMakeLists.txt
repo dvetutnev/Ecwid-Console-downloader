@@ -31,6 +31,7 @@ set(
 find_package(UV REQUIRED)
 find_package(UVW REQUIRED)
 find_package(http-parser REQUIRED)
+find_package(Docopt REQUIRED)
 find_package(GoogleTest)
 find_package(Threads)
 
@@ -38,6 +39,7 @@ include_directories(
     ${UV_INCLUDE_DIR}
     ${UVW_INCLUDE_DIR}
     ${http-parser_INCLUDE_DIR}
+    ${docopt_DIR}
     ${GoogleTest_INCLUDE_DIRS}
     )
 
@@ -49,9 +51,10 @@ set(SRC_LIST
     src/aio/tcp_bandwidth.cpp
     src/aio/factory_tcp.cpp
     src/aio/factory_tcp_bandwidth.cpp
+    src/program_options.cpp
 )
 add_executable(${PROJECT_NAME} ${SRC_LIST})
-target_link_libraries(${PROJECT_NAME} uv http-parser ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${PROJECT_NAME} uv http-parser docopt_s ${CMAKE_THREAD_LIBS_INIT})
 
 message(STATUS "CMAKE_CURRENT_BINARY_DIR => ${CMAKE_CURRENT_BINARY_DIR}")
 message(STATUS "CMAKE_INSTALL_PREFIX => ${CMAKE_INSTALL_PREFIX}")

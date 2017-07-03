@@ -1,3 +1,4 @@
+#include "program_options.h"
 #include "task_simple.h"
 #include "factory_simple.h"
 #include "aio/bandwidth_controller.h"
@@ -14,22 +15,20 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    const string task_fname = "../Ecwid-Console-downloader.txt";
-    const size_t concurrency = 2;
-    const size_t limit = 3000'000;
+    const auto program_options = parse_program_options(argc, argv);
 
-    ifstream task_stream{task_fname};
+    ifstream task_stream{program_options.task_fname};
     if ( !task_stream.is_open() )
     {
-        cout << "Can`t open <" << task_fname << ">, break." << endl;
+        cout << "Can`t open <" << program_options.task_fname << ">, break." << endl;
         return 1;
     }
 
-    TaskListSimple task_list{task_stream, "./"};
+    TaskListSimple task_list{task_stream, program_options.path};
     DashboardSimple dashboard{};
 
     auto loop = uvw::Loop::getDefault();
-    auto controller = make_shared< aio::bandwidth::ControllerSimple<AIO_UVW> >( loop, limit, make_unique<aio::bandwidth::Time>() );
+    auto controller = make_shared< aio::bandwidth::ControllerSimple<AIO_UVW> >( loop, program_options.limit, make_unique<aio::bandwidth::Time>() );
     auto factory_socket = make_shared<aio::FactoryTCPSocketBandwidth>(loop, controller);
     auto factory = make_shared<FactorySimple>(loop, dashboard, factory_socket);
 
@@ -37,7 +36,7 @@ int main(int argc, char *argv[])
     auto on_tick = make_shared<OnTickSimple>(job_list, factory, task_list, dashboard);
     factory->set_OnTick(on_tick);
 
-    for (size_t i = 1; i <= concurrency; i++)
+    for (size_t i = 1; i <= program_options.concurrency; i++)
     {
         auto task = task_list.get();
         if (!task)
