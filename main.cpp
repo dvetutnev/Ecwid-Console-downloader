@@ -6,6 +6,7 @@
 #include "dashboard_simple.h"
 #include "on_tick_simple.h"
 #include <uvw/signal.hpp>
+#include <uvw/idle.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -50,8 +51,8 @@ int main(int argc, char *argv[])
         job_list.push_back( move(job) );
     }
 
-    auto signal_handle = loop->resource<uvw::SignalHandle>();
-    auto sig_handler = [&factory, &job_list](const auto&, auto& handle)
+    auto signal = loop->resource<uvw::SignalHandle>();
+    auto signal_handler = [&factory, &job_list](const auto&, auto&)
     {
         cout << "Break" << endl;
         std::list< shared_ptr<Downloader> > downloader_list;
@@ -60,21 +61,35 @@ int main(int argc, char *argv[])
         factory.reset();
         for (auto it = begin(downloader_list); it != end(downloader_list); ++it)
             (*it)->stop();
-        handle.close();
     };
-    signal_handle->once<uvw::SignalEvent>(sig_handler);
-    signal_handle->oneShot(SIGINT);
+    signal->once<uvw::SignalEvent>(signal_handler);
+    signal->oneShot(SIGINT);
+
+    auto idle = loop->resource<uvw::IdleHandle>();
+    auto idle_handler = [&job_list, &signal](const auto&, auto& idle)
+    {
+        if( job_list.empty() )
+        {
+            signal->stop();
+            idle.stop();
+        }
+    };
+    idle->on<uvw::IdleEvent>(idle_handler);
+    idle->start();
 
     using Clock = chrono::steady_clock;
     using Duration = chrono::seconds;
     auto start_time = Clock::now();
 
     loop->run();
+    signal->close();
+    idle->clear();
+    idle->close();
 
     auto elapsed = chrono::duration_cast<Duration>(Clock::now() - start_time);
     auto status = dashboard.status();
     cout << "---------------" << endl;
-    cout << "Done tasks: " << status.first << ", total downloaded: " << status.second << ", time elapsed: " << elapsed.count() << " seconds" << endl;
+    cout << "Done tasks: " << status.first << ", total downloaded: " << status.second << " bytes, time elapsed: " << elapsed.count() << " seconds" << endl;
 
     return 0;
 }
