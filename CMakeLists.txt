@@ -20,8 +20,6 @@ set(PROJECT_INCLUDE_DIR include)
 set(PROJECT_SRC_DIR src)
 set(PROJECT_TEST_DIR test)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_INCLUDE_DIR})
-
 set(
     CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
@@ -36,12 +34,9 @@ find_package(GoogleTest)
 find_package(Threads)
 
 include_directories(
-    ${UV_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_INCLUDE_DIR}
     ${UVW_INCLUDE_DIR}
-    ${http-parser_INCLUDE_DIR}
-    ${docopt_DIR}
-    ${GoogleTest_INCLUDE_DIRS}
-    )
+)
 
 set(SRC_LIST
     main.cpp
@@ -66,15 +61,3 @@ if(${GoogleTest_FOUND})
     include(CTest)
     add_subdirectory(test)
 endif()
-
-file(
-    GLOB_RECURSE PROJECT_FILES FOLLOW_SYMLINKS
-    *.txt *.c *.cpp *.hpp *.h *.in *.cmake *.sh *.md AUTHORS
-)
-
-add_custom_target(
-    QTCREATOR_FALLBACK ALL
-    COMMENT "Feel free to ignore this target, but please do not remove it."
-    SOURCES ${PROJECT_FILES}
-)
-
